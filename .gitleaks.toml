@@ -1,0 +1,5 @@
+# gitleaks configuration for the pre-commit hook and the CI secret scan (TOOL-13, specs/security.md).
+# Uses gitleaks' built-in rules unchanged. The full history was scanned clean with them on 2026-11-26,
+# so no allowlist is needed; add one only with a written reason, never to silence a real finding.
+[extend]
+useDefault = true

@@ -15,7 +15,8 @@
     "test": "vitest run",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "tools": "node tools/cli.ts"
+    "tools": "node tools/cli.ts",
+    "setup-hooks": "git config core.hooksPath .site/tools/hooks"
   },
   "dependencies": {
     "@astrojs/markdown-remark": "7.3.10",

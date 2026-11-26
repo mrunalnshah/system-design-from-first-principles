@@ -46,9 +46,41 @@ jobs:
       - name: Plan check (TOOL-03)
         run: npm run tools -- check
 
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GITLEAKS_VERSION: 8.30.1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the whole history: anything ever pushed stays public
+          persist-credentials: false
+      - name: Install gitleaks (checksum-verified)
+        run: |
+          mkdir -p .tools/gitleaks && cd .tools/gitleaks
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          curl -fsSLO "$base/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSLO "$base/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          grep " gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz$" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum -c -
+          tar -xzf "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" gitleaks
+      - name: Scan the whole history
+        run: .tools/gitleaks/gitleaks git --redact --no-banner --config ../.gitleaks.toml ..
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26.13.1
+          cache: npm
+          cache-dependency-path: .site/package-lock.json
+      - run: npm ci
+      - name: The pre-commit hook blocks a secret (TOOL-13)
+        run: npx vitest run tests/secrets.test.ts
+        env:
+          REQUIRE_GITLEAKS: "1"
+
   build:
     name: Build
-    needs: checks
+    needs: [checks, secrets]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:

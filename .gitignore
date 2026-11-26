@@ -16,3 +16,6 @@
 sdfp-website-architecture.zip
 .obsidian/plugins/*/main.js
 .obsidian/plugins/*/styles.css
+
+# Local copies of security tools (gitleaks for the pre-commit hook, TOOL-13); CI downloads its own.
+.site/.tools/

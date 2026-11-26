@@ -16,7 +16,7 @@ describe("publish workflow", () => {
     const on = topLevel("on");
     expect(on).toMatch(/^  push:\n    branches: \[main\]/m);
     expect(on).not.toMatch(/paths(-ignore)?:/);
-    expect(job("build")).toMatch(/needs: checks/);
+    expect(job("build")).toMatch(/needs: \[checks, secrets\]/);
     expect(job("deploy")).toMatch(/needs: build/);
     expect(job("deploy")).toMatch(/if: github\.event_name != 'pull_request' && github\.ref == 'refs\/heads\/main'/);
     expect(workflow).not.toMatch(/dorny\/paths-filter|changed-files/);
@@ -26,6 +26,7 @@ describe("publish workflow", () => {
     expect(topLevel("permissions")).toBe("  contents: read\n\n");
     expect(job("deploy")).toMatch(/permissions:\n      pages: write\n      id-token: write/);
     expect(job("checks")).not.toMatch(/permissions:/);
+    expect(job("secrets")).not.toMatch(/permissions:/);
     expect(job("build")).not.toMatch(/permissions:/);
   });
 

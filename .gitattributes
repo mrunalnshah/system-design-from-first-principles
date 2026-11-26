@@ -1,0 +1,2 @@
+# Shell scripts must keep LF endings on every platform, or sh fails on the first line (TOOL-13 hook).
+.site/tools/hooks/* text eol=lf

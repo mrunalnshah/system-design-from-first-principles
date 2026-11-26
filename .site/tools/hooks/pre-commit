@@ -1,0 +1,26 @@
+#!/bin/sh
+# Pre-commit secret scan (TOOL-13, specs/security.md). Install once with:
+#   npm --prefix .site run setup-hooks
+# Blocks the commit when gitleaks finds a likely secret in the staged changes. The repository is
+# public (CNF-003), so anything committed is readable by anyone, forever, in the history.
+#
+# gitleaks is looked up in this order: $GITLEAKS, .site/.tools/gitleaks/ (the checksum-verified
+# local copy), then PATH. Without it the commit goes through with a warning; CI still scans every push.
+root=$(git rev-parse --show-toplevel) || exit 1
+gl="${GITLEAKS:-}"
+if [ -z "$gl" ]; then
+  for candidate in "$root/.site/.tools/gitleaks/gitleaks.exe" "$root/.site/.tools/gitleaks/gitleaks"; do
+    if [ -x "$candidate" ]; then gl="$candidate"; break; fi
+  done
+fi
+if [ -z "$gl" ] && command -v gitleaks >/dev/null 2>&1; then gl=gitleaks; fi
+if [ -z "$gl" ]; then
+  echo "pre-commit: gitleaks isn't installed, so this commit wasn't scanned for secrets. CI will still scan the push." >&2
+  exit 0
+fi
+
+if ! "$gl" git --pre-commit --staged --redact --no-banner --log-level warn --config "$root/.gitleaks.toml" "$root"; then
+  echo "pre-commit: gitleaks found what looks like a secret in the staged changes (details above, value redacted)." >&2
+  echo "Remove it from the file, then commit again. If it was ever pushed, revoke the key as well." >&2
+  exit 1
+fi
