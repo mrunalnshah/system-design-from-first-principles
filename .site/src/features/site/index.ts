@@ -5,6 +5,6 @@
  * config before it can read the .astro component exported below.)
  */
 export { absoluteUrl, url, type Route } from "./url.ts";
-export { buildIssues, type BuildIssue, type IssueCollector } from "./issues.ts";
+export { buildIssues, createIssueCollector, type BuildIssue, type IssueCollector } from "./issues.ts";
 export { buildReport } from "./build-report.ts";
 export { default as BaseLayout } from "./BaseLayout.astro";

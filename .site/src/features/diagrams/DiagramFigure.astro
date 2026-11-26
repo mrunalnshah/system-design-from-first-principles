@@ -1,0 +1,27 @@
+---
+/**
+ * One themed diagram outside a chapter's text, such as the homepage hero (REQ-HOME-001.AC3).
+ * Props: `file`, the vault path of either variant (its partner is found the usual way); `alt`, its text
+ * alternative (also its caption when `caption` is true); `eager` for a figure at the top of the page.
+ */
+import { resolve } from "node:path";
+import { getDiagramIndex } from "./index-svg.ts";
+import { planFigure } from "./pairs.ts";
+import { figureHtml } from "./figure.ts";
+import "./figure.css";
+
+interface Props {
+  file: string;
+  alt: string;
+  caption?: boolean;
+  eager?: boolean;
+}
+const { file, alt, caption = false, eager = false } = Astro.props;
+// The vault is the folder above .site/, where the build runs (npm --prefix .site).
+const index = await getDiagramIndex(resolve(process.cwd(), ".."));
+const { plan } = planFigure(index, { files: [file], alias: alt, fromPath: file, line: 1 });
+if (!plan) throw new Error(`DiagramFigure: "${file}" isn't in the diagram index (a part folder or articles/)`);
+const html = figureHtml(plan.light, plan.dark, alt, caption ? alt : undefined, eager);
+---
+
+<Fragment set:html={html} />

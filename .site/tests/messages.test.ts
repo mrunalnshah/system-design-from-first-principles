@@ -2,11 +2,9 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { readVault } from "../src/features/content/index.ts";
+import { createFigureRenderer, getDiagramIndex } from "../src/features/diagrams/index.ts";
 import { createFileResolver, renderObsidian } from "../src/features/markdown/index.ts";
-// The report's own files, not ../src/features/site/index.ts: that index also exports an .astro component, which
-// Vitest (plain Vite, without Astro's plugin) can't load.
-import { buildReport } from "../src/features/site/build-report.ts";
-import { createIssueCollector } from "../src/features/site/issues.ts";
+import { buildReport, createIssueCollector } from "../src/features/site/index.ts";
 
 /**
  * TOOL-15 Build-message harness (plan/tools.md, NFR-013, specs/contracts/build-messages.md).
@@ -59,13 +57,14 @@ function waitingFor(code: string): string | undefined {
 
 /**
  * Every issue a fixture vault produces: the vault's own, then each published entry's render, with the context the
- * loader (T-01.14) will give: links to published entries, embeds over the vault's files, chapter numbering, and a
- * stand-in figure (MOD-diagrams draws the real one).
+ * loader (T-01.14) will give: links to published entries, embeds over the vault's files, chapter numbering, and
+ * MOD-diagrams' figure renderer over the fixture's own diagram index.
  */
 async function issuesOf(vaultDir: string) {
   const vault = readVault(vaultDir);
   const files = allFiles(vaultDir);
   const entries = [...vault.chapters, ...vault.articles, ...vault.pages];
+  const figure = createFigureRenderer(await getDiagramIndex(vaultDir));
   const notes = new Map(entries.map((e) => [e.sourcePath.split("/").pop()!.replace(/\.md$/, ""), { href: `/${e.kind}/${e.slug}/`, title: e.title }]));
   const rendered = await Promise.all(
     entries.map((e) =>
@@ -74,7 +73,7 @@ async function issuesOf(vaultDir: string) {
         resolveFile: createFileResolver(files),
         resolveNote: (target) => notes.get(target),
         headingNumbers: e.kind === "chapter" ? { prefix: String(e.number) } : false,
-        figure: () => ({ html: "<figure></figure>", issues: [] }),
+        figure,
       }),
     ),
   );
