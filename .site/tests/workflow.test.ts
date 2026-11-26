@@ -16,7 +16,7 @@ describe("publish workflow", () => {
     const on = topLevel("on");
     expect(on).toMatch(/^  push:\n    branches: \[main\]/m);
     expect(on).not.toMatch(/paths(-ignore)?:/);
-    expect(job("build")).toMatch(/needs: \[checks, secrets\]/);
+    expect(job("build")).toMatch(/needs: \[checks, secrets, e2e\]/); // nothing deploys unless the screen tests pass too
     expect(job("deploy")).toMatch(/needs: build/);
     expect(job("deploy")).toMatch(/if: \(github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'\) && github\.ref == 'refs\/heads\/main'/);
     expect(workflow).not.toMatch(/dorny\/paths-filter|changed-files/);

@@ -6,6 +6,8 @@
 # Website build output and dependencies (ADR-0002)
 .site/node_modules/
 .site/dist/
+.site/test-results/
+.site/playwright-report/
 .site/.astro/
 
 # Obsidian's per-device window layout
