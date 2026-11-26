@@ -40,7 +40,7 @@ Open `design/preview/index.html` in any browser to see what you're building befo
 | R-01 | 0 | Project scaffold and tracker | 5 | Standard |
 | R-02 | 0 | Packer and plan checker | 8 | Standard |
 | R-03 | 0 | Publish pipeline, secrets, spike S-01 | 11 | Careful |
-| R-04 | 0 | First live slice, boundaries, audit, Excalidraw check | 9 | Standard |
+| R-04 | 0 | First live slice, boundaries, audit, Excalidraw check | 10 | Standard |
 | R-05 | 1 | Tokens, build report, vault scan | 11 | Standard |
 | R-06 | 1 | Vault validation, summaries, Markdown core, embeds | 13 | Standard |
 | R-07 | 1 | Math, headings, footnotes, harness, diagram index | 13 | Standard |

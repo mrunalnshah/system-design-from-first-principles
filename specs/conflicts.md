@@ -50,8 +50,8 @@ Passes run at intake, after the specification, during the stack choice and after
 - Why: GitHub's docs ([custom 404](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-custom-404-page-for-your-github-pages-site)) describe a `404.html` at the publishing root, but not explicitly for an Actions-deployed project site under a sub-path.
 - Options:
   1. Check it on the first live deploy of the walking skeleton (request an unknown address; expect status 404 and the friendly page). If it fails, accept GitHub's default 404 for now and log a change request.
-- Status: accepted (checked in the walking skeleton)
-- Decision: checked live in T-00.08 (round R-04, moved by CR-0002), the first deploy; the styled 404 follows in T-03.04.
+- Status: resolved
+- Decision: checked live on 2026-11-26 after T-00.08's deploy (run 45869148017): `…/system-design-from-first-principles/book/does-not-exist/` returns HTTP 404 with our own page (title \"Page not found · System Design from First Principles\") and base-path links. GitHub Pages serves the project site's `404.html` as hoped; no fallback needed.
 
 ### CNF-006 Homepage hero diagram size versus the 4G speed budget
 - Between: REQ-HOME-001 (hero diagram), NFR-001 (LCP ≤ 2.5 s on 4G), diagram 01 (~213 KB per variant)

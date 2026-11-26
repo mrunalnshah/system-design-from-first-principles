@@ -1,6 +1,6 @@
 # Roadmap: System Design from First Principles (website)
 
-Phases are vertical slices ordered by risk. The riskiest assumptions (Astro's loader from a dot folder, Obsidian fidelity, diagrams in both themes) are tested first. 49 tasks, 141 points (CR-0002); R-01 at the original 8-point budget, then 14 rounds at 13 points after the R-01 calibration (plan/rounds.md).
+Phases are vertical slices ordered by risk. The riskiest assumptions (Astro's loader from a dot folder, Obsidian fidelity, diagrams in both themes) are tested first. 49 tasks, 142 points (CR-0002, CR-0003); R-01 at the original 8-point budget, then 14 rounds at 13 points after the R-01 calibration (plan/rounds.md).
 
 | Phase | Goal | Requirements | Exit criteria | Demo |
 |---|---|---|---|---|

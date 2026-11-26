@@ -95,6 +95,7 @@ All tools live in `.site/tools/`, are reached through `.site/tools/cli.ts`, and 
 - Acceptance:
   - TOOL-08.AC1: Given the shipped tokens, when `contrast` runs, then every pair passes and the lowest ratio is printed.
   - TOOL-08.AC2: Given `text-muted` changed to `#9aa3b0` in light mode, when `contrast` runs, then it fails naming the pair and its ratio.
+  - TOOL-08.AC3: Given a `#1d5fbf`, `rgb(…)` or `hsl(…)` colour in a component's CSS or an `.astro` style block outside `tokens.css`, when `contrast` runs, then it fails naming the file and line (CR-0003: the standards' "no raw colour values" rule, with no new dependency).
 
 ### TOOL-09 Screen test harness (screenshots, axe, JS off)
 - Trigger: screens with specified states (design/screens/*.md), NFR-003, NFR-004, NFR-010, NFR-011

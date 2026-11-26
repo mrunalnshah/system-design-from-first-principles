@@ -12,4 +12,4 @@ Tokens are DTCG 2025.10 with light and dark themes (design/tokens.json). The loo
 Option 1.
 
 ## Consequences
-A lint rule forbids raw colour values in component CSS; the contrast check runs on the token pairs in CI.
+The contrast tool (TOOL-08) checks the token pairs and also fails on any raw colour value outside `tokens.css` (CR-0003: no stylesheet-linter dependency).
