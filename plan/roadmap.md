@@ -1,6 +1,6 @@
 # Roadmap: System Design from First Principles (website)
 
-Phases are vertical slices ordered by risk. The riskiest assumptions (Astro's loader from a dot folder, Obsidian fidelity, diagrams in both themes) are tested first. 49 tasks, 140 points; R-01 at the original 8-point budget, then 14 rounds at 13 points after the R-01 calibration (plan/rounds.md).
+Phases are vertical slices ordered by risk. The riskiest assumptions (Astro's loader from a dot folder, Obsidian fidelity, diagrams in both themes) are tested first. 49 tasks, 141 points (CR-0002); R-01 at the original 8-point budget, then 14 rounds at 13 points after the R-01 calibration (plan/rounds.md).
 
 | Phase | Goal | Requirements | Exit criteria | Demo |
 |---|---|---|---|---|
@@ -13,7 +13,7 @@ Phases are vertical slices ordered by risk. The riskiest assumptions (Astro's lo
 ## Spikes and live checks
 - **S-01 (T-00.07, R-03):** Astro 7 custom loader storing our own `rendered.html`, from the `.site/` dot folder with content one level up (CNF-004). Fallbacks are in ADR-0002 and ADR-0003.
 - **S-02 (T-00.11, R-04):** with the author, the Excalidraw plugin's auto-export file names (CNF-008), before the diagram index (T-01.12).
-- **CNF-005 (T-00.08, R-03):** GitHub Pages 404 for the project site, checked on the first live deploy.
+- **CNF-005 (T-00.08, R-04):** GitHub Pages 404 for the project site, checked on the first live deploy.
 - **CNF-006 (T-02.05, R-11):** hero diagram LCP measured with Lighthouse CI (TOOL-10 from T-01.20).
 
 ## Critical path

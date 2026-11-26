@@ -51,7 +51,7 @@ Passes run at intake, after the specification, during the stack choice and after
 - Options:
   1. Check it on the first live deploy of the walking skeleton (request an unknown address; expect status 404 and the friendly page). If it fails, accept GitHub's default 404 for now and log a change request.
 - Status: accepted (checked in the walking skeleton)
-- Decision: checked live in T-00.08 (round R-03), the first deploy; the styled 404 follows in T-03.04.
+- Decision: checked live in T-00.08 (round R-04, moved by CR-0002), the first deploy; the styled 404 follows in T-03.04.
 
 ### CNF-006 Homepage hero diagram size versus the 4G speed budget
 - Between: REQ-HOME-001 (hero diagram), NFR-001 (LCP ≤ 2.5 s on 4G), diagram 01 (~213 KB per variant)

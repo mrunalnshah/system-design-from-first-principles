@@ -7,8 +7,8 @@ One round per conversation. A Careful task always comes first in its round; befo
 |---|---|---|---|---|---|---|
 | R-01 | 0 | Project scaffold and tracker | T-00.01, T-00.02 | 5 | Standard | `npm --prefix .site run build` works; `<tools> status` runs |
 | R-02 | 0 | Packer and plan checker | T-00.03, T-00.04 | 8 | Standard | `<tools> check` passes on the real plan |
-| R-03 | 0 | Publish pipeline, secrets, spike S-01, first live slice | T-00.05, T-00.06, T-00.07, T-00.08 | 13 | Careful | CI green; placeholder live on GitHub Pages; CNF-004 and CNF-005 recorded |
-| R-04 | 0 | Boundaries, audit, Excalidraw check | T-00.09, T-00.10, T-00.11 | 6 | Standard | Boundary and audit jobs green; CNF-008 recorded |
+| R-03 | 0 | Publish pipeline, secrets, spike S-01 | T-00.05, T-00.06, T-00.07 | 11 | Careful | CI green on GitHub; secrets blocked locally and in CI; CNF-004 recorded |
+| R-04 | 0 | First live slice, boundaries, audit, Excalidraw check | T-00.08, T-00.09, T-00.10, T-00.11 | 9 | Standard | Placeholder live on GitHub Pages; CNF-005 and CNF-008 recorded; boundary and audit jobs green |
 | R-05 | 1 | Tokens, build report, vault scan | T-01.01, T-01.02, T-01.03 | 11 | Standard | tokens.css generated; fixture vault classified and ordered |
 | R-06 | 1 | Vault validation, summaries, Markdown core, embeds | T-01.04, T-01.05, T-01.06, T-01.07 | 13 | Standard | Golden tests for frontmatter, core Obsidian syntax and embeds pass |
 | R-07 | 1 | Math, headings, footnotes, harness, diagram index | T-01.08, T-01.09, T-01.10, T-01.11, T-01.12 | 13 | Standard | Chapter 1 golden HTML has math and numbered sections; Playwright harness in CI |
@@ -28,9 +28,10 @@ After R-01, after any round that ends with a task unfinished, and whenever the u
 |---|---|---|
 | 2026-11-26 | 8 | starting size: Medium (user's choice) |
 | 2026-11-26 | 13 | after R-01: "easy, I could do more" (one step up) |
+| 2026-11-26 | 13 | CR-0002: T-00.06 resized S/2 → M/3; T-00.08 moved from R-03 to R-04 (budget unchanged) |
 
 ## Calendar estimate
-135 points left in 14 rounds. At the planned pace of 1–2 hours per 8 points, that's about 17–34 hours: roughly **2–3½ weeks** at 10 hours a week, plus the author's one-time GitHub and Obsidian setup (T-00.05, T-00.11, launch checklist). No deadline is set. Recomputed after each calibration.
+136 points left in 14 rounds. At the planned pace of 1–2 hours per 8 points, that's about 17–34 hours: roughly **2–3½ weeks** at 10 hours a week, plus the author's one-time GitHub and Obsidian setup (T-00.05, T-00.11, launch checklist). No deadline is set. Recomputed after each calibration.
 
 ## Parallel rounds (L3 only)
 Rounds run one at a time by default, because each phase builds on the last. Inside a round, tasks marked `parallel_safe: true` touch different files and may run in parallel subagents.
