@@ -70,3 +70,6 @@
 2026-11-26T19:24Z · R-05 · verify · 12 files / 102 tests passed; eslint clean; "no dependency violations found (26 modules, 70 dependencies cruised)"; astro check 0 errors 0 warnings; "Plan check passed: 51 tasks in 15 rounds."; "Contrast passed: 26 pairs, lowest 5.53:1 (light accent on code-bg); no raw colours."; trace written; build Complete (prebuild wrote tokens.css)
 2026-11-26T19:24Z · R-05 · note · found part-1_foundations/diagram/0{1,2}-{light,dark}.svg deleted by the author at 14:13 while chapter-1 still embeds ![[01-light.svg]] etc.; author content, left untouched and out of this commit; told the author. A stray root node_modules/ (vitest cache from running vitest at the vault root) removed
 2026-11-26T19:31Z · R-05 · all three · re-review · all 5 fixes confirmed; must-fix: named-colour line number (\w lost in a template literal) → String.raw + test; also: guide test regex escapes \., git reset after a failed add, cancel no longer says 'fix the above', guide lists 'Couldn't push to GitHub'; 102/102, lint/boundaries/check/contrast/plan check clean
+2026-11-26T19:26Z · R-05 · T-01.22 · done
+2026-11-26T19:26Z · R-05 · T-01.21 · done
+2026-11-26T19:26Z · R-05 · T-01.01 · done
