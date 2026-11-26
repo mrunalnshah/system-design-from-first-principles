@@ -46,7 +46,13 @@ WHEN a page with diagrams loads THE SYSTEM SHALL reserve each diagram's space fr
 
 ### REQ-DIAG-006 Drawing sources stay private
 Priority: must · Screens: none · Journeys: J5
-WHEN the author saves Excalidraw drawings in the vault THE SYSTEM SHALL keep the drawing sources (`*.excalidraw.md`, `*.excalidraw`) out of git and off the website, publish only the exported SVGs, and report an embed of a drawing source as a build error that suggests the exported SVG.
+WHEN the author saves Excalidraw drawings in the vault THE SYSTEM SHALL keep the drawing sources (`*.excalidraw.md`, `*.excalidraw`) out of git and off the website, and publish only the exported SVGs; an embed of a drawing resolves to those images (REQ-DIAG-007, CR-0005).
 - REQ-DIAG-006.AC1: Given `part-1_foundations/excalidraw/01_computer-architecture.excalidraw.md`, when `git status` runs after it's saved, then the file is ignored (`.gitignore` rule).
-- REQ-DIAG-006.AC2: Given a chapter that embeds `![[01_computer-architecture.excalidraw]]`, when the build runs, then it stops with E-EMBED-DRAWING: "Embed the exported SVG instead, e.g. ![[01_computer-architecture.excalidraw.light.svg]]."
+- REQ-DIAG-006.AC2: Given a chapter that embeds `![[01_computer-architecture.excalidraw]]`, when the build runs, then the drawing source is never read or published, and the embed resolves to its exported images (REQ-DIAG-007).
 - REQ-DIAG-006.AC3: Given the built site, when its files are listed, then none is an Excalidraw source.
+
+### REQ-DIAG-007 Drawing embeds become themed images
+Priority: must · Screens: design/screens/chapter.md · Journeys: J1, J5
+WHEN an entry embeds a drawing (`![[<name>.excalidraw]]`, with an optional `|caption`) THE SYSTEM SHALL render the `<name>-light.svg` / `<name>-dark.svg` pair from the vault's `diagram/` folders (closest to the entry first) as one themed figure, without reading the gitignored drawing source (CR-0005).
+- REQ-DIAG-007.AC1: Given `![[01_computer-architecture.excalidraw|How a computer is put together]]` and `part-1_foundations/diagram/01_computer-architecture-light.svg` and `-dark.svg`, when it's rendered, then one figure follows the theme, with that caption.
+- REQ-DIAG-007.AC2: Given a drawing embed with no images in any `diagram/` folder, when the build runs, then it stops with E-DRAWING-NOT-EXPORTED naming the entry, the line and the drawing, and saying to save it in Obsidian and run sync.

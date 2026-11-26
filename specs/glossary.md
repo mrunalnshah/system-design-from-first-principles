@@ -18,6 +18,8 @@
 | Diagram | An SVG embedded in an entry, exported from Excalidraw | `Diagram` |
 | Drawing | The Excalidraw source of a diagram (`*.excalidraw.md`); gitignored, never published | `Drawing` |
 | Auto-export | The Excalidraw plugin settings "Auto-export SVG" + "Export both light and dark", which write a drawing's SVG pair on every save | — |
+| Sync | The author's one-step publish: collect diagram images, check, build, commit, push (`sync.cmd`, REQ-AUTH-001) | `sync` |
+| Drawing embed | `![[<name>.excalidraw|Caption]]` in an entry; the site shows `diagram/<name>-light.svg`/`-dark.svg` (REQ-DIAG-007) | `DrawingEmbed` |
 | Redirect page | A small page at an old address (from `moved_from`) that sends readers to the current one | `RedirectPage` |
 | Diagram pair | Two SVGs with the same base name ending in `-light`/`-dark` (`01-light.svg`) or `.light`/`.dark` (auto-export), shown as one figure that follows the theme | `DiagramPair` |
 | Section | A heading inside a chapter; `#` becomes section 1.1, `##` becomes 1.1.1 | `Section` |

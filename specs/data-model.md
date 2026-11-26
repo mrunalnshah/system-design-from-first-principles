@@ -12,6 +12,7 @@ There's no database. All data lives in the author's Markdown files, and the buil
 | `articles/<slug>.md` | `Article` | `#/$defs/article` |
 | `**/*.svg` (inside part folders and `articles/`) | `Diagram` | `-light`/`-dark` or `.light`/`.dark` naming (REQ-DIAG-001); alt text from the SVG's `<text>` elements |
 | `**/*.excalidraw.md`, `**/*.excalidraw` | nothing: drawing sources are gitignored and never read by the build (REQ-DIAG-006) | — |
+| `part-*/excalidraw/<name>.excalidraw.{light,dark}.svg` | moved by sync to `part-*/diagram/<name>-{light,dark}.svg`, the images a drawing embed resolves to (REQ-AUTH-002, REQ-DIAG-007) | — |
 | everything else | ignored | REQ-CNT-003 |
 
 ## Build-time types

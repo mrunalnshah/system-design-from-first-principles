@@ -5,6 +5,7 @@
 <repo root = Obsidian vault>
 ├── book.md  about.md  part-*/  articles/          author content (never written by tools)
 ├── AGENTS.md  CLAUDE.md  START-HERE.md  specs/  design/  plan/  .blueprint/  .claude/
+├── sync.cmd  WRITING-GUIDE.md  templates/                author tools and guide (CR-0005; templates are never published)
 ├── .github/workflows/publish.yml
 └── .site/                                          all code (ADR-0002)
     ├── package.json  package-lock.json  .npmrc  astro.config.ts  tsconfig.json

@@ -17,3 +17,6 @@ Option 1. It's the only option that guarantees the website shows exactly what th
 - Harder: the drawing sources exist only on the author's computer, so their backup is the author's job (launch checklist).
 - Alt text comes from the SVG's own `<text>` elements, so the build never needs the sources (REQ-DIAG-004).
 - Follow-up: spike S-02 confirms the auto-export names and folder; `.gitignore` gets the drawing rules (REQ-DIAG-006).
+
+## Amendment (CR-0005, 2026-11-26)
+The author embeds drawings directly (`![[<name>.excalidraw|Caption]]`), so Obsidian shows the live drawing. Sync moves the plugin's exports into the part's `diagram/` folder as `<name>-light.svg` / `<name>-dark.svg`, refusing missing or stale ones, and the build swaps each drawing embed for that image pair (REQ-DIAG-007). Chapter files are never rewritten.

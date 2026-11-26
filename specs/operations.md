@@ -40,9 +40,9 @@ One-time setup (author, in the launch checklist): repository Settings → Pages 
 ## Runbooks
 ### R0 Making or changing a diagram
 1. One-time: in Obsidian → Settings → Excalidraw → embedding and exporting, turn on **Auto-export SVG** and **Export both dark- and light-themed image** (settings `autoexportSVG` and `autoExportLightAndDark` in plugin 2.29.4).
-2. Draw or edit in Excalidraw and save. The plugin writes the light and dark SVGs next to the drawing.
-3. Embed the light SVG in the chapter, ideally with a caption: `![[name.excalidraw.light.svg|What it shows]]`. The site pairs it with the dark one.
-4. Commit and push. The drawing source stays out of git automatically.
+2. Draw or edit in Excalidraw and save (Ctrl+S). The plugin writes the light and dark SVGs next to the drawing.
+3. Embed the drawing itself in the chapter, ideally with a caption: `![[name.excalidraw|What it shows]]`. Obsidian shows the drawing; the website shows its themed images (REQ-DIAG-007).
+4. Double-click `sync.cmd`. It moves the images into `diagram/`, checks every drawing is exported and current, builds the site, then commits and pushes. The drawing source stays out of git automatically (CR-0005).
 
 ### R1 The publish failed
 1. Open the failed run (link in the email) → the `build` job → the "Build report" step at the end of the log.

@@ -18,6 +18,9 @@ Open `design/preview/index.html` in any browser to see what you're building befo
 - **R-04 (T-00.11):** in Obsidian → Settings → Excalidraw, turn on **Auto-export SVG** and **Export both dark- and light-themed image**, then save one drawing so the AI can record the file names.
 - **Before launch:** write `book.md` (title, author, author_url, hero_image) and `about.md` in Obsidian. The build tells you exactly what's missing.
 
+## Writing and publishing
+Read `WRITING-GUIDE.md` (from round R-05): it explains the folder layout, every frontmatter field, diagrams, drafts and featured chapters, and what each message means. Start new chapters and articles from `templates/`. To publish, save in Obsidian and double-click `sync.cmd` at the vault root (also from R-05).
+
 ## Rounds and care levels
 - A round is one conversation's worth of work. Run one round, check the result, then start a fresh conversation for the next.
 - After round R-01, and whenever a round runs out, your AI asks how it felt and makes the remaining rounds one step bigger or smaller. You can also say "rounds feel too long" or "too short" at any time.
@@ -41,14 +44,14 @@ Open `design/preview/index.html` in any browser to see what you're building befo
 | R-02 | 0 | Packer and plan checker | 8 | Standard |
 | R-03 | 0 | Publish pipeline, secrets, spike S-01 | 11 | Careful |
 | R-04 | 0 | First live slice, boundaries, audit, Excalidraw check | 10 | Standard |
-| R-05 | 1 | Tokens, build report, vault scan | 11 | Standard |
-| R-06 | 1 | Vault validation, summaries, Markdown core, embeds | 13 | Standard |
-| R-07 | 1 | Math, headings, footnotes, harness, diagram index | 13 | Standard |
-| R-08 | 1 | Figures, Chapter 1 live, site shell | 13 | Standard |
-| R-09 | 1 | Reader layout, menu, margin notes, viewer | 11 | Standard |
-| R-10 | 1 | Performance and link guards | 3 | Standard |
+| R-05 | 1 | Sync command, writing guide, design tokens | 11 | Careful |
+| R-06 | 1 | Build report and vault model | 13 | Standard |
+| R-07 | 1 | Markdown core, embeds, math, headings | 13 | Standard |
+| R-08 | 1 | Footnotes, test harness, diagram index, figures | 11 | Standard |
+| R-09 | 1 | Chapter 1 live, site shell, reader layout | 13 | Standard |
+| R-10 | 1 | Menu, margin notes, viewer, performance guards | 11 | Standard |
 
-… and 5 more (R-11 to R-15 in `plan/rounds.md`). About 17–34 hours of building are left, roughly 2–3½ weeks at 10 hours a week.
+… and 5 more (R-11 to R-15 in `plan/rounds.md`). About 15–29 hours of building are left (116 points), roughly 1½–3 weeks at 10 hours a week.
 
 ## If a round runs out
 Progress is logged after every step, so you lose at most one step. Start a fresh conversation and send `Resume round R-xx from .blueprint/progress.md.` Your AI finishes that task first and makes the following rounds one step smaller, unless you say it was a one-off.

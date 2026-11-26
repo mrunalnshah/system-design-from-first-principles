@@ -59,3 +59,4 @@
 2026-11-26T17:59Z · R-04 · T-00.11 · fix · cb4ee39 marked T-00.11 done but my CNF-008 edit had crashed (regex escape) and the chain continued; CNF-008 now recorded as resolved in a follow-up commit
 2026-11-26T18:06Z · R-04 · end · phase 0 complete (11/49 tasks); check + trace clean; live: home 200, unknown path 404 (ours, noindex); awaiting G6 approval
 2026-11-26T18:19Z · phase 0 · G6 approved by the user; phase 1 starts with R-05
+2026-11-26T18:54Z · planning · CR-0005 approved and merged (user's request before R-05): FEAT-authoring (REQ-AUTH-001 sync, -002 diagram images into diagram/, -003 writing guide + templates), REQ-DIAG-007 drawing embeds → themed images, REQ-DIAG-006 no longer errors on drawing embeds, E-EMBED-DRAWING → E-DRAWING-NOT-EXPORTED, MOD-authoring; new tasks T-01.22 (sync, Careful M/5) and T-01.21 (guide M/3); R-05..R-10 regrouped (R-05 = T-01.22, T-01.21, T-01.01); 51 tasks, 150 points, 116 left

@@ -21,7 +21,7 @@ Dependency direction (no cycles): `site ← book ← vault → obsidian-markdown
 - Hides: the remark/rehype plugin list and order; wikilink and embed parsing; diagram-pair grouping of consecutive embeds; callout, highlight and comment syntax; footnote → margin-note markup; heading demotion and numbering; KaTeX rendering and error positions; Shiki configuration.
 - Depends on: @astrojs/markdown-remark (or unified directly, see ADR-0003 fallback), remark-math, katex, unist-util-visit (heading slugs are our own `slugify()`, CR-0001). MOD-diagrams is reached only through the `figure` renderer passed in `ctx` (dependency inversion at the boundary).
 - Owns data: none.
-- Serves: REQ-CNT-005, REQ-CNT-006, REQ-CNT-007 (positions), REQ-READ-004, REQ-READ-006 (markup), REQ-READ-008, REQ-DIAG-001 (pair grouping), REQ-DIAG-004 (alias)
+- Serves: REQ-CNT-005, REQ-CNT-006, REQ-CNT-007 (positions), REQ-READ-004, REQ-READ-006 (markup), REQ-READ-008, REQ-DIAG-001 (pair grouping), REQ-DIAG-004 (alias), REQ-DIAG-007 (drawing embeds)
 - Paths: .site/src/features/markdown/**
 - Failure and scaling: an unknown math command, a missing embed or an unresolvable wikilink becomes an issue with line and column; rendering is pure and per-file, so it parallelises.
 - Decision: ADR-0004, ADR-0008
@@ -32,7 +32,7 @@ Dependency direction (no cycles): `site ← book ← vault → obsidian-markdown
 - Hides: both pair-naming rules (`-light`/`-dark` and the plugin's `.light`/`.dark`); reading `viewBox` sizes; extracting alt text from the SVG's own `<text>` elements; refusing drawing-source embeds; hashed asset file names; `<picture>` + `prefers-color-scheme` markup; the zoom library.
 - Depends on: @panzoom/panzoom (client only), MOD-site (`url()`).
 - Owns data: the diagram asset routes `/diagrams/<hash>-<name>.svg`.
-- Serves: REQ-DIAG-001, REQ-DIAG-002, REQ-DIAG-003, REQ-DIAG-004, REQ-DIAG-005, REQ-DIAG-006, REQ-HOME-001 (AC3)
+- Serves: REQ-DIAG-001, REQ-DIAG-002, REQ-DIAG-003, REQ-DIAG-004, REQ-DIAG-005, REQ-DIAG-006, REQ-DIAG-007, REQ-HOME-001 (AC3)
 - Paths: .site/src/features/diagrams/**, .site/src/pages/diagrams/**, .gitignore (drawing rule)
 - Failure and scaling: a missing partner falls back to single-variant display (REQ-DIAG-001.AC4); SVG metadata is cached per file per build; the viewer script loads only on pages with figures.
 - Decision: ADR-0005, ADR-0012
@@ -91,3 +91,14 @@ Dependency direction (no cycles): `site ← book ← vault → obsidian-markdown
 - Paths: .site/src/features/site/**, .site/src/pages/**, .site/astro.config.ts, .github/workflows/**
 - Failure and scaling: a link check over `dist/` fails the build on any internal link without the base path (REQ-SITE-013).
 - Decision: ADR-0007, ADR-0011
+
+## MOD-authoring
+- Purpose: the author's side of the system: one command to publish, and the guide and templates for writing (CR-0005).
+- Interface: `sync.cmd` (double-click) and `npm --prefix .site run sync`; `WRITING-GUIDE.md`; `templates/chapter.md`, `templates/article.md`, `templates/book.md`, `templates/about.md`.
+- Hides: the git steps (pull, add, commit, push); moving Excalidraw's exports into `diagram/`; the freshness rule (images at least as new as their drawing); running the site build before anything is committed.
+- Depends on: git and npm on the author's computer; the site build (`npm run build`); the pre-commit hook (gitleaks, boundaries).
+- Owns data: none (it moves the author's exported images; it never edits chapter text).
+- Serves: REQ-AUTH-001, REQ-AUTH-002, REQ-AUTH-003
+- Paths: .site/tools/sync.ts, sync.cmd, WRITING-GUIDE.md, templates/**
+- Failure and scaling: stops before committing at the first problem; every message says what to do next.
+- Decision: ADR-0012, CR-0005

@@ -50,9 +50,9 @@
     "base_path": "/system-design-from-first-principles/"
   },
   "plan": {
-    "tasks": 49,
+    "tasks": 51,
     "rounds": 15,
-    "points": 140,
+    "points": 150,
     "first_round": "R-01 (5 points)"
   },
   "phase_gates": {

@@ -16,7 +16,7 @@ Every problem the build finds is a `BuildIssue` with a code, a file, a line wher
 | E-CHAPTER-DUPLICATE | error | two chapters share a number | "Renumber one of them: <file A>, <file B>." |
 | E-SLUG-CLASH | error | two entries resolve to the same address, or a reserved slug is used | "Rename one file." |
 | E-EMBED-MISSING | error | `![[file]]` names no file in the vault | "Check the spelling, or add the file." |
-| E-EMBED-DRAWING | error | an entry embeds a drawing source (`*.excalidraw`) instead of its exported SVG | "Embed the exported SVG instead, e.g. ![[name.excalidraw.light.svg]]." |
+| E-DRAWING-NOT-EXPORTED | error | an entry embeds a drawing (`![[name.excalidraw]]`) but no `name-light.svg` / `name-dark.svg` exists in a `diagram/` folder | "Open the drawing in Obsidian, save it (Ctrl+S), then run sync so its images are collected." (CR-0005) |
 | E-REDIRECT-CLASH | error | a `moved_from` slug is also a live slug or another entry's old slug | "Remove it from moved_from in one of: <file A>, <file B>." |
 | E-MATH | error | KaTeX can't parse a formula (e.g. `\micro`) | "Use a supported command; for micro, write \mu." |
 | W-LINK-UNRESOLVED | warning | `[[note]]` matches no published entry | "Check the name, or publish that note." (rendered as plain text) |
