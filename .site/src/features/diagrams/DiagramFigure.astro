@@ -1,10 +1,11 @@
 ---
 /**
  * One themed diagram outside a chapter's text, such as the homepage hero (REQ-HOME-001.AC3).
- * Props: `file`, the vault path of either variant (its partner is found the usual way); `alt`, its text
- * alternative (also its caption when `caption` is true); `eager` for a figure at the top of the page.
+ * Props (interfaces.md): `file`, the vault path of either variant (its partner is found the usual way); `alt`, its
+ * text alternative (without it, the words in the diagram are used); `eager` for a figure at the top of the page.
+ * Problems (a missing or unpaired image) go to the build report like any other.
  */
-import { resolve } from "node:path";
+import { buildIssues, vaultRoot } from "../site/index.ts";
 import { getDiagramIndex } from "./index-svg.ts";
 import { planFigure } from "./pairs.ts";
 import { figureHtml } from "./figure.ts";
@@ -12,16 +13,15 @@ import "./figure.css";
 
 interface Props {
   file: string;
-  alt: string;
-  caption?: boolean;
+  alt?: string;
   eager?: boolean;
 }
-const { file, alt, caption = false, eager = false } = Astro.props;
-// The vault is the folder above .site/, where the build runs (npm --prefix .site).
-const index = await getDiagramIndex(resolve(process.cwd(), ".."));
-const { plan } = planFigure(index, { files: [file], alias: alt, fromPath: file, line: 1 });
-if (!plan) throw new Error(`DiagramFigure: "${file}" isn't in the diagram index (a part folder or articles/)`);
-const html = figureHtml(plan.light, plan.dark, alt, caption ? alt : undefined, eager);
+const { file, alt, eager = false } = Astro.props;
+const index = await getDiagramIndex(vaultRoot());
+// An alt given here is the description; captions belong to chapter figures, so none is drawn and none is asked for.
+const { plan, issues } = planFigure(index, { files: [file], alias: alt ?? "", fromPath: file, line: 1 });
+issues.filter((i) => i.code !== "W-DIAGRAM-NO-CAPTION").forEach((i) => buildIssues.add(i));
+const html = plan ? figureHtml(index, plan.light, plan.dark, alt ?? plan.alt, undefined, eager) : "";
 ---
 
 <Fragment set:html={html} />

@@ -7,4 +7,5 @@
 export { absoluteUrl, url, type Route } from "./url.ts";
 export { buildIssues, createIssueCollector, type BuildIssue, type IssueCollector } from "./issues.ts";
 export { buildReport } from "./build-report.ts";
+export { vaultRoot } from "./vault-root.ts";
 export { default as BaseLayout } from "./BaseLayout.astro";

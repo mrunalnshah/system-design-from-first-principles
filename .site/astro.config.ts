@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "astro/config";
 // Imported directly, not through ./src/features/site/index.ts: that also exports an .astro component,
 // which Astro can't load while it's still reading this config.
@@ -19,6 +20,8 @@ export default defineConfig({
   base: "/system-design-from-first-principles/",
   trailingSlash: "always",
   output: "static",
+  // The vault is the folder above .site/, wherever the build is started from (site/vault-root.ts).
+  vite: { define: { "import.meta.env.SDFP_VAULT_ROOT": JSON.stringify(fileURLToPath(new URL("..", import.meta.url))) } },
   // Keep buildReport() last: when there's an error it ends the build, so hooks after it wouldn't run.
   integrations: [buildReport()],
 });

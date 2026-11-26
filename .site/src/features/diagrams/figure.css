@@ -1,11 +1,12 @@
 /*
  * Diagram figures (REQ-DIAG-002, ADR-0005). A figure is as wide as the text column, or as its own width when that's
- * larger, up to 900 px and never wider than the screen; when it's wider than the column it stays centred on it.
+ * larger, up to 900 px and never wider than the room it has (the screen, or what the reader layout leaves beside its
+ * menus: `--figure-room`, set by T-01.16); when it's wider than the column it stays centred on it.
  * `--natural` is the diagram's own width, set on each figure from its viewBox. No frame: the exported SVGs paint the
  * page's own background (#ffffff / #121212, the diagram-bg tokens).
  */
 .diagram {
-  --diagram-width: clamp(100%, var(--natural, 100%), min(var(--size-figure-max), 100vw - 2 * var(--space-4)));
+  --diagram-width: clamp(100%, var(--natural, 100%), min(var(--size-figure-max), var(--figure-room, 100vw - 2 * var(--space-4))));
   inline-size: var(--diagram-width);
   margin-block: var(--space-8);
   margin-inline: calc((100% - var(--diagram-width)) / 2);

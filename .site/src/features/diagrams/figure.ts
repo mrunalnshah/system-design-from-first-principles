@@ -5,7 +5,10 @@
  * from the viewBox (space is reserved before it loads). It's a link to the SVG, so it opens without JavaScript.
  * Its intrinsic width rides along as `--natural`: figure.css lets small diagrams fill the text column and wide
  * ones break out up to 900 px, centred on the column.
- * Images are served at `diagrams/<hash8>-<file-name>.svg`, so a changed image gets a new address.
+ *
+ * Images are served at `diagrams/<hash8>-<safe-name>.svg`: the hash changes with the image, and the name is the
+ * file name made URL-safe (Excalidraw's default names have spaces). Only diagrams some figure actually shows are
+ * published (`diagramAssetPaths`), so a diagram used only by a draft stays off the site.
  */
 import { url, type BuildIssue } from "../site/index.ts";
 import type { DiagramFile, DiagramIndex } from "./index-svg.ts";
@@ -22,15 +25,20 @@ export function createFigureRenderer(index: DiagramIndex): FigureRenderer {
   return (embed) => {
     const { plan, issues } = planFigure(index, embed);
     if (!plan) return { html: "", issues };
-    return { html: figureHtml(plan.light, plan.dark, plan.alt, plan.caption, false), issues };
+    return { html: figureHtml(index, plan.light, plan.dark, plan.alt, plan.caption, false), issues };
   };
 }
 
-/** The figure markup for one diagram (light image, optional dark one); `eager` for a figure at the top of a page. */
-export function figureHtml(light: DiagramFile, dark: DiagramFile | undefined, alt: string, caption: string | undefined, eager: boolean): string {
-  const size = light.width && light.height ? ` width="${light.width}" height="${light.height}"` : "";
-  const source = dark ? `<source media="(prefers-color-scheme: dark)" srcset="${assetUrl(dark)}"${dark.width && dark.height ? ` width="${dark.width}" height="${dark.height}"` : ""}>` : "";
-  const img = `<img src="${assetUrl(light)}" alt="${escape(alt)}"${size} loading="${eager ? "eager" : "lazy"}" decoding="async">`;
+/**
+ * The figure markup for one diagram (light image, optional dark one), and a record that both are shown, so the
+ * diagram route publishes them. `eager` for a figure at the top of a page.
+ */
+export function figureHtml(index: DiagramIndex, light: DiagramFile, dark: DiagramFile | undefined, alt: string, caption: string | undefined, eager: boolean): string {
+  referenced(index).add(light.path);
+  if (dark) referenced(index).add(dark.path);
+  const size = (f: DiagramFile) => (f.width && f.height ? ` width="${f.width}" height="${f.height}"` : "");
+  const source = dark ? `<source media="(prefers-color-scheme: dark)" srcset="${assetUrl(dark)}"${size(dark)}>` : "";
+  const img = `<img src="${assetUrl(light)}" alt="${escape(alt)}"${size(light)} loading="${eager ? "eager" : "lazy"}" decoding="async"${eager ? ' fetchpriority="high"' : ""}>`;
   const natural = light.width ? ` style="--natural: ${light.width}px"` : "";
   return [
     `<figure class="diagram"${natural}>`,
@@ -40,19 +48,46 @@ export function figureHtml(light: DiagramFile, dark: DiagramFile | undefined, al
   ].join("");
 }
 
-/** The public path of a diagram, without the base path: `diagrams/<hash8>-<file-name>.svg`. */
+/** The public path of a diagram, without the base path: `diagrams/<hash8>-<safe-name>.svg`. */
 export function assetPath(file: DiagramFile): string {
-  return `diagrams/${file.hash}-${file.path.split("/").pop()}`;
+  const name = file.path.split("/").pop()!.replace(/\.svg$/i, "");
+  const safe =
+    name
+      .normalize("NFKD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9.-]+/g, "-")
+      .replace(/-{2,}/g, "-")
+      .replace(/^[-.]+|[-.]+$/g, "") || "diagram";
+  return `diagrams/${file.hash}-${safe}.svg`;
 }
 
-/** Everything the diagram route serves, for its `getStaticPaths`: one entry per distinct image. */
-export function diagramAssetPaths(index: DiagramIndex): { params: { file: string }; props: { svg: string } }[] {
-  const seen = new Map<string, string>();
-  for (const file of index.files.values()) seen.set(assetPath(file).slice("diagrams/".length), file.svg);
-  return [...seen].map(([file, svg]) => ({ params: { file }, props: { svg } }));
+/**
+ * The diagram route's static paths (src/pages/diagrams/[...file].ts): one per image some figure has shown, with the
+ * vault path to serve it from. Figures are drawn while the vault loader renders entries, before pages are built.
+ */
+export function diagramAssetPaths(index: DiagramIndex): { params: { file: string }; props: { sourcePath: string } }[] {
+  const out = new Map<string, string>();
+  for (const path of referenced(index)) {
+    const file = index.files.get(path);
+    if (file) out.set(assetPath(file).slice("diagrams/".length), path);
+  }
+  return [...out].map(([file, sourcePath]) => ({ params: { file }, props: { sourcePath } }));
 }
 
 const assetUrl = (file: DiagramFile) => url({ kind: "asset", path: assetPath(file) });
+
+/**
+ * Diagrams shown so far, per vault. Kept on `globalThis` because Astro renders entries (in the content loader) and
+ * builds pages in separate module graphs, like the build issues (site/issues.ts).
+ */
+function referenced(index: DiagramIndex): Set<string> {
+  const KEY = Symbol.for("sdfp.diagrams.referenced");
+  const all = ((globalThis as Record<symbol, Map<string, Set<string>>>)[KEY] ??= new Map());
+  let set = all.get(index.root);
+  if (!set) all.set(index.root, (set = new Set()));
+  return set;
+}
 
 /** Text for an HTML attribute or element: the author's caption is never markup. */
 function escape(text: string): string {

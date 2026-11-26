@@ -181,6 +181,7 @@ The build's messages (🔜 from R-09) always name the file and line. **Errors (E
 | E-DRAWING-NOT-EXPORTED | A drawing is embedded but has no images in `diagram/` | Open the drawing, save it, run sync |
 | E-REDIRECT-CLASH | A `moved_from` slug is still in use by another file | Remove it from one `moved_from` list |
 | E-MATH | KaTeX can't read a formula (e.g. `\micro`) | Use a supported command (`\mu`) |
+| E-DIAGRAM-UNSAFE | A diagram's SVG contains script or event-handler code, which the site never publishes | Save the drawing again in Obsidian so Excalidraw re-exports it |
 | W-LINK-UNRESOLVED | `[[note]]` doesn't match a published entry | Check the name, or publish that note |
 | W-ARTICLE-UNDATED | An article has no `date:` | Add `date: yyyy-mm-dd` |
 | W-DIAGRAM-NO-CAPTION | A diagram has no caption | Add one: `![[name.excalidraw|Caption]]` |

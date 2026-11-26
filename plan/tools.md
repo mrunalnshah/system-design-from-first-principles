@@ -103,7 +103,7 @@ All tools live in `.site/tools/`, are reached through `.site/tools/cli.ts`, and 
 - Does: Playwright projects for light/dark × JS on/off at 320, 768 and 1280 px against `astro preview` of a fixture vault; helpers `expectNoA11yViolations(page)` (axe), `expectNoHorizontalScroll(page)`, `expectOnlySameOriginRequests(page)` (NFR-008) and `expectNoCookies(context)`.
 - Builds on: @playwright/test 1.65.1, @axe-core/playwright 4.14.0
 - Runs: CI
-- Built in: T-01.14, before the first screen task
+- Built in: T-01.11, before the first screen task
 - Acceptance:
   - TOOL-09.AC1: Given a page with an image missing alt text, when the harness runs, then the axe helper fails naming the rule.
   - TOOL-09.AC2: Given a page wider than 320 px, when `expectNoHorizontalScroll` runs at 320 px, then it fails.

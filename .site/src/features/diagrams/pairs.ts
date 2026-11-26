@@ -1,8 +1,9 @@
 /**
  * Light/dark pairs and what each figure shows (REQ-DIAG-001, REQ-DIAG-004, ADR-0012). Both naming styles pair:
  * `01-light.svg` / `01-dark.svg` and the Excalidraw plugin's `02_moores-law.excalidraw.light.svg` / `.dark.svg`.
- * A partner counts only in the same folder. `planFigure` decides a figure's images, alt text and caption, and
- * raises the diagram warnings: W-DIAGRAM-NO-CAPTION, W-DIAGRAM-UNPAIRED and W-DIAGRAM-LARGE.
+ * A partner counts only in the same folder; case and the separator (`-` or `.`) don't matter, as when
+ * MOD-obsidian-markdown joins two consecutive embeds. `planFigure` decides a figure's images, alt text and caption,
+ * and raises the diagram issues: W-DIAGRAM-NO-CAPTION, W-DIAGRAM-UNPAIRED, W-DIAGRAM-LARGE and E-DIAGRAM-UNSAFE.
  */
 import type { BuildIssue } from "../site/index.ts";
 import type { DiagramFile, DiagramIndex } from "./index-svg.ts";
@@ -42,6 +43,19 @@ export function planFigure(index: DiagramIndex, embed: Embed): { plan?: FigurePl
     }
     return { issues };
   }
+  const unsafe = (found as DiagramFile[]).filter((f) => f.unsafe);
+  if (unsafe.length) {
+    for (const f of unsafe) {
+      issues.push({
+        severity: "error",
+        code: "E-DIAGRAM-UNSAFE",
+        ...at,
+        message: `"${f.path}" contains script, an event handler or a javascript: link, which the website never publishes.`,
+        fix: "Export the diagram again from Excalidraw (save the drawing), or remove the script from the SVG.",
+      });
+    }
+    return { issues };
+  }
 
   let light: DiagramFile | undefined;
   let dark: DiagramFile | undefined;
@@ -54,7 +68,7 @@ export function planFigure(index: DiagramIndex, embed: Embed): { plan?: FigurePl
   const only = light ?? dark!;
   const named = themeOf(only.path);
   if (embed.files.length === 1 && named) {
-    const partner = index.files.get(named.partner);
+    const partner = partnerIn(index, only.path, named.partner);
     if (partner) {
       if (named.theme === "light") dark = partner;
       else light = partner;
@@ -96,6 +110,16 @@ export function planFigure(index: DiagramIndex, embed: Embed): { plan?: FigurePl
   if (dark && dark !== light) plan.dark = dark;
   if (caption) plan.caption = caption;
   return { plan, issues };
+}
+
+/** The partner file in the index: same folder and name, either separator, any case. Undefined if there's none. */
+function partnerIn(index: DiagramIndex, path: string, partner: string): DiagramFile | undefined {
+  const exact = index.files.get(partner);
+  if (exact) return exact;
+  const key = (p: string) => p.toLowerCase().replace(/[-.](light|dark)\.svg$/, ":$1");
+  const want = key(partner);
+  for (const file of index.files.values()) if (file.path !== path && key(file.path) === want) return file;
+  return undefined;
 }
 
 /** At most `max` characters, cut at a word boundary with "…". */

@@ -40,6 +40,12 @@ describe("figure plans", () => {
     expect(issues.map((i) => [i.code, i.line])).toEqual([["E-EMBED-MISSING", 4]]);
   });
 
+  it("refuses an SVG with active content, with E-DIAGRAM-UNSAFE at the embed's line", () => {
+    const { plan: p, issues } = plan({ [`${D}/x.svg`]: '<svg viewBox="0 0 1 1"><script>alert(1)</script></svg>' }, [`${D}/x.svg`], "X");
+    expect(p).toBeUndefined();
+    expect(issues.map((i) => [i.code, i.line])).toEqual([["E-DIAGRAM-UNSAFE", 7]]);
+  });
+
   it("names partners in both naming styles and keeps the author's case", () => {
     expect(themeOf("a/01-light.svg")).toEqual({ theme: "light", partner: "a/01-dark.svg" });
     expect(themeOf("a/x.excalidraw.dark.svg")).toEqual({ theme: "dark", partner: "a/x.excalidraw.light.svg" });

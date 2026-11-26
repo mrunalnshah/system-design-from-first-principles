@@ -13,14 +13,17 @@ export function slugify(text: string): string {
     .replace(/ /g, "-");
 }
 
+/** Ids the footnotes use (plugins/footnotes.ts); a heading never takes one, so `#fn-1` always reaches the note. */
+const RESERVED = /^(?:(?:fn|sn|ref)-\d+|endnotes-title)$/;
+
 /** A per-document slugger: the same text twice gives `x`, then `x-1`. Empty anchors become `section`. */
 export function createSlugger(): (text: string) => string {
   const seen = new Map<string, number>();
   return (text) => {
     const original = slugify(text) || "section";
     let slug = original;
-    while (seen.has(slug)) {
-      const n = seen.get(original)! + 1;
+    while (seen.has(slug) || RESERVED.test(slug)) {
+      const n = (seen.get(original) ?? 0) + 1;
       seen.set(original, n);
       slug = `${original}-${n}`;
     }

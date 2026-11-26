@@ -19,6 +19,7 @@ Every problem the build finds is a `BuildIssue` with a code, a file, a line wher
 | E-DRAWING-NOT-EXPORTED | error | an entry embeds a drawing (`![[name.excalidraw]]`) but no `name-light.svg` / `name-dark.svg` exists in a `diagram/` folder | "Open the drawing in Obsidian, save it (Ctrl+S), then run sync so its images are collected." (CR-0005) |
 | E-REDIRECT-CLASH | error | a `moved_from` slug is also a live slug or another entry's old slug | "Remove it from moved_from in one of: <file A>, <file B>." |
 | E-MATH | error | KaTeX can't parse a formula (e.g. `\micro`) | "Use a supported command; for micro, write \mu." |
+| E-DIAGRAM-UNSAFE | error | a diagram SVG holds script, an `on…=` event handler, `<foreignObject>` or a `javascript:` link (the figure links to the SVG, where it would run) | "Export the diagram again from Excalidraw (save the drawing), or remove the script from the SVG." (R-08 review) |
 | W-LINK-UNRESOLVED | warning | `[[note]]` matches no published entry | "Check the name, or publish that note." (rendered as plain text) |
 | W-ARTICLE-UNDATED | warning | an article has no `date` | "Add date: yyyy-mm-dd to sort it." |
 | W-DIAGRAM-NO-CAPTION | warning | a diagram has no alias, so alt text came from the SVG's own text (or is generic) | "Add a caption: ![[file.svg\|Caption]]." |

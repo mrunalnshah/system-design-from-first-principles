@@ -32,7 +32,7 @@ describe("diagram index", () => {
     expect([file.width, file.height]).toEqual([491, 400]);
     expect(file.words).toEqual(["Cache", "CPU", "RAM", "Disk"]);
     expect(file.hash).toMatch(/^[0-9a-f]{8}$/);
-    expect(file.bytes).toBe(file.svg.length);
+    expect(file.unsafe).toBe(false);
   });
 
   it("decodes entities and nested markup in text, and falls back to width/height without a viewBox", () => {
@@ -40,5 +40,21 @@ describe("diagram index", () => {
     expect(f.words).toEqual(["Read & write 1–2"]);
     expect([f.width, f.height]).toEqual([120, 80]);
     expect(indexOf({ "a/y.svg": "<svg></svg>" }).files.get("a/y.svg")!.width).toBe(0);
+  });
+
+  it("survives odd text: out-of-range entities, &nbsp;, CDATA; ignores widths with units; falls back from a zero viewBox", () => {
+    const f = indexOf({ "a/x.svg": '<svg viewBox="0 0 0 0" width="300" height="200"><text>a&#x110000;b&#0;c&nbsp;d&copy;</text><text><![CDATA[a < b]]></text></svg>' }).files.get("a/x.svg")!;
+    expect(f.words).toEqual(["a�b�c d&copy;", "a < b"]);
+    expect([f.width, f.height]).toEqual([300, 200]);
+    expect(indexOf({ "a/p.svg": '<svg width="100%" height="10em"></svg>' }).files.get("a/p.svg")!.width).toBe(0);
+  });
+
+  it("flags SVGs with active content (scripts, handlers, javascript: links), but not words that mention them", () => {
+    const unsafe = (s: string) => indexOf({ "a/x.svg": `<svg viewBox="0 0 1 1">${s}</svg>` }).files.get("a/x.svg")!.unsafe;
+    expect(unsafe("<script>alert(1)</script>")).toBe(true);
+    expect(unsafe('<rect onclick="x()"/>')).toBe(true);
+    expect(unsafe('<a xlink:href="javascript:x()"><text>x</text></a>')).toBe(true);
+    expect(unsafe("<foreignObject><div/></foreignObject>")).toBe(true);
+    expect(unsafe("<text>javascript: and onload = are words here</text>")).toBe(false);
   });
 });

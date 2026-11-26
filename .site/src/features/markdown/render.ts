@@ -43,7 +43,7 @@ export async function renderObsidian(source: string, ctx: RenderContext): Promis
       withState(remarkCallouts, state),
       withState(remarkHeadings, state),
       withState(remarkCollect, state),
-      remarkFootnotes as unknown as RemarkPlugin,
+      stateless(remarkFootnotes),
       withState(remarkMathRender, state),
     ],
   });
@@ -61,6 +61,11 @@ export async function renderObsidian(source: string, ctx: RenderContext): Promis
 /** A plugin and this render's state, typed for Astro's list (our plugins use a minimal local tree type). */
 function withState(plugin: (state: RenderState) => (tree: MdNode) => void, state: RenderState): [RemarkPlugin, RenderState] {
   return [plugin as unknown as RemarkPlugin, state];
+}
+
+/** A plugin that needs no state, typed for Astro's list (our plugins use a minimal local tree type). */
+function stateless(plugin: () => (tree: MdNode) => void): RemarkPlugin {
+  return plugin as unknown as RemarkPlugin;
 }
 
 /** Frontmatter blanked, keeping every line where it was. Broken frontmatter is the vault's to report. */

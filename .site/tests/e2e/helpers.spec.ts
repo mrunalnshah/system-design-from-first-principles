@@ -1,5 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
-import { expectNoA11yViolations, expectNoCookies, expectNoHorizontalScroll, expectOnlySameOriginRequests } from "./helpers.ts";
+import { expect, type Page } from "@playwright/test";
+import { expectNoA11yViolations, expectNoCookies, expectNoHorizontalScroll, expectOnlySameOriginRequests, test } from "./helpers.ts";
 
 /**
  * The harness's own checks (TOOL-09), on pages served from a made-up origin by request routing,
@@ -37,6 +37,14 @@ test.describe("screen test harness", () => {
   test("the same-origin check fails on a page that loads a third-party URL, naming it", async ({ page: p }) => {
     await serve(p, page('<img src="https://tracker.example/pixel.png" alt="">'));
     await expect(expectOnlySameOriginRequests(p)).rejects.toThrow(/https:\/\/tracker\.example\/pixel\.png/);
+  });
+
+  test("the same-origin check also catches a lazy image below the fold and a blocked request", async ({ page: p }) => {
+    await serve(p, page('<div style="height: 5000px"></div><img src="https://cdn.example/late.png" alt="" loading="lazy">'));
+    await expect(expectOnlySameOriginRequests(p)).rejects.toThrow(/https:\/\/cdn\.example\/late\.png/);
+    await p.route("https://fonts.example/**", (r) => r.abort());
+    await p.evaluate(() => fetch("https://fonts.example/f.woff2").catch(() => undefined));
+    await expect(expectOnlySameOriginRequests(p)).rejects.toThrow(/https:\/\/fonts\.example\/f\.woff2/);
   });
 
   test("every check passes on a clean page, and the cookie check fails once a cookie is set", async ({ page: p, context }) => {

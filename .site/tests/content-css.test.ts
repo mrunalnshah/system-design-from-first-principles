@@ -61,6 +61,22 @@ describe("styles for math and code", () => {
     expect(failing).toEqual([]);
   });
 
+  it("keeps every foreground colour of both themes at 4.5:1, apart from three that never colour code text", async () => {
+    const { bundledThemes } = await import("shiki");
+    // Scopes whose colour is a background-like mark, not text: Shiki drops their backgrounds, and code never shows them.
+    const EXCLUDED: Record<string, string[]> = { light: ["#ffffff", "#e7ecf0"], dark: ["#161b22"] };
+    const failing: string[] = [];
+    for (const [theme, name] of [["light", "github-light-high-contrast"], ["dark", "github-dark-default"]] as const) {
+      const t = (await bundledThemes[name]()).default as { fg?: string; colors?: Record<string, string>; tokenColors?: { scope?: string | string[]; settings?: { foreground?: string } }[] };
+      const colours = [t.colors?.["editor.foreground"] ?? t.fg ?? "", ...(t.tokenColors ?? []).map((r) => r.settings?.foreground ?? "")].filter(Boolean);
+      for (const c of new Set(colours)) {
+        expect(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{6}ff)$/i.test(c), `${name} ${c} is translucent: its contrast can't be checked`).toBe(true);
+        if (contrastRatio(hex(c), codeBg[theme]) < 4.5 && !EXCLUDED[theme]!.includes(hex(c))) failing.push(`${name} ${c}`);
+      }
+    }
+    expect(failing).toEqual([]);
+  });
+
   it("paints code in the theme's colours on the code background, as the browser shows it", async () => {
     const { html } = await renderObsidian("```python\ndef read(path):\n    return 1\n```", context());
     const tokens = readFileSync(join(site, "src/features/site/tokens.css"), "utf8");

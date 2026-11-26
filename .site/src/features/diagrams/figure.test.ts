@@ -67,9 +67,20 @@ describe("figures", () => {
     expect(issues).toEqual([]);
   });
 
-  it("serves each image once at diagrams/<hash8>-<file-name>.svg", () => {
-    const paths = diagramAssetPaths(index);
-    expect(paths.map((p) => p.params.file)).toEqual([...index.files.values()].map((f) => `${f.hash}-${f.path.split("/").pop()}`));
-    expect(paths[0]!.props.svg).toBe(index.files.get(`${D}/wide-light.svg`)!.svg);
+  it("publishes only images a figure has shown, at diagrams/<hash8>-<file-name>.svg, served from their vault path", () => {
+    const fresh = indexOf({ [`${D}/used-light.svg`]: svg(10, 10), [`${D}/used-dark.svg`]: svg(10, 10), [`${D}/draft-only.svg`]: svg(10, 10) });
+    expect(diagramAssetPaths(fresh)).toEqual([]);
+    createFigureRenderer(fresh)({ files: [`${D}/used-light.svg`], alias: "Used", fromPath: "c.md", line: 1 });
+    const paths = diagramAssetPaths(fresh);
+    expect(paths.map((p) => p.props.sourcePath).sort()).toEqual([`${D}/used-dark.svg`, `${D}/used-light.svg`]);
+    expect(paths.map((p) => p.params.file)).toContain(`${fresh.files.get(`${D}/used-light.svg`)!.hash}-used-light.svg`);
+  });
+
+  it("gives every image a URL-safe name, so spaces, accents and brackets never break a link or srcset", () => {
+    const names = ["Drawing 2026-11-26 12.00.00.excalidraw.light.svg", "café-light.svg", "a(1)-light.svg", "!!!.svg"];
+    const odd = indexOf(Object.fromEntries(names.map((n) => [`${D}/${n}`, svg(10, 10)])));
+    const files = [...odd.files.values()];
+    expect(files.map((f) => assetPath(f).replace(/^diagrams\/[0-9a-f]{8}-/, ""))).toEqual(["drawing-2026-11-26-12.00.00.excalidraw.light.svg", "cafe-light.svg", "a-1-light.svg", "diagram.svg"]);
+    for (const f of files) expect(() => createFigureRenderer(odd)({ files: [f.path], alias: "X", fromPath: "c.md", line: 1 })).not.toThrow();
   });
 });
