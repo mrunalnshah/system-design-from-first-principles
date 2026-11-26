@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { readVault } from "../src/features/content/index.ts";
 
 /**
  * TOOL-15 Build-message harness (plan/tools.md, NFR-013, specs/contracts/build-messages.md).
@@ -74,6 +75,20 @@ describe("build-message harness (TOOL-15)", () => {
   it("has a fixture for every code whose task is done", () => {
     expect(fixtureProblems(rows.map((r) => r.code), brokenDir, waitingFor)).toEqual([]);
     for (const code of UNOWNED) expect(waitingFor(code), `${code} now has a task: remove it from UNOWNED`).toBe("no task yet");
+  });
+
+  it("gets exactly its own message from each fixture, with the contract's severity and fix text", () => {
+    expect(fixtures().length).toBeGreaterThan(0);
+    for (const code of fixtures()) {
+      const expected = JSON.parse(readFileSync(join(brokenDir, code, "expected.json"), "utf8")) as { file: string; line?: number };
+      const row = rows.find((r) => r.code === code)!;
+      const issues = readVault(join(brokenDir, code)).issues;
+      expect(issues.map((i) => i.code), `fixture ${code}`).toEqual([code]);
+      const [issue] = issues;
+      expect({ severity: issue!.severity, file: issue!.file, line: issue!.line }, `fixture ${code}`).toEqual({ severity: row.severity, file: expected.file, line: expected.line });
+      expect(issue!.fix.startsWith(row.fixStart), `fixture ${code}: fix "${issue!.fix}" should start "${row.fixStart}"`).toBe(true);
+      expect(issue!.message.length, `fixture ${code} explains what's wrong`).toBeGreaterThan(10);
+    }
   });
 
   it("names only contract codes as fixtures", () => {
