@@ -78,5 +78,5 @@ Passes run at intake, after the specification, during the stack choice and after
 - Why: the plugin's settings `autoexportSVG` and `autoExportLightAndDark` exist in the installed plugin 2.29.4 (read from `.obsidian/plugins/obsidian-excalidraw-plugin/data.json`), but the exact names and folder of the files it writes weren't observed.
 - Options:
   1. Spike S-02 (2 minutes, with the author): turn both settings on, save one drawing, and record the file names; the pair rule already accepts `-light`/`-dark` and `.light`/`.dark`.
-- Status: accepted (spike scheduled)
-- Decision: S-02 = T-00.11 in round R-04, before the diagram index (T-01.12 depends on it).
+- Status: resolved
+- Decision: S-02 (T-00.11, 2026-11-26), with the author: with "Auto-export SVG" and "Export both dark- and light-themed image" on (PNG off), saving a drawing writes `<drawing>.excalidraw.light.svg` and `<drawing>.excalidraw.dark.svg` next to it, in the same folder as the source (seen: `part-1_foundations/excalidraw/01_computer-architecture.excalidraw.light.svg` and `.dark.svg`). That's the `.light`/`.dark` style REQ-DIAG-001.AC6 already covers, so the pair rule needs no change. The `.excalidraw.md` source stays gitignored; only the SVGs are committed.
