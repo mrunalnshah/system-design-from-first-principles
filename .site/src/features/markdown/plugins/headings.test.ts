@@ -35,7 +35,8 @@ describe("headings", () => {
 
   it("leaves articles unnumbered, demotes deeper headings, and skips a ## that has no # before it", async () => {
     const plain = await renderObsidian("# A\n## B\n### C\n###### F", context());
-    expect(plain.html).toBe('<h2 id="a">A</h2>\n<h3 id="b">B</h3>\n<h4 id="c">C</h4>\n<h6 id="f">F</h6>');
+    const heading = (tag: string, id: string, text: string) => `<div class="heading"><${tag} id="${id}">${text}</${tag}><a class="heading-anchor" href="#${id}" aria-label="Link to this section: ${text}">#</a></div>`;
+    expect(plain.html).toBe([heading("h2", "a", "A"), heading("h3", "b", "B"), heading("h4", "c", "C"), heading("h6", "f", "F")].join("\n"));
     expect(plain.sections).toEqual([{ depth: 2, text: "A", anchor: "a" }, { depth: 3, text: "B", anchor: "b" }]);
     const early = await renderObsidian("## Before\n# Then\n## After", numbered);
     expect(early.sections.map((s) => s.number)).toEqual([undefined, "1.1", "1.1.1"]);
@@ -45,6 +46,12 @@ describe("headings", () => {
     const { html, sections } = await renderObsidian("# One\n\n> [!note]\n> # Inside\n\n- # In a list\n\n# Two", numbered);
     expect(sections.map((s) => `${s.number} ${s.text}`)).toEqual(["1.1 One", "1.2 Two"]);
     expect(html).toContain('<h2 id="inside">Inside</h2>');
+  });
+
+  // @req REQ-READ-004.AC3
+  it("gives every heading a link to itself, beside it so the heading's name stays its text", async () => {
+    const { html } = await renderObsidian("# Disk", numbered);
+    expect(html).toBe('<div class="heading"><h2 id="disk"><span class="section-number">1.1</span> Disk</h2><a class="heading-anchor" href="#disk" aria-label="Link to this section: Disk">#</a></div>');
   });
 
   it("slugs by GitHub's rule", () => {

@@ -56,7 +56,8 @@ export function remarkMathRender(state: RenderState) {
             strict: false,
             trust: (c) => (refused.push(c.command), false),
           });
-          if (!refused.length) return { type: "html", value: display ? `<div class="math-display">${html}</div>` : html };
+          // A display formula wider than the screen scrolls in its own box, which keyboard users can reach (tabindex).
+          if (!refused.length) return { type: "html", value: display ? `<div class="math-display" tabindex="0" role="group" aria-label="Formula">${html}</div>` : html };
           state.issues.push(mathIssue(state, node, tex, `it uses ${[...new Set(refused)].join(", ")}, which the website doesn't allow in formulas (no links, images or HTML)`, 0));
         } catch (e) {
           if (!(e instanceof katex.ParseError)) throw e;

@@ -66,9 +66,13 @@ describe("the built site", () => {
     // Vitest puts Vite's own variables (BASE_URL="/", MODE, DEV, PROD, SSR) into process.env; a child
     // build that inherits them would ignore the base path under test, so they're removed.
     const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(BASE_URL|MODE|DEV|PROD|SSR|VITEST.*|TEST)$/.test(k)));
+    // The fixture vault, so the check doesn't depend on the author's content being free of errors.
+    env.SDFP_VAULT = join(siteRoot, "tests/fixtures/vault");
     execFileSync(process.execPath, ["--input-type=module", "-e", script, siteRoot, outDir], { stdio: "pipe", env });
     const addresses = internalAddresses(outDir);
     expect(addresses.length).toBeGreaterThan(0);
-    expect(addresses.filter((a) => !a.address.startsWith("/system-design/"))).toEqual([]);
+    // The author's portfolio (author_url in book.md) shares the host but is another site, so it isn't ours to prefix.
+    const portfolio = /^author_url:\s*"?https:\/\/mrunalnshah\.github\.io(\/[^"\s]*)"?/m.exec(readFileSync(join(siteRoot, "tests/fixtures/vault/book.md"), "utf8"))![1];
+    expect(addresses.filter((a) => !a.address.startsWith("/system-design/") && a.address !== portfolio)).toEqual([]);
   }, 120_000);
 });

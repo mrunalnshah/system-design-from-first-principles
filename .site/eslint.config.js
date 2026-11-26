@@ -6,7 +6,7 @@ import astro from "eslint-plugin-astro";
 import tseslint from "typescript-eslint";
 
 export default defineConfig(
-  globalIgnores(["dist/", ".astro/", "node_modules/", "tests/fixtures/"]),
+  globalIgnores(["dist/", "dist-e2e/", ".astro/", "node_modules/", "tests/fixtures/"]),
   tseslint.configs.recommended,
   astro.configs.recommended,
   {

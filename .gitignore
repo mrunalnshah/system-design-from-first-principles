@@ -6,6 +6,7 @@
 # Website build output and dependencies (ADR-0002)
 .site/node_modules/
 .site/dist/
+.site/dist-e2e/
 .site/test-results/
 .site/playwright-report/
 .site/.astro/

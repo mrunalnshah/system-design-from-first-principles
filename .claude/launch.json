@@ -6,6 +6,13 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8765", "--bind", "127.0.0.1", "--directory", "design/preview"],
       "port": 8765
+    },
+    {
+      "name": "site-fixture",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", ".site", "exec", "--", "astro", "preview", "--root", ".site", "--port", "4322", "--outDir", "dist-e2e"],
+      "port": 4322,
+      "url": "http://localhost:4322"
     }
   ]
 }

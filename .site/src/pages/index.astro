@@ -1,15 +1,17 @@
 ---
-// Placeholder homepage (thin slice, T-00.08), built through BaseLayout and url(). The real homepage
-// arrives in T-02.05.
+// Placeholder homepage (thin slice, T-00.08), now with the book's settings and a way into the first chapter
+// (T-01.14). The real homepage arrives in T-02.05.
+import { getBook } from "../features/content/index.ts";
 import { BaseLayout, url } from "../features/site/index.ts";
+
+const book = await getBook();
+const first = book.chapters[0];
 ---
 
-<BaseLayout
-  title="System Design from First Principles"
-  description="A book that builds system design up from how a computer really works. Chapters are on their way."
-  route={{ kind: "home" }}
->
-  <h1>System Design from First Principles</h1>
-  <p>The website is being built. The first chapter, <em>Computer Architecture</em>, is coming soon.</p>
-  <p><a href={url({ kind: "home" })}>Home</a></p>
+<BaseLayout title={book.settings.title} description={book.settings.subtitle ?? book.settings.title} route={{ kind: "home" }} book={book.settings}>
+  <div class="site-wrap">
+    <h1>{book.settings.title}</h1>
+    {book.settings.subtitle && <p>{book.settings.subtitle}</p>}
+    {first && <p><a href={url({ kind: "chapter", slug: first.slug })}>Read from the start: {first.number}. {first.title}</a></p>}
+  </div>
 </BaseLayout>

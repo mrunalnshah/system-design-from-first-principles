@@ -1,0 +1,31 @@
+---
+/**
+ * A chapter at `book/<chapter-slug>/` (REQ-BOOK-002, routes.md): the slug comes from the file name without its number,
+ * so renumbering a chapter never changes its address. The HTML was rendered by the vault loader (ADR-0003).
+ */
+import type { GetStaticPaths } from "astro";
+import { getBook, type ChapterData } from "../../features/content/index.ts";
+import { ChapterTitle, Epigraph, ReaderLayout } from "../../features/reader/index.ts";
+import { BaseLayout } from "../../features/site/index.ts";
+
+export const getStaticPaths = (async () => {
+  const book = await getBook();
+  return book.chapters.map((chapter) => ({ params: { slug: chapter.slug }, props: { chapter, settings: book.settings } }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  chapter: ChapterData;
+  settings: Awaited<ReturnType<typeof getBook>>["settings"];
+}
+const { chapter, settings } = Astro.props;
+---
+
+<BaseLayout title={chapter.title} description={chapter.summary} route={{ kind: "chapter", slug: chapter.slug }} book={settings} current="contents" type="article">
+  <ReaderLayout kind="chapter">
+    <header class="chapter-head">
+      <ChapterTitle chapter={chapter} />
+      {chapter.epigraph && <Epigraph text={chapter.epigraph.text} source={chapter.epigraph.source} />}
+    </header>
+    <div class="prose"><Fragment set:html={chapter.html} /></div>
+  </ReaderLayout>
+</BaseLayout>

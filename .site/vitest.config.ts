@@ -10,6 +10,6 @@ import { getViteConfig } from "astro/config";
 export default getViteConfig({
   test: {
     include: ["tools/**/*.test.ts", "src/**/*.test.ts", "tests/**/*.test.ts"],
-    exclude: ["node_modules/**", "dist/**", "tests/e2e/**", "tests/fixtures/**"],
+    exclude: ["node_modules/**", "dist/**", "dist-e2e/**", "tests/e2e/**", "tests/fixtures/**"],
   },
 });

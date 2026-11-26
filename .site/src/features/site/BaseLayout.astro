@@ -1,24 +1,36 @@
 ---
 /**
- * The page skeleton every page uses (MOD-site): language, title, description, canonical address,
- * a skip link and one <main>. The site header, footer, theme and full metadata arrive in T-01.15.
+ * The page every page uses (MOD-site, REQ-SITE-001/002/005/008): language, the head tags (title, description,
+ * canonical address, Open Graph, CSP; head.ts), the self-hosted fonts and tokens, a skip link, the header, one
+ * <main>, and the footer.
  *
- * Props: `title` (the page's own title; the book name is added), `description` (one sentence for
- * search results and link previews) and `route` (this page's address, for the canonical link).
- * Pages with no address of their own (the 404, redirect pages) leave `route` out: they get no
- * canonical link and are kept out of search results (`noindex`).
+ * Props: `title` (the page's own title; the book's is added), `description` (one sentence for search results and link
+ * previews), `route` (this page's address, for the canonical link; leave it out for the 404 and redirect pages, which
+ * get `noindex`), `ogImage` (an asset path for link previews), `book` (title, author and portfolio from book.md:
+ * this module can't read the vault, so pages hand it over), `current` (the header link for this page), and `type`.
  */
-import { absoluteUrl, type Route } from "./url.ts";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/source-serif-4";
+import "@fontsource-variable/jetbrains-mono";
+import "./tokens.css";
+import "./site.css";
+import { headTags, type PageHead } from "./head.ts";
+import type { Route } from "./url.ts";
+import SiteHeader from "./SiteHeader.astro";
+import SiteFooter from "./SiteFooter.astro";
 
 interface Props {
   title: string;
   description: string;
   route?: Route;
+  ogImage?: string;
+  book: { title: string; author: string; authorUrl: string };
+  current?: "contents" | "articles" | "about";
+  type?: PageHead["type"];
 }
 
-const { title, description, route } = Astro.props;
-const BOOK = "System Design from First Principles";
-const fullTitle = title === BOOK ? BOOK : `${title} · ${BOOK}`;
+const { title, description, route, ogImage, book, current, type } = Astro.props;
+const tags = headTags({ title, description, book: book.title, ...(route ? { route } : {}), ...(ogImage ? { ogImage } : {}), ...(type ? { type } : {}) });
 ---
 
 <!doctype html>
@@ -26,14 +38,19 @@ const fullTitle = title === BOOK ? BOOK : `${title} · ${BOOK}`;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{fullTitle}</title>
-    <meta name="description" content={description} />
-    {route ? <link rel="canonical" href={absoluteUrl(route)} /> : <meta name="robots" content="noindex" />}
+    <meta name="color-scheme" content="light dark" />
+    {
+      tags.map((t) =>
+        t.tag === "title" ? <title>{t.text}</title> : t.tag === "link" ? <link {...t.attrs} /> : <meta {...t.attrs} />,
+      )
+    }
   </head>
   <body>
-    <a href="#main">Skip to content</a>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <SiteHeader book={book} current={current} />
     <main id="main">
       <slot />
     </main>
+    <SiteFooter book={book} />
   </body>
 </html>

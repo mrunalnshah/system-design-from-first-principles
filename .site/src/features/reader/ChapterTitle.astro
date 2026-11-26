@@ -1,0 +1,19 @@
+---
+/**
+ * A chapter's title (REQ-READ-003, design/components.md ChapterTitle): its number, large and faint beside the `h1`
+ * and hidden from screen readers, which hear "Chapter 1: Computer Architecture" from the heading; then
+ * "Part I · Foundations · 4 min read".
+ */
+import type { ChapterData } from "../content/index.ts";
+
+interface Props {
+  chapter: Pick<ChapterData, "number" | "title" | "part" | "readingMinutes">;
+}
+const { chapter } = Astro.props;
+---
+
+<div class="chapter-title">
+  <span class="chapter-number" aria-hidden="true">{chapter.number}</span>
+  <h1><span class="visually-hidden">Chapter {chapter.number}: </span>{chapter.title}</h1>
+</div>
+<p class="chapter-meta">Part {chapter.part.romanNumeral} · {chapter.part.title} · {chapter.readingMinutes} min read</p>

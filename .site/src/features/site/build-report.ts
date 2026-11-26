@@ -59,6 +59,25 @@ export function buildReport(options: ReportOptions = {}): AstroIntegration {
   };
 }
 
+/**
+ * Stops the build at once when the issues so far include an error, after printing the report: for the vault
+ * loader, which runs before any page is built, so a page never crashes on content that has an error (for
+ * example a missing book.md). Does nothing when there's no error; warnings wait for the end-of-build report.
+ */
+export async function stopOnErrors(options: ReportOptions = {}): Promise<void> {
+  const issues = options.issues ?? buildIssues;
+  if (!issues.hasErrors()) return;
+  // Several loaders may get here at once (they run in parallel): only the first prints the report.
+  const STOPPING = Symbol.for("sdfp.stopping");
+  const shared = globalThis as typeof globalThis & { [STOPPING]?: WeakSet<object> };
+  const stopping = (shared[STOPPING] ??= new WeakSet());
+  if (stopping.has(issues)) return;
+  stopping.add(issues);
+  const write = options.write ?? ((text: string) => new Promise<void>((done) => process.stdout.write(text, () => done())));
+  await write(formatReport(issues.all()));
+  (options.exit ?? ((code: number) => process.exit(code)))(1);
+}
+
 const rank = (i: BuildIssue) => (i.severity === "error" ? 0 : 1);
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 /** Indents every line by two spaces, so multi-line text (e.g. an example) stays inside its block. */

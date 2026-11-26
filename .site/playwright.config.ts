@@ -37,8 +37,9 @@ export default defineConfig({
     ...screens,
   ],
   webServer: {
-    // The site as it ships; the vault loader (T-01.14) points the build at the fixture vault.
-    command: `npm run build && npx astro preview --port ${PORT}`,
+    // The site built from the fixture vault (tests/fixtures/vault) into its own folder, so the real build is untouched.
+    command: `npm run build -- --outDir dist-e2e && npx astro preview --port ${PORT} --outDir dist-e2e`,
+    env: { SDFP_VAULT: "tests/fixtures/vault" },
     url: `http://localhost:${PORT}${BASE}`,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

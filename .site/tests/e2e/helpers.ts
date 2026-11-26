@@ -22,8 +22,29 @@ export const test = base.extend({
 /** WCAG 2.2 A and AA, the level the site promises (NFR-003). */
 const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
-/** Fails if axe finds any WCAG A/AA violation on the page, naming each rule and how many elements break it. */
+/**
+ * Fails if axe finds any WCAG A/AA violation on the page, naming each rule and how many elements break it.
+ * Axe is a script, so with JavaScript off it checks the same address in a JavaScript-on copy of the context (same
+ * size and theme): the site's HTML is the same either way, since JavaScript only enhances it (ADR-0006).
+ */
 export async function expectNoA11yViolations(page: Page): Promise<void> {
+  const use = test.info().project.use;
+  if (use.javaScriptEnabled === false) {
+    // Contexts made in a test inherit the project's options, so JavaScript has to be switched back on here.
+    const copy = await page.context().browser()!.newContext({ javaScriptEnabled: true, viewport: page.viewportSize(), colorScheme: use.colorScheme ?? "light" });
+    try {
+      const twin = await copy.newPage();
+      await twin.goto(page.url());
+      await check(twin);
+    } finally {
+      await copy.close();
+    }
+    return;
+  }
+  await check(page);
+}
+
+async function check(page: Page): Promise<void> {
   const { violations } = await new AxeBuilder({ page }).withTags(WCAG).analyze();
   const report = violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length} element${v.nodes.length === 1 ? "" : "s"}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")})`);
   expect(report, `Accessibility violations:\n${report.join("\n")}`).toEqual([]);

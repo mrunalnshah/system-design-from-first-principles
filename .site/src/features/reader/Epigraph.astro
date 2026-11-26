@@ -1,0 +1,16 @@
+---
+/**
+ * A chapter's opening quote (REQ-READ-005): the quote, and "— source" when there is one. Leave it out when a chapter
+ * has no epigraph, so no empty space appears.
+ */
+interface Props {
+  text: string;
+  source?: string;
+}
+const { text, source } = Astro.props;
+---
+
+<figure class="epigraph">
+  <blockquote><p>{text}</p></blockquote>
+  {source && <figcaption>— {source}</figcaption>}
+</figure>

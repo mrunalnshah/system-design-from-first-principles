@@ -1,0 +1,26 @@
+---
+/**
+ * The calm reading page (REQ-READ-001, REQ-READ-002, ADR-0006): at 1100 px and wider, three zones (the chapter menu,
+ * the reading column of about 70 characters, and the margin for notes); narrower, one column. It brings in the styles
+ * for what the Markdown renderer writes (content.css: math and code), the figures' styles (MOD-diagrams) and its own.
+ * Nothing overlays the text unless the reader asks, and nothing animates for readers who ask for less motion.
+ * Props: `kind`, "chapter", "article" or "page". Slots: `menu` (chapter menu, T-01.17), the default slot (title and
+ * text), and `end` (previous/next, links).
+ */
+import "../diagrams/index.ts";
+import "./content.css";
+import "./reader.css";
+
+interface Props {
+  kind: "chapter" | "article" | "page";
+}
+const { kind } = Astro.props;
+---
+
+<div class:list={["reader", `reader--${kind}`]}>
+  {kind === "chapter" && <div class="reader-menu"><slot name="menu" /></div>}
+  <article class="reader-column">
+    <slot />
+    <slot name="end" />
+  </article>
+</div>

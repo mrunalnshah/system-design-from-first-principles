@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import config from "../../../astro.config.ts";
-import { buildReport, formatReport } from "./build-report.ts";
+import { buildReport, formatReport, stopOnErrors } from "./build-report.ts";
 import { createIssueCollector, type BuildIssue } from "./issues.ts";
 
 const error: BuildIssue = {
@@ -80,6 +80,22 @@ describe("build issues and build report", () => {
     vi.resetModules();
     const second = (await import("./issues.ts")).buildIssues;
     expect(second).toBe(first);
+  });
+
+  it("stops at once on an error, printing the report once even when several loaders ask", async () => {
+    const collector = createIssueCollector();
+    collector.add(error);
+    const out: string[] = [];
+    const exits: number[] = [];
+    const opts = { issues: collector, write: async (t: string) => void out.push(t), exit: (c: number) => void exits.push(c) };
+    await Promise.all([stopOnErrors(opts), stopOnErrors(opts)]);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toContain("✖ ERROR E-EMBED-MISSING");
+    expect(exits).toEqual([1]);
+    const clean = createIssueCollector();
+    clean.add(warning("W-ABOUT-MISSING", "about.md"));
+    await stopOnErrors({ ...opts, issues: clean });
+    expect(exits).toEqual([1]); // warnings never stop the build early
   });
 
   it("is registered in astro.config.ts", () => {

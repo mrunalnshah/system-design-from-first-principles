@@ -5,6 +5,9 @@
  * hear "1.1 Components". Every heading gets a unique id by GitHub's rule. Only the document's own top-level
  * headings are its sections (numbered, and listed in `RenderResult.sections`); a heading inside a callout, quote or
  * list is still demoted and anchored, but it's part of that block, not a section of the chapter (CR-0006).
+ * Each heading comes with a link to itself, for copying (REQ-READ-004.AC3): `<div class="heading"><hN id>…</hN>
+ * <a class="heading-anchor" href="#id" aria-label="Link to this section: …">#</a></div>`. The link sits beside the
+ * heading, not in it, so the heading's accessible name stays its text ("1.1 Components").
  */
 import { createSlugger } from "../slugify.ts";
 import type { MdNode, RenderState } from "../types.ts";
@@ -16,21 +19,24 @@ export function remarkHeadings(state: RenderState) {
     const prefix = state.ctx.headingNumbers ? state.ctx.headingNumbers.prefix : undefined;
     let major = 0;
     let minor = 0;
-    const all: { node: MdNode; topLevel: boolean }[] = [];
+    const all: { node: MdNode; topLevel: boolean; parent: MdNode }[] = [];
     const gather = (parent: MdNode) => {
       for (const child of parent.children ?? []) {
-        if (child.type === "heading") all.push({ node: child, topLevel: parent === tree });
+        if (child.type === "heading") all.push({ node: child, topLevel: parent === tree, parent });
         else gather(child);
       }
     };
     gather(tree);
-    for (const { node, topLevel } of all) {
+    for (const { node, topLevel, parent } of all) {
       if (!node.depth) continue;
       const level = node.depth; // as written in the vault: 1 for `#`
       const text = plainText(node).trim();
       const anchor = slug(text);
       node.depth = Math.min(6, level + 1);
       node.data = { ...node.data, hProperties: { ...node.data?.hProperties, id: anchor } };
+      const link: MdNode = { type: "headingAnchor", data: { hName: "a", hProperties: { className: ["heading-anchor"], href: `#${anchor}`, ariaLabel: `Link to this section: ${text}` } }, children: [{ type: "text", value: "#" }] };
+      const wrapper: MdNode = { type: "headingWrap", data: { hName: "div", hProperties: { className: ["heading"] } }, children: [node, link] };
+      parent.children = parent.children!.map((c) => (c === node ? wrapper : c));
       if (!topLevel) continue;
 
       let number: string | undefined;

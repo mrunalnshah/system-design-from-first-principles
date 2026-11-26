@@ -1,0 +1,294 @@
+/*
+ * The reading page (REQ-READ-001…005, REQ-READ-008.AC3, design/screens/chapter.md). Serif text at 18–21 px with a
+ * 1.65 line height in a 42rem column (about 70 characters); headings, numbers and UI in the sans font.
+ * At 1100 px and wider: the chapter menu (15rem), the column, and the margin for notes (15rem). Wide figures then get
+ * the column and the margin as their room (`--figure-room`), so they never reach over the menu (CR-0007).
+ */
+.reader {
+  padding-inline: var(--space-4);
+}
+
+.reader-column {
+  max-inline-size: var(--size-reading-column);
+  margin-inline: auto;
+  min-inline-size: 0;
+}
+
+.reader-menu:empty {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  .reader {
+    display: grid;
+    grid-template-columns: var(--size-chapter-menu) minmax(0, var(--size-reading-column)) var(--size-margin-note);
+    column-gap: var(--space-12);
+    justify-content: center;
+    padding-inline: var(--space-8);
+  }
+
+  .reader--article,
+  .reader--page {
+    grid-template-columns: minmax(0, var(--size-reading-column)) var(--size-margin-note);
+  }
+
+  .reader-menu {
+    grid-column: 1;
+  }
+
+  .reader-menu:empty {
+    display: block;
+  }
+
+  .reader-column {
+    grid-column: 2;
+    max-inline-size: none;
+    margin: 0;
+    /* The column, the gap and the margin: where a wide figure may go. */
+    --figure-room: calc(100% + var(--space-12) + var(--size-margin-note));
+  }
+
+  .reader--article .reader-column,
+  .reader--page .reader-column {
+    grid-column: 1;
+  }
+
+  /* A figure wider than the column is centred in that room, so it grows into the margin, never over the menu. */
+  .reader-column .diagram {
+    margin-inline-start: min((var(--figure-room) - var(--diagram-width)) / 2, max(0px, var(--diagram-width) - 100%) * 1000);
+    margin-inline-end: 0;
+  }
+}
+
+/* Chapter title */
+.chapter-head {
+  padding-block: var(--space-12) var(--space-2);
+}
+
+.chapter-title {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.chapter-number {
+  flex: none;
+  font: var(--font-weight-bold) 4.5rem/0.82 var(--font-sans);
+  color: var(--color-chapter-number);
+  letter-spacing: -0.04em;
+}
+
+.chapter-title h1 {
+  margin: 0;
+  padding-block-start: var(--space-1);
+  font-size: clamp(1.9rem, 1.4rem + 2vw, var(--font-size-3xl));
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+}
+
+.chapter-meta {
+  margin: var(--space-4) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+@media (min-width: 1100px) {
+  .chapter-number {
+    font-size: var(--font-size-chapter-number);
+  }
+
+  .chapter-head {
+    padding-block-start: var(--space-16);
+  }
+}
+
+/* Epigraph */
+.epigraph {
+  margin: var(--space-8) 0 var(--space-2);
+}
+
+.epigraph blockquote {
+  margin: 0;
+  font: italic 1.2rem/1.55 var(--font-serif);
+  color: var(--color-text-muted);
+}
+
+.epigraph blockquote p {
+  margin: 0;
+}
+
+.epigraph figcaption {
+  margin-block-start: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* The text */
+.prose {
+  font-family: var(--font-serif);
+  font-size: clamp(var(--font-size-base-min), 1rem + 0.35vw, var(--font-size-base-max));
+  line-height: var(--line-height-reading);
+  overflow-wrap: break-word;
+}
+
+.prose p,
+.prose ul,
+.prose ol,
+.prose table,
+.prose blockquote,
+.prose .callout {
+  margin: 0 0 1.1em;
+}
+
+.prose ul ul,
+.prose ol ol,
+.prose ul ol,
+.prose ol ul {
+  margin-block: 0.25em;
+}
+
+.prose li {
+  margin-block: 0.2em;
+}
+
+.prose a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.prose mark {
+  background: var(--color-highlight);
+  color: inherit;
+  padding-inline: 0.1em;
+}
+
+/* Headings: the section number at the right, the anchor link on hover or focus (REQ-READ-004.AC3). */
+.prose .heading {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.prose h2,
+.prose h3,
+.prose h4 {
+  font-family: var(--font-sans);
+  letter-spacing: -0.01em;
+  line-height: var(--line-height-heading);
+}
+
+.prose .heading > h2,
+.prose .heading > h3,
+.prose .heading > h4,
+.prose .heading > h5,
+.prose .heading > h6 {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.prose h2 {
+  font-size: var(--font-size-xl);
+  margin: 2.2em 0 0.6em;
+}
+
+.prose h3 {
+  font-size: var(--font-size-lg);
+  margin: 1.8em 0 0.5em;
+}
+
+.prose .section-number {
+  order: 2;
+  margin-inline-start: auto;
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-medium);
+  font-size: 0.8em;
+  font-variant-numeric: tabular-nums;
+}
+
+.prose .heading-anchor {
+  position: absolute;
+  inset-inline-start: -1.25em;
+  inset-block-start: 50%;
+  font-family: var(--font-sans);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  opacity: 0;
+}
+
+.prose .heading:hover .heading-anchor,
+.prose .heading-anchor:focus-visible {
+  opacity: 1;
+}
+
+/* Code, tables and display math scroll inside their own box, never the page (REQ-READ-008.AC3). */
+.prose .math-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin-block: 1.2em;
+  padding-block: 0.25em;
+}
+
+.prose table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+}
+
+.prose th,
+.prose td {
+  padding: var(--space-2) var(--space-3);
+  border-block-end: 1px solid var(--color-divider);
+  text-align: start;
+}
+
+.prose blockquote {
+  padding-inline-start: var(--space-4);
+  border-inline-start: 3px solid var(--color-divider);
+  color: var(--color-text-muted);
+}
+
+.prose .callout {
+  padding: var(--space-3) var(--space-4);
+  border-inline-start: 3px solid var(--color-accent);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 0.9em;
+}
+
+.prose .callout-title {
+  margin: 0 0 var(--space-2);
+  font-weight: var(--font-weight-semibold);
+}
+
+.prose details.callout > summary {
+  cursor: pointer;
+}
+
+/* Margin notes are placed by T-01.18; until then each note shows once, in the list at the end. */
+.prose .sidenote {
+  display: none;
+}
+
+.prose .ref {
+  font-family: var(--font-sans);
+  text-decoration: none;
+}
+
+.prose .endnotes {
+  margin-block-start: 2.5em;
+  padding-block-start: 1em;
+  border-block-start: 1px solid var(--color-divider);
+  font: var(--font-size-sm) / 1.55 var(--font-sans);
+  color: var(--color-text-muted);
+}
+
+.prose .endnotes-title {
+  font-size: var(--font-size-base-min);
+  margin: 0 0 0.5em;
+}

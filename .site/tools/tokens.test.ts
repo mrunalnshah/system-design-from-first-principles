@@ -38,7 +38,7 @@ describe("token build (TOOL-07)", () => {
 
   it("turns DTCG values into CSS: dimensions, font stacks, weights, durations", () => {
     const css = buildTokens(tokens());
-    expect(css).toMatch(/--font-serif: "Source Serif 4", Georgia, Cambria, "Times New Roman", serif;/);
+    expect(css).toMatch(/--font-serif: "Source Serif 4 Variable", "Source Serif 4", Georgia, Cambria, "Times New Roman", serif;/);
     expect(css).toMatch(/--space-4: 1rem;/);
     expect(css).toMatch(/--size-figure-max: 900px;/);
     expect(css).toMatch(/--font-weight-bold: 700;/);

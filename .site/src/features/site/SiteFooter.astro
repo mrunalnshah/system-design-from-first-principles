@@ -1,0 +1,23 @@
+---
+/**
+ * The site footer (REQ-SITE-008): "© <year> <author>", with links to the About page and the portfolio. The year is
+ * the build's, in UTC (data-model.md), so a page built on 31 December reads the same everywhere.
+ */
+import { url } from "./url.ts";
+
+interface Props {
+  book: { author: string; authorUrl: string };
+}
+const { book } = Astro.props;
+const year = new Date().getUTCFullYear();
+---
+
+<footer class="site-footer">
+  <div class="site-wrap footer-row">
+    <p class="copyright">© {year} {book.author}</p>
+    <nav aria-label="Footer">
+      <a href={url({ kind: "about" })}>About</a>
+      <a class="external" href={book.authorUrl}>Portfolio<span class="visually-hidden"> (external site)</span></a>
+    </nav>
+  </div>
+</footer>

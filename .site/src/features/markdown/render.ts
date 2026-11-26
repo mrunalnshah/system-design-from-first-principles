@@ -97,7 +97,7 @@ const LINES = new Set(["paragraph", "heading", "tableCell", "calloutTitle"]);
 
 /** The text a reader sees: no section numbers or raw HTML (figures), code and math as written. */
 function readable(node: MdNode): string {
-  if (node.type === "sectionNumber" || node.type === "html") return "";
+  if (node.type === "sectionNumber" || node.type === "headingAnchor" || node.type === "html") return "";
   if (node.type === "break") return "\n";
   if (node.type === "code") return `${node.value ?? ""}\n`;
   if (!node.children) return plainText(node);

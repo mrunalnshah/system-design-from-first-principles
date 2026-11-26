@@ -49,7 +49,7 @@ describe("math", () => {
     const { html, expected } = await golden("math/units", context());
     expect(html).toBe(expected);
     expect(html).toContain('"$5 and $10" stays text');
-    expect(html).toMatch(/<div class="math-display"><span class="katex-display">/);
+    expect(html).toMatch(/<div class="math-display" tabindex="0" role="group" aria-label="Formula"><span class="katex-display">/);
   });
 
   it("follows Obsidian's $ rule on the source as written: spaces inside, or a digit after, mean text", async () => {
