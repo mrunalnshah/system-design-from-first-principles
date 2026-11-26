@@ -1,0 +1,18 @@
+# Excalidraw drawing sources stay on the author's computer only (REQ-DIAG-006, ADR-0012).
+# The exported light/dark SVGs are committed; the author backs these sources up themself (CNF-007).
+*.excalidraw.md
+*.excalidraw
+
+# Website build output and dependencies (ADR-0002)
+.site/node_modules/
+.site/dist/
+.site/.astro/
+
+# Obsidian's per-device window layout
+.obsidian/workspace*.json
+
+# Not published (user's choice after R-01): the duplicate plan zip, and the Obsidian
+# plugins' own program code, which Obsidian reinstalls. Plugin settings (data.json) stay.
+sdfp-website-architecture.zip
+.obsidian/plugins/*/main.js
+.obsidian/plugins/*/styles.css
