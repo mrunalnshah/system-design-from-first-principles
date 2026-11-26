@@ -57,3 +57,4 @@
 2026-11-26T17:58Z · R-04 · T-00.11 · S-02 with the author: auto-export writes <drawing>.excalidraw.light.svg / .dark.svg beside the drawing (excalidraw/ folder); PNG off; CNF-008 resolved; new SVGs left for the author to commit; pre-commit boundary check now runs from .site/ (no 'global dependency-cruiser' warning)
 2026-11-26T17:58Z · R-04 · T-00.11 · done
 2026-11-26T17:59Z · R-04 · T-00.11 · fix · cb4ee39 marked T-00.11 done but my CNF-008 edit had crashed (regex escape) and the chain continued; CNF-008 now recorded as resolved in a follow-up commit
+2026-11-26T18:06Z · R-04 · end · phase 0 complete (11/49 tasks); check + trace clean; live: home 200, unknown path 404 (ours, noindex); awaiting G6 approval
