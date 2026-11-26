@@ -13,6 +13,8 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: "17 6 * * 1" # Mondays 06:17 UTC: catch new advisories even in weeks without pushes (TOOL-14)
 
 permissions:
   contents: read
@@ -27,12 +29,13 @@ defaults:
 
 jobs:
   checks:
-    name: Lint, types, tests, plan
+    name: Lint, types, tests, plan, audit
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0 # the audit compares the lockfile with the previous commit
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -47,6 +50,12 @@ jobs:
       - run: npm test
       - name: Plan check (TOOL-03)
         run: npm run tools -- check
+      - name: Dependency audit (TOOL-14)
+        env:
+          # The commit to compare the lockfile with: the previous push, or the PR's base. Empty on
+          # scheduled runs (no cooldown comparison, just advisories and licences).
+          AUDIT_BASE: ${{ github.event.before || github.event.pull_request.base.sha || '' }}
+        run: npm run tools -- audit ${AUDIT_BASE:+--base "$AUDIT_BASE"}
 
   secrets:
     name: Secret scan (gitleaks)
@@ -106,8 +115,9 @@ jobs:
 
   deploy:
     name: Deploy to GitHub Pages
-    # Only pushes to main (and manual runs on main) go live; a failed check or build never gets here.
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    # Only pushes to main (and manual runs on main) go live; a failed check or build never gets here,
+    # and scheduled audit runs never deploy.
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 10

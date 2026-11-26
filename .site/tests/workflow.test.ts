@@ -18,7 +18,7 @@ describe("publish workflow", () => {
     expect(on).not.toMatch(/paths(-ignore)?:/);
     expect(job("build")).toMatch(/needs: \[checks, secrets\]/);
     expect(job("deploy")).toMatch(/needs: build/);
-    expect(job("deploy")).toMatch(/if: github\.event_name != 'pull_request' && github\.ref == 'refs\/heads\/main'/);
+    expect(job("deploy")).toMatch(/if: \(github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'\) && github\.ref == 'refs\/heads\/main'/);
     expect(workflow).not.toMatch(/dorny\/paths-filter|changed-files/);
   });
 
@@ -28,6 +28,12 @@ describe("publish workflow", () => {
     expect(job("checks")).not.toMatch(/permissions:/);
     expect(job("secrets")).not.toMatch(/permissions:/);
     expect(job("build")).not.toMatch(/permissions:/);
+  });
+
+  it("never puts a ${{ }} expression inside a shell command (values go through env instead)", () => {
+    const runBlocks = [...workflow.matchAll(/^(\s+)run: (\|\n(?:\1  .*\n)+|.*\n)/gm)].map((m) => m[2]!);
+    expect(runBlocks.length).toBeGreaterThan(0);
+    for (const block of runBlocks) expect(block, block).not.toContain("${{");
   });
 
   it("pins every Action to a full commit SHA", () => {

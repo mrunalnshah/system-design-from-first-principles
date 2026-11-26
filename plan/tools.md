@@ -155,7 +155,7 @@ All tools live in `.site/tools/`, are reached through `.site/tools/cli.ts`, and 
 ### TOOL-14 Dependency audit
 - Trigger: third-party dependencies; the 7-day cooldown (specs/stack.md)
 - Commands: `<tools> audit`
-- Does: runs `npm audit --audit-level=high`; checks every version in package-lock.json was published at least 7 days before the lockfile change (registry `time` data); writes a CycloneDX SBOM with `npm sbom --sbom-format cyclonedx` for each release; checks licences against an allow-list (MIT, ISC, BSD-2/3, Apache-2.0, OFL-1.1, 0BSD, BlueOak-1.0.0).
+- Does: runs `npm audit --audit-level=high`; checks every version in package-lock.json was published at least 7 days before the lockfile change (registry `time` data); writes a CycloneDX SBOM with `npm sbom --sbom-format cyclonedx` for each release; checks licences in two tiers (CR-0004): code shipped to readers (KaTeX, @panzoom/panzoom, @fontsource-variable/* and their dependencies) must be MIT, ISC, BSD-2/3-Clause, Apache-2.0, OFL-1.1, 0BSD, BlueOak-1.0.0 or CC0-1.0; build and development tools may also be MPL-2.0, LGPL-3.0-or-later, PSF-2.0 or FSL-1.1-Apache-2.0; anything else (GPL, AGPL, SSPL, unknown) fails. The cooldown check covers lockfile entries that are new or changed against a base commit (`--base <git-ref>`).
 - Builds on: npm 11.20.0 built-ins
 - Runs: CI (weekly scheduled run as well)
 - Built in: T-00.06

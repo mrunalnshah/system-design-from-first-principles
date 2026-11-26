@@ -1,5 +1,6 @@
 {
   "name": "sdfp-website",
+  "version": "0.1.0",
   "description": "Website for the book System Design from First Principles, built from the Obsidian vault one folder up.",
   "private": true,
   "type": "module",

@@ -5,8 +5,10 @@
  * Commands: `status`, `next`, `done <task>`, `pack <task-or-round> [--out FILE]`, `check`, `trace`.
  * Returns the process exit code; never calls process.exit, so tests can call `main()` directly.
  */
+import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { audit } from "./audit.ts";
 import { check } from "./check.ts";
 import { pack } from "./pack.ts";
 import { formatGroup, loadPlan, markDone, nextTasks, statusReport } from "./plan.ts";
@@ -18,7 +20,7 @@ export type Io = { log(text: string): void; error(text: string): void };
 /** The repository root: two folders up from `.site/tools/`. */
 export const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
 
-const USAGE = "Usage: tools <command>\n  status         phase, gates, task counts, open conflicts, next tasks, recent progress\n  next           tasks whose dependencies are done, by round\n  done <task>    mark a task done and log it\n  pack <task-or-round> [--out FILE]\n                 bundle what a task or round needs; prints it, or writes FILE\n  check          check the plan's consistency; exits 1 on any problem\n  trace          write specs/trace.md (criterion → task → tagged tests)";
+const USAGE = "Usage: tools <command>\n  status         phase, gates, task counts, open conflicts, next tasks, recent progress\n  next           tasks whose dependencies are done, by round\n  done <task>    mark a task done and log it\n  pack <task-or-round> [--out FILE]\n                 bundle what a task or round needs; prints it, or writes FILE\n  check          check the plan's consistency; exits 1 on any problem\n  trace          write specs/trace.md (criterion → task → tagged tests)\n  audit [--base <git-ref>] [--sbom FILE]\n                 vulnerabilities, 7-day cooldown for entries changed since <git-ref>, licences";
 
 /**
  * Runs one tool command against the plan under `root` and returns its exit code:
@@ -70,6 +72,15 @@ export function main(argv: string[], root: string = repoRoot, io: Io = console):
         trace(root);
         io.log("Wrote specs/trace.md");
         return 0;
+      case "audit": {
+        const flag = (name: string) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
+        const base = flag("--base");
+        const result = audit({ root, baseLockfile: base ? lockfileAt(root, base) : undefined, changedAt: lockfileChangedAt(root), sbomPath: flag("--sbom") });
+        result.notes.forEach((n) => io.log(n));
+        if (result.ok) { io.log("Dependency audit passed."); return 0; }
+        io.error(`Dependency audit found ${result.problems.length} problem(s):\n` + result.problems.map((p) => `  - ${p}`).join("\n"));
+        return 1;
+      }
       default:
         io.error(USAGE);
         return 2;
@@ -78,6 +89,23 @@ export function main(argv: string[], root: string = repoRoot, io: Io = console):
     io.error(e instanceof Error ? e.message : String(e));
     return 1;
   }
+}
+
+const LOCKFILE = ".site/package-lock.json";
+const git = (root: string, args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 64 * 1024 * 1024 });
+
+/** The lockfile as of `ref`, or undefined when that commit has none (e.g. before the project existed). */
+function lockfileAt(root: string, ref: string): string | undefined {
+  try { return git(root, ["show", `${ref}:${LOCKFILE}`]); } catch { return undefined; }
+}
+
+/** When the current lockfile's versions were chosen: now if it has uncommitted changes, else its last commit's time. */
+function lockfileChangedAt(root: string): Date {
+  try {
+    if (git(root, ["status", "--porcelain", "--", LOCKFILE]).trim()) return new Date();
+    const iso = git(root, ["log", "-1", "--format=%cI", "--", LOCKFILE]).trim();
+    return iso ? new Date(iso) : new Date();
+  } catch { return new Date(); }
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
