@@ -3,15 +3,14 @@
  * Runs on Node's built-in TypeScript support (CR-0001), so this file uses erasable syntax only.
  *
  * Commands: `status`, `next`, `done <task>`, `pack <task-or-round> [--out FILE]`, `check`, `trace`,
- * `audit [--base <git-ref>] [--sbom FILE]`.
+ * `audit [--base <git-ref>] [--sbom FILE]`, `sync`, `tokens`, `contrast`.
  * Returns the process exit code; never calls process.exit, so tests can call `main()` directly.
  */
-import { resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { join, relative } from "node:path";
-import { checkContrast, findRawColours, MIN_RATIO } from "./contrast.ts";
+import { checkContrast, findRawColours, formatRatio, MIN_RATIO } from "./contrast.ts";
 import { sync } from "./sync.ts";
 import { buildTokens, TOKENS_CSS } from "./tokens.ts";
 import { audit, baseLockfileFor, lockfileChangedAt } from "./audit.ts";
@@ -109,10 +108,10 @@ export function main(argv: string[], root: string = repoRoot, io: Io = console):
       case "contrast": {
         const result = checkContrast(JSON.parse(readFileSync(join(root, "design/tokens.json"), "utf8")));
         const raw = findRawColours(styleFiles(join(root, ".site")));
-        for (const p of result.pairs.filter((x) => !x.ok)) io.error(`${p.theme}: ${p.foreground} on ${p.background} is ${p.ratio}:1, below ${MIN_RATIO}:1 (WCAG 2.2 AA).`);
+        for (const p of result.pairs.filter((x) => !x.ok)) io.error(`${p.theme}: ${p.foreground} on ${p.background} is ${formatRatio(p.ratio)}:1, below ${MIN_RATIO}:1 (WCAG 2.2 AA).`);
         for (const r of raw) io.error(`.site/${r.path}:${r.line}: raw colour ${r.value}; use a var(--color-…) from tokens.css (TOOL-08.AC3).`);
         if (!result.ok || raw.length) return 1;
-        io.log(`Contrast passed: ${result.pairs.length} pairs, lowest ${result.lowest.ratio}:1 (${result.lowest.theme} ${result.lowest.foreground} on ${result.lowest.background}); no raw colours.`);
+        io.log(`Contrast passed: ${result.pairs.length} pairs, lowest ${formatRatio(result.lowest.ratio)}:1 (${result.lowest.theme} ${result.lowest.foreground} on ${result.lowest.background}); no raw colours.`);
         return 0;
       }
       default:
@@ -146,7 +145,8 @@ async function runSync(root: string, io: Io): Promise<number> {
   const closed = new Promise<string>((resolve) => rl.once("close", () => resolve("cancel")));
   rl.on("SIGINT", () => rl.close());
   try {
-    const result = await sync({ root, log: (l) => io.log(l), ask: (q) => Promise.race([rl.question(q), closed]) });
+    // `closed` goes first: if input has already ended, it has settled and wins over the rejected question.
+    const result = await sync({ root, log: (l) => io.log(l), ask: (q) => Promise.race([closed, rl.question(q).catch(() => "cancel")]) });
     return result.ok ? 0 : 1;
   } catch (e) {
     io.error(`Sync stopped unexpectedly: ${e instanceof Error ? e.message : String(e)}`);

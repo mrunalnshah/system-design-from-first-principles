@@ -176,6 +176,16 @@ describe("sync", () => {
     expect(remoteLog(origin)).toEqual(["start"]);
   });
 
+  it("treats a question that can't be asked as cancel, and leaves nothing staged", async () => {
+    const { root, origin } = vault();
+    put(root, "part-1_foundations/chapter-2_memory.md", "Text.\n");
+    const { opts } = options(root);
+    opts.ask = async () => { throw new Error("readline was closed"); };
+    expect((await sync(opts)).ok).toBe(false);
+    expect(git(root, "diff", "--cached", "--name-only")).toBe("");
+    expect(remoteLog(origin)).toEqual(["start"]);
+  });
+
   it("stops when the author answers 'cancel'", async () => {
     const { root, origin } = vault();
     put(root, "part-1_foundations/chapter-2_memory.md", "Text.\n");

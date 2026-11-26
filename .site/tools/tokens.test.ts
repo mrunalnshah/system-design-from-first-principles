@@ -24,6 +24,18 @@ describe("token build (TOOL-07)", () => {
     expect(() => buildTokens(json)).toThrow(/theme-light\.text.*\{color\.missing\}/);
   });
 
+  it("refuses a colour that only one theme defines, or that isn't a solid #rrggbb", () => {
+    const oneTheme = tokens();
+    (oneTheme["theme-dark"] as Record<string, unknown>).extra = { $type: "color", $value: "{color.white}" };
+    expect(() => buildTokens(oneTheme)).toThrow(/only one theme has theme-dark\.extra/);
+    const noHex = tokens();
+    (noHex["theme-light"] as Record<string, { $value: unknown }>).text!.$value = { colorSpace: "srgb", components: [0, 0, 0] };
+    expect(() => buildTokens(noHex)).toThrow(/theme-light\.text needs a "hex"/);
+    const seeThrough = tokens();
+    (seeThrough["theme-light"] as Record<string, { $value: unknown }>).text!.$value = { colorSpace: "srgb", components: [0, 0, 0], alpha: 0.5, hex: "#000000" };
+    expect(() => buildTokens(seeThrough)).toThrow(/theme-light\.text is transparent/);
+  });
+
   it("turns DTCG values into CSS: dimensions, font stacks, weights, durations", () => {
     const css = buildTokens(tokens());
     expect(css).toMatch(/--font-serif: "Source Serif 4", Georgia, Cambria, "Times New Roman", serif;/);

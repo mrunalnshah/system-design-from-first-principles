@@ -39,6 +39,17 @@ describe("writing guide and templates", () => {
     for (const code of codes) expect(section, `guide explains ${code}`).toContain(code);
   });
 
+  // @req REQ-AUTH-003.AC2
+  it("quotes every one of sync's stops as sync prints it", () => {
+    const section = (/## When sync or the build stops\n([\s\S]*?)(?=\n## |$)/.exec(guide())?.[1] ?? "").replace(/\s+/g, " ");
+    const stops = [...read(".site/tools/sync.ts").matchAll(/\bstop\(\s*(["`])((?:\\.|(?!\1).)*)\1/g)].map((m) =>
+      // The fixed opening of each message: its first sentence, before any ${…} or "(…)" aside, without trailing punctuation.
+      m[2]!.replace(/\\"/g, '"').split("${")[0]!.split(" (")[0]!.split(". ")[0]!.replace(/["\s:.]+$/, ""),
+    );
+    expect(stops.length).toBeGreaterThan(8);
+    for (const s of [...stops, "but couldn't push it to GitHub", "Couldn't push to GitHub"]) expect(section, `guide quotes "${s}"`).toContain(s);
+  });
+
   // @req REQ-AUTH-003.AC3
   it("keeps templates/ out of what gets published (outside part-*/ and articles/)", () => {
     expect(existsSync(join(root, "templates"))).toBe(true);

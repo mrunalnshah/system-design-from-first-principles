@@ -41,7 +41,7 @@ export async function sync(opts: SyncOptions): Promise<SyncResult> {
   const git = (...args: string[]) => run("git", ["-C", root, ...args], root);
   const stop = (...lines: string[]): SyncResult => {
     lines.forEach((l) => log(l));
-    log("Nothing was committed or pushed. Fix the above, then run sync again.");
+    log(lines[0] === "Cancelled." ? "Nothing was committed or pushed." : "Nothing was committed or pushed. Fix the above, then run sync again.");
     return { ok: false };
   };
 
@@ -81,7 +81,11 @@ export async function sync(opts: SyncOptions): Promise<SyncResult> {
 
   // 5. Stage everything now, so what's listed (and later committed) is exactly what was checked;
   //    edits Obsidian saves while the question is open wait for the next sync.
-  if (git("add", "-A").status !== 0) return stop("Couldn't prepare the changes for publishing.");
+  const added = git("add", "-A");
+  if (added.status !== 0) {
+    git("reset", "-q"); // a partial `add` may have staged some files; with index.lock this fails harmlessly
+    return stop("Couldn't prepare the changes for publishing:", tail(added.stderr), "If it mentions index.lock, close other git tools and run sync again.");
+  }
   const staged = git("-c", "core.quotePath=false", "diff", "--cached", "--name-status").stdout.split(/\r?\n/).filter(Boolean);
   const unpushed = Number(git("rev-list", "--count", "origin/main..HEAD").stdout.trim() || "0");
   if (!staged.length && !unpushed) { log("Nothing new to publish."); return { ok: true }; }
@@ -92,7 +96,12 @@ export async function sync(opts: SyncOptions): Promise<SyncResult> {
     staged.slice(0, 40).forEach((c) => log(`  ${describe(c)}`));
     if (staged.length > 40) log(`  … and ${staged.length - 40} more`);
     const fallback = `Update ${(opts.now ?? new Date()).toISOString().slice(0, 10)}`;
-    const answer = (await opts.ask(`One-line message for this update (Enter for "${fallback}", or type cancel): `)).trim();
+    let answer: string;
+    try {
+      answer = (await opts.ask(`One-line message for this update (Enter for "${fallback}", or type cancel): `)).trim();
+    } catch {
+      answer = "cancel"; // the question couldn't be asked: never leave the changes staged
+    }
     if (answer.toLowerCase() === "cancel") { git("reset", "-q"); return stop("Cancelled."); }
     message = answer || fallback;
 

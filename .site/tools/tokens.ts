@@ -15,9 +15,16 @@ type Node = { $type?: string; $value?: unknown; [key: string]: unknown };
 
 export const TOKENS_CSS = "src/features/site/tokens.css";
 
-/** Builds the CSS text. Throws `Token <path> references {<ref>}, which doesn't exist` for a broken reference. */
+/**
+ * Builds the CSS text. Throws, naming the token, for a broken or circular reference, a colour that isn't a
+ * solid `#rrggbb`, or a colour that only one of the two themes defines.
+ */
 export function buildTokens(json: unknown): string {
   const root = json as Node;
+  const names = (group: string) => leaves((root[group] ?? {}) as Node).map(([p]) => p).sort();
+  const [lightNames, darkNames] = [names("theme-light"), names("theme-dark")];
+  const onlyOne = [...lightNames.filter((n) => !darkNames.includes(n)).map((n) => `theme-light.${n}`), ...darkNames.filter((n) => !lightNames.includes(n)).map((n) => `theme-dark.${n}`)];
+  if (onlyOne.length) throw new Error(`Both themes need the same colours; only one theme has ${onlyOne.join(", ")}`);
   const light: string[] = [], dark: string[] = [], shared: string[] = [];
   for (const [path, token] of leaves(root)) {
     const [group] = path.split(".");
@@ -85,7 +92,12 @@ function cssValue(root: Node, path: string, token: Node, seen: string[] = []): s
     return cssValue(root, ref, target, [...seen, ref]);
   }
   switch (token.$type) {
-    case "color": return (v as { hex: string }).hex;
+    case "color": {
+      const { hex, alpha } = (v ?? {}) as { hex?: unknown; alpha?: unknown };
+      if (typeof hex !== "string" || !/^#[0-9a-fA-F]{6}$/.test(hex)) throw new Error(`Token ${path} needs a "hex" of the form #rrggbb`);
+      if (alpha !== undefined && alpha !== 1) throw new Error(`Token ${path} is transparent (alpha ${String(alpha)}); contrast can't be checked, so use a solid colour`);
+      return hex;
+    }
     case "dimension":
     case "duration": { const d = v as { value: number; unit: string }; return `${d.value}${d.unit}`; }
     case "fontFamily": return (Array.isArray(v) ? v : [v]).map((f) => (/[\s\d]/.test(String(f)) ? `"${f}"` : String(f))).join(", ");
