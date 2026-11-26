@@ -35,3 +35,5 @@
 2026-11-26T17:03Z · R-02 · T-00.04 · done
 2026-11-26T17:04Z · R-03 · start · pack R-03 (~11k tokens); T-00.05 is Careful (announced)
 2026-11-26T17:06Z · R-03 · T-00.05 · steps 1-4 (local) · publish.yml (checks → build → deploy; SHA-pinned; deploy-only pages/id-token), dependabot.yml (weekly, grouped, cooldown 7 days per GitHub docs), eslint.config.js (typescript-eslint + astro; url() rule), .prettierrc.json, vitest.config.ts; + .site/tests/workflow.test.ts (6th file, within M) for REQ-SITE-007.AC3; lint now passes on all code incl. R-01/R-02 tools (no fixes needed; seeded violations caught); 42/42 tests; build ok; configure-pages dropped (not needed), noted in stack.md
+2026-11-26T17:12Z · R-03 · T-00.07 · spike S-01 done (~15 min of 1 h): build + dev from .site/ ok; loader reads vault one level up; own rendered.html + per-entry option reach render(); CNF-004 resolved (main paths of ADR-0002/0003 stand); temporary content.config.ts and spike page removed
+2026-11-26T17:12Z · R-03 · T-00.07 · done

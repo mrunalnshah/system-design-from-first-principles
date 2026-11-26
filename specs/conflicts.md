@@ -41,8 +41,8 @@ Passes run at intake, after the specification, during the stack choice and after
 - Why: Astro's docs (checked 2026-11-26) confirm custom loaders and `renderMarkdown()`, but not that a loader may store HTML rendered by our own pipeline in `rendered`, nor how Vite and Astro behave with a project in a dot folder reading files outside its root.
 - Options:
   1. Spike S-01 early in phase 0: a 1-hour throwaway build of Chapter 1 through a custom loader from `.site/`. Fallbacks: render in `getStaticPaths` (ADR-0003), or `site/` + `userIgnoreFilters` (ADR-0002, by change request).
-- Status: accepted (spike scheduled)
-- Decision: spike S-01 = T-00.07 in round R-03, before any content code (T-01.03 depends on it).
+- Status: resolved
+- Decision: spike S-01 (T-00.07, 2026-11-26) confirmed both assumptions on Astro 7.4.13: a custom loader in the `.site/` dot folder reads the vault one folder up, stores HTML from our own pipeline with per-entry options in `rendered`, and `render()` shows it; `astro build` and `astro dev` both work from the dot folder. Main paths of ADR-0002 and ADR-0003 stand; no fallback needed. Details: `.site/spikes/s01/README.md` (deleted in T-00.08; kept in git history).
 
 ### CNF-005 GitHub Pages 404 on a project site
 - Between: REQ-SITE-004.AC1 (friendly page with HTTP 404 under the base path), CNF-003 (GitHub Pages project site)
