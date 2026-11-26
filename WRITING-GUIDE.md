@@ -91,7 +91,9 @@ One-time setup (done ✅): in Obsidian → Settings → Excalidraw, **Auto-expor
 light-themed image** are on; keep **Auto-export PNG** off.
 
 For each diagram:
-1. Create the drawing in the part's `excalidraw/` folder, named `NN_slug` (e.g. `03_cache-hierarchy`).
+1. Create the drawing in the part's `excalidraw/` folder, named `NN_slug` (e.g. `03_cache-hierarchy`): right-click that
+   folder → "Create new drawing". (Excalidraw's own default folder is `Excalidraw/` at the vault root; sync refuses
+   drawings there, because their images would never be published. Move them into a part's `excalidraw/`.)
 2. Draw it in your usual light-theme colours. Excalidraw makes the dark version itself, mapping your colours.
 3. Save (Ctrl+S). Excalidraw writes `NN_slug.excalidraw.light.svg` and `.dark.svg` next to the drawing.
 4. Embed the drawing in the chapter, **with a caption**: `![[03_cache-hierarchy.excalidraw|How the caches nest]]`.

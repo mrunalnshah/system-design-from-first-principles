@@ -19,3 +19,15 @@ sdfp-website-architecture.zip
 
 # Local copies of security tools (gitleaks for the pre-commit hook, TOOL-13); CI downloads its own.
 .site/.tools/
+
+# Never publish per-machine or junk files (sync stages everything else in the vault)
+.claude/settings.local.json
+.trash/
+Thumbs.db
+desktop.ini
+.DS_Store
+*.swp
+*~
+*.log
+.env
+.env.*

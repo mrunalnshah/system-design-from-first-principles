@@ -117,23 +117,63 @@ describe("sync", () => {
     expect(text()).toMatch(/can't combine|couldn't be combined/i);
   });
 
-  // @req REQ-AUTH-001.AC6
-  it("prints the Actions page and the site address after a push to GitHub", () => {
+  it("works out the Actions page and the site address from a GitHub remote", () => {
     expect(linksFor("https://github.com/mrunalnshah/system-design-from-first-principles.git")).toEqual({
       actions: "https://github.com/mrunalnshah/system-design-from-first-principles/actions",
       site: "https://mrunalnshah.github.io/system-design-from-first-principles/",
     });
     expect(linksFor("git@github.com:mrunalnshah/system-design-from-first-principles.git")?.site).toBe("https://mrunalnshah.github.io/system-design-from-first-principles/");
     expect(linksFor("C:/tmp/origin.git")).toBeUndefined();
+    expect(linksFor("https://evilgithub.com/a/b.git")).toBeUndefined();
+    expect(linksFor("https://github.com/MrunalNShah/mrunalnshah.github.io")?.site).toBe("https://mrunalnshah.github.io/");
   });
 
-  it("logs the published links when the push succeeds", async () => {
-    const { root } = vault();
-    git(root, "remote", "set-url", "--add", "--push", "origin", git(root, "remote", "get-url", "origin")); // keep pushing to the bare repo
+  // @req REQ-AUTH-001.AC6
+  it("logs the Actions link and the site address after a successful push to a GitHub remote", async () => {
+    const { root, origin } = vault();
+    // The remote is named like GitHub, but git is told to use the local bare repository for it.
+    const url = "https://github.com/test-owner/test-book.git";
+    git(root, "remote", "set-url", "origin", url);
+    git(root, "config", `url.${origin.replace(/\\/g, "/")}.insteadOf`, url);
     put(root, "part-1_foundations/chapter-2_memory.md", "Text.\n");
     const { opts, text } = options(root);
     expect((await sync(opts)).ok).toBe(true);
-    expect(text()).toMatch(/Published/);
+    expect(text()).toContain("Watch it build: https://github.com/test-owner/test-book/actions");
+    expect(text()).toContain("Live in a few minutes at: https://test-owner.github.io/test-book/");
+    expect(remoteLog(origin)[0]).toBe("Add chapter 2");
+  });
+
+  it("pushes a commit that an earlier failed push left behind, even with nothing new", async () => {
+    const { root, origin } = vault();
+    put(root, "part-1_foundations/chapter-2_memory.md", "Text.\n");
+    git(root, "add", "-A");
+    git(root, "commit", "-q", "-m", "stranded");
+    const { opts, text } = options(root);
+    expect((await sync(opts)).ok).toBe(true);
+    expect(text()).not.toContain("Nothing new to publish");
+    expect(remoteLog(origin)[0]).toBe("stranded");
+  });
+
+  it("commits exactly what it listed, and lists every new file (not just its folder)", async () => {
+    const { root, origin } = vault();
+    put(root, "notes/a.md", "a\n");
+    put(root, "notes/b.md", "b\n");
+    const { opts, text } = options(root);
+    opts.ask = async () => { put(root, "notes/c.md", "saved while the question was open\n"); return "Two notes"; };
+    expect((await sync(opts)).ok).toBe(true);
+    expect(text()).toContain("new:     notes/a.md");
+    expect(text()).toContain("new:     notes/b.md");
+    expect(remoteFiles(origin)).toEqual(expect.arrayContaining(["notes/a.md", "notes/b.md"]));
+    expect(remoteFiles(origin)).not.toContain("notes/c.md"); // published by the next sync, after it's been built
+  });
+
+  it("refuses a drawing outside a part's excalidraw/ folder", async () => {
+    const { root, origin } = vault();
+    put(root, "Excalidraw/Drawing 2026-11-26.excalidraw.md", "drawing");
+    const { opts, text } = options(root);
+    expect((await sync(opts)).ok).toBe(false);
+    expect(text()).toMatch(/Excalidraw\/Drawing 2026-11-26\.excalidraw\.md.*move it into part-<n>_<slug>\/excalidraw/);
+    expect(remoteLog(origin)).toEqual(["start"]);
   });
 
   it("stops when the author answers 'cancel'", async () => {
@@ -150,7 +190,9 @@ describe("diagram images", () => {
     const { root } = vault();
     drawing(root, "01_computer-architecture", old, { light: newer, dark: newer });
     put(root, "part-1_foundations/diagram/01_computer-architecture-light.svg", "<svg>stale copy</svg>", old);
-    expect(collectDiagramImages(root).sort()).toEqual(["part-1_foundations/diagram/01_computer-architecture-dark.svg", "part-1_foundations/diagram/01_computer-architecture-light.svg"]);
+    const { moved, problems } = collectDiagramImages(root);
+    expect(problems).toEqual([]);
+    expect(moved.sort()).toEqual(["part-1_foundations/diagram/01_computer-architecture-dark.svg", "part-1_foundations/diagram/01_computer-architecture-light.svg"]);
     expect(readFileSync(join(root, "part-1_foundations/diagram/01_computer-architecture-light.svg"), "utf8")).toBe("<svg>01_computer-architecture light</svg>");
     expect(existsSync(join(root, "part-1_foundations/excalidraw/01_computer-architecture.excalidraw.light.svg"))).toBe(false);
     expect(staleDrawings(root)).toEqual([]);
@@ -162,12 +204,21 @@ describe("diagram images", () => {
     drawing(root, "02_memory", old, { light: newer });
     collectDiagramImages(root);
     expect(staleDrawings(root)).toEqual([{ drawing: "part-1_foundations/excalidraw/02_memory.excalidraw.md", problem: expect.stringMatching(/dark image.*missing/) }]);
+    const { opts, text } = options(root);
+    return sync(opts).then((r) => {
+      expect(r.ok).toBe(false);
+      expect(text()).toMatch(/02_memory.*dark image.*missing/s);
+    });
   });
 
   // @req REQ-AUTH-002.AC3
-  it("refuses a drawing with no images at all, saying to open and save it", () => {
-    const { root } = vault();
+  it("refuses a drawing with no images at all, saying to open and save it", async () => {
+    const { root, origin } = vault();
     drawing(root, "03_cpu", old);
     expect(staleDrawings(root)[0]?.problem).toMatch(/open it in Obsidian and save it \(Ctrl\+S\)/);
+    const { opts, text } = options(root);
+    expect((await sync(opts)).ok).toBe(false);
+    expect(text()).toMatch(/03_cpu.*open it in Obsidian and save it/s);
+    expect(remoteLog(origin)).toEqual(["start"]);
   });
 });

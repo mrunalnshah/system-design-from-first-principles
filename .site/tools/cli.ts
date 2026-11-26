@@ -142,8 +142,11 @@ function styleFiles(site: string): { path: string; text: string }[] {
 /** Sync with its question asked in the terminal window. */
 async function runSync(root: string, io: Io): Promise<number> {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
+  // Closing the window, Ctrl+C, or input that ends before an answer all mean "cancel": never a silent exit.
+  const closed = new Promise<string>((resolve) => rl.once("close", () => resolve("cancel")));
+  rl.on("SIGINT", () => rl.close());
   try {
-    const result = await sync({ root, log: (l) => io.log(l), ask: (q) => rl.question(q) });
+    const result = await sync({ root, log: (l) => io.log(l), ask: (q) => Promise.race([rl.question(q), closed]) });
     return result.ok ? 0 : 1;
   } catch (e) {
     io.error(`Sync stopped unexpectedly: ${e instanceof Error ? e.message : String(e)}`);
