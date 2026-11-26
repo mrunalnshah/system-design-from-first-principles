@@ -12,6 +12,11 @@ The public surface of each module (`index.ts`). Types are in specs/data-model.md
  */
 export function renderObsidian(source: string, ctx: RenderContext): Promise<RenderResult>;
 
+/** Obsidian's lookup for `![[name]]` over the vault's files: the match closest to `fromPath` wins (REQ-CNT-006; CR-0006). */
+export function createFileResolver(paths: readonly string[]): (name: string, fromPath: string) => string | undefined;
+/** The heading-anchor rule (GitHub's), shared with `[[note#Heading]]` links: "Moore's Law" → "moores-law" (CR-0006). */
+export function slugify(text: string): string;
+
 export type RenderContext = {
   filePath: string;                                            // vault-relative, used in issues
   resolveFile(name: string, fromPath: string): string | undefined;  // Obsidian shortest-path lookup (REQ-CNT-006)

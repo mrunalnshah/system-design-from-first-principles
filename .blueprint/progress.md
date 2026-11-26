@@ -101,3 +101,4 @@
 2026-11-26T20:30Z · R-07 · T-01.08 · done
 2026-11-26T20:30Z · R-07 · T-01.09 · done
 2026-11-26T22:15Z · R-07 · end · T-01.06 to T-01.09 done (22/51 tasks); pushed to ed87a4a; publish run 45891523832 success (checks, build, deploy); CR-0006 proposed, awaiting the author; next: R-08
+2026-11-26T22:25Z · planning · CR-0006 approved by the author (option A) and merged: T-01.23 'Styles for math and code' (S/2, R-08 → 13 points), REQ-READ-008.AC5 and REQ-CNT-005.AC6 added, REQ-READ-004 says top-level headings, interfaces.md gains createFileResolver and slugify, T-01.16 imports reader/content.css; 52 tasks, 152 points, 81 left in 8 rounds; plan check passed

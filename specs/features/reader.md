@@ -28,7 +28,8 @@ WHEN a chapter is shown THE SYSTEM SHALL show its number large and faint beside 
 
 ### REQ-READ-004 Section numbers
 Priority: must · Screens: design/screens/chapter.md · Journeys: J2
-WHEN a chapter is shown THE SYSTEM SHALL number its headings automatically: the vault's `#` headings become `<chapter>.<n>` and `##` headings become `<chapter>.<n>.<m>`, shown right-aligned beside the heading; articles aren't numbered.
+WHEN a chapter is shown THE SYSTEM SHALL number its top-level headings automatically: the vault's `#` headings become `<chapter>.<n>` and `##` headings become `<chapter>.<n>.<m>`, shown right-aligned beside the heading; articles aren't numbered.
+A heading inside a callout, quote or list is part of that block: demoted and anchored, but not numbered or listed (CR-0006).
 - REQ-READ-004.AC1: Given Chapter 1's headings "Components", "Disk", "RAM", "Limitations", when it's shown, then they read 1.1 Components, 1.1.1 Disk, 1.1.2 RAM, 1.2 Limitations.
 - REQ-READ-004.AC2: Given a chapter, when it's rendered, then the chapter title is the only `h1`, and the vault's `#` headings are `h2`.
 - REQ-READ-004.AC3: Given a heading, when a reader hovers over it or focuses it, then a link to that section appears for copying.
@@ -59,6 +60,7 @@ WHEN an entry contains math THE SYSTEM SHALL typeset it at build time into HTML 
 - REQ-READ-008.AC1: Given `$\frac{1}{10^3}$`, when the page is shown with JavaScript off, then the fraction is typeset.
 - REQ-READ-008.AC2: Given a command the math renderer doesn't support, such as Chapter 1's current `$\micro s$`, when the build runs, then it stops with a build error naming the file and line and suggesting `\mu` (CNF-001, decided at G2).
 - REQ-READ-008.AC4: Given `$\mu s$`, when it's rendered, then it shows "μs".
+- REQ-READ-008.AC5: Given a chapter with math, when it's built, then KaTeX's stylesheet and fonts are part of the site's own files, and no page asks another host for them (CR-0006).
 - REQ-READ-008.AC3: Given display math wider than the screen, when it's shown at 320 px, then it scrolls sideways inside its own box, not the page.
 
 ### REQ-READ-009 Article header

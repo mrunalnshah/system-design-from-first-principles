@@ -45,6 +45,7 @@ WHEN an entry is rendered THE SYSTEM SHALL render CommonMark plus Obsidian's ext
 - REQ-CNT-005.AC3: Given `%%private note%%`, when it's rendered, then the text doesn't appear in the HTML.
 - REQ-CNT-005.AC4: Given a fenced `python` code block, when it's rendered, then it's highlighted at build time, with no JavaScript needed.
 - REQ-CNT-005.AC5: Given Obsidian's tab-indented nested lists (as in Chapter 1), when they're rendered, then the nesting matches Obsidian's reading view.
+- REQ-CNT-005.AC6: Given a highlighted code block, when it's shown in the light and in the dark theme, then its colours follow the theme and its text keeps at least 4.5:1 against the code background (NFR-003, CR-0006).
 
 ### REQ-CNT-006 Resolve embeds the way Obsidian does
 Priority: must · Screens: design/screens/chapter.md · Journeys: J1, J5
