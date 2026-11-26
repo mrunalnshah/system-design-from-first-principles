@@ -22,6 +22,16 @@ describe("publish workflow", () => {
     expect(workflow).not.toMatch(/dorny\/paths-filter|changed-files/);
   });
 
+  // @req REQ-SITE-007.AC1
+  // The 10-minute budget itself is measured on real pushes (R-09: 2 min 50 s from push to live, run 45907209109,
+  // .blueprint/progress.md). This proves the path behind it: a push publishes by itself, through capped jobs only.
+  it("publishes a pushed chapter with no manual step: push, then checks, build and deploy, each with a time limit", () => {
+    expect(topLevel("on")).toMatch(/^  push:\n    branches: \[main\]/m);
+    for (const name of ["checks", "secrets", "e2e", "build", "deploy"]) expect(job(name), `${name} has a time limit`).toMatch(/timeout-minutes: \d+/);
+    expect(job("deploy")).toMatch(/needs: build/);
+    expect(job("deploy")).not.toMatch(/environment:[\s\S]*?reviewers|wait-timer/); // no approval step before going live
+  });
+
   it("grants write access only to the deploy job", () => {
     expect(topLevel("permissions")).toBe("  contents: read\n\n");
     expect(job("deploy")).toMatch(/permissions:\n      pages: write\n      id-token: write/);

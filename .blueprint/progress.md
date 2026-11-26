@@ -129,3 +129,4 @@
 2026-11-26T22:53Z · R-09 · T-01.14 · done
 2026-11-26T22:53Z · R-09 · T-01.15 · done
 2026-11-26T22:54Z · R-09 · T-01.16 · done
+2026-11-27T02:00Z · R-09 · fix · plan check found REQ-SITE-007.AC1 untagged after marking T-01.14 done: added a tagged workflow test (push publishes by itself through capped jobs, no approval step); the 10-minute budget is the live measurement above. Plan check passed
