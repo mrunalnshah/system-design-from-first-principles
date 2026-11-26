@@ -7,7 +7,9 @@
  * Returns the process exit code; never calls process.exit, so tests can call `main()` directly.
  */
 import { resolve } from "node:path";
+import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
+import { sync } from "./sync.ts";
 import { audit, baseLockfileFor, lockfileChangedAt } from "./audit.ts";
 import { check } from "./check.ts";
 import { pack } from "./pack.ts";
@@ -20,14 +22,16 @@ export type Io = { log(text: string): void; error(text: string): void };
 /** The repository root: two folders up from `.site/tools/`. */
 export const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
 
-const USAGE = "Usage: tools <command>\n  status         phase, gates, task counts, open conflicts, next tasks, recent progress\n  next           tasks whose dependencies are done, by round\n  done <task>    mark a task done and log it\n  pack <task-or-round> [--out FILE]\n                 bundle what a task or round needs; prints it, or writes FILE\n  check          check the plan's consistency; exits 1 on any problem\n  trace          write specs/trace.md (criterion → task → tagged tests)\n  audit [--base <git-ref>] [--sbom FILE]\n                 vulnerabilities, 7-day cooldown for entries changed since <git-ref>, licences";
+const USAGE = "Usage: tools <command>\n  status         phase, gates, task counts, open conflicts, next tasks, recent progress\n  next           tasks whose dependencies are done, by round\n  done <task>    mark a task done and log it\n  pack <task-or-round> [--out FILE]\n                 bundle what a task or round needs; prints it, or writes FILE\n  check          check the plan's consistency; exits 1 on any problem\n  trace          write specs/trace.md (criterion → task → tagged tests)\n  audit [--base <git-ref>] [--sbom FILE]\n                 vulnerabilities, 7-day cooldown for entries changed since <git-ref>, licences\n  sync           publish: collect diagram images, check, build, commit and push (sync.cmd)";
 
 /**
  * Runs one tool command against the plan under `root` and returns its exit code:
  * 0 success, 1 a failed command (message on `io.error`, e.g. "Unknown task: T-99.99"), 2 usage error.
+ * `sync` asks the author a question, so it returns a promise; every other command is synchronous.
  */
-export function main(argv: string[], root: string = repoRoot, io: Io = console): number {
+export function main(argv: string[], root: string = repoRoot, io: Io = console): number | Promise<number> {
   const [command, ...args] = argv;
+  if (command === "sync") return runSync(root, io);
   try {
     switch (command) {
       case "status":
@@ -102,6 +106,22 @@ export function main(argv: string[], root: string = repoRoot, io: Io = console):
   }
 }
 
+/** Sync with its question asked in the terminal window. */
+async function runSync(root: string, io: Io): Promise<number> {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    const result = await sync({ root, log: (l) => io.log(l), ask: (q) => rl.question(q) });
+    return result.ok ? 0 : 1;
+  } catch (e) {
+    io.error(`Sync stopped unexpectedly: ${e instanceof Error ? e.message : String(e)}`);
+    return 1;
+  } finally {
+    rl.close();
+  }
+}
+
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  process.exitCode = main(process.argv.slice(2));
+  const code = main(process.argv.slice(2));
+  if (typeof code === "number") process.exitCode = code;
+  else code.then((c) => (process.exitCode = c));
 }

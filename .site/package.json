@@ -18,6 +18,7 @@
     "lint:boundaries": "depcruise src tools --config .dependency-cruiser.cjs --ts-config tsconfig.json",
     "format": "prettier --write .",
     "tools": "node tools/cli.ts",
+    "sync": "node tools/cli.ts sync",
     "setup-hooks": "git config core.hooksPath .site/tools/hooks"
   },
   "dependencies": {
