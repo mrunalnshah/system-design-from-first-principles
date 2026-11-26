@@ -9,7 +9,11 @@
 import { resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
+import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { join, relative } from "node:path";
+import { checkContrast, findRawColours, MIN_RATIO } from "./contrast.ts";
 import { sync } from "./sync.ts";
+import { buildTokens, TOKENS_CSS } from "./tokens.ts";
 import { audit, baseLockfileFor, lockfileChangedAt } from "./audit.ts";
 import { check } from "./check.ts";
 import { pack } from "./pack.ts";
@@ -22,7 +26,7 @@ export type Io = { log(text: string): void; error(text: string): void };
 /** The repository root: two folders up from `.site/tools/`. */
 export const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
 
-const USAGE = "Usage: tools <command>\n  status         phase, gates, task counts, open conflicts, next tasks, recent progress\n  next           tasks whose dependencies are done, by round\n  done <task>    mark a task done and log it\n  pack <task-or-round> [--out FILE]\n                 bundle what a task or round needs; prints it, or writes FILE\n  check          check the plan's consistency; exits 1 on any problem\n  trace          write specs/trace.md (criterion → task → tagged tests)\n  audit [--base <git-ref>] [--sbom FILE]\n                 vulnerabilities, 7-day cooldown for entries changed since <git-ref>, licences\n  sync           publish: collect diagram images, check, build, commit and push (sync.cmd)";
+const USAGE = "Usage: tools <command>\n  status         phase, gates, task counts, open conflicts, next tasks, recent progress\n  next           tasks whose dependencies are done, by round\n  done <task>    mark a task done and log it\n  pack <task-or-round> [--out FILE]\n                 bundle what a task or round needs; prints it, or writes FILE\n  check          check the plan's consistency; exits 1 on any problem\n  trace          write specs/trace.md (criterion → task → tagged tests)\n  audit [--base <git-ref>] [--sbom FILE]\n                 vulnerabilities, 7-day cooldown for entries changed since <git-ref>, licences\n  sync           publish: collect diagram images, check, build, commit and push (sync.cmd)\n  tokens         write .site/src/features/site/tokens.css from design/tokens.json\n  contrast       WCAG contrast of every token pair, and no raw colours outside tokens.css";
 
 /**
  * Runs one tool command against the plan under `root` and returns its exit code:
@@ -96,6 +100,21 @@ export function main(argv: string[], root: string = repoRoot, io: Io = console):
         io.error(`Dependency audit found ${result.problems.length} problem(s):\n` + result.problems.map((p) => `  - ${p}`).join("\n"));
         return 1;
       }
+      case "tokens": {
+        const css = buildTokens(JSON.parse(readFileSync(join(root, "design/tokens.json"), "utf8")));
+        writeFileSync(join(root, ".site", TOKENS_CSS), css);
+        io.log(`Wrote .site/${TOKENS_CSS}`);
+        return 0;
+      }
+      case "contrast": {
+        const result = checkContrast(JSON.parse(readFileSync(join(root, "design/tokens.json"), "utf8")));
+        const raw = findRawColours(styleFiles(join(root, ".site")));
+        for (const p of result.pairs.filter((x) => !x.ok)) io.error(`${p.theme}: ${p.foreground} on ${p.background} is ${p.ratio}:1, below ${MIN_RATIO}:1 (WCAG 2.2 AA).`);
+        for (const r of raw) io.error(`.site/${r.path}:${r.line}: raw colour ${r.value}; use a var(--color-…) from tokens.css (TOOL-08.AC3).`);
+        if (!result.ok || raw.length) return 1;
+        io.log(`Contrast passed: ${result.pairs.length} pairs, lowest ${result.lowest.ratio}:1 (${result.lowest.theme} ${result.lowest.foreground} on ${result.lowest.background}); no raw colours.`);
+        return 0;
+      }
       default:
         io.error(USAGE);
         return 2;
@@ -104,6 +123,20 @@ export function main(argv: string[], root: string = repoRoot, io: Io = console):
     io.error(e instanceof Error ? e.message : String(e));
     return 1;
   }
+}
+
+/** Every .css and .astro file under `<site>/src`, paths relative to `.site/`. */
+function styleFiles(site: string): { path: string; text: string }[] {
+  const out: { path: string; text: string }[] = [];
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) walk(p);
+      else if (/\.(css|astro)$/.test(name)) out.push({ path: relative(site, p).replace(/\\/g, "/"), text: readFileSync(p, "utf8") });
+    }
+  };
+  walk(join(site, "src"));
+  return out;
 }
 
 /** Sync with its question asked in the terminal window. */
