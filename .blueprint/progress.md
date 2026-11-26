@@ -48,3 +48,5 @@
 2026-11-26T17:30Z · R-04 · start · pack R-04
 2026-11-26T17:32Z · R-04 · T-00.08 · steps 1-4 (local) · url()/absoluteUrl() via makeUrlBuilder(base, site) with slug/asset validation; BaseLayout (lang, title, description, canonical, skip link, main); index + 404 through url(); REQ-SITE-013.AC1 tagged: unit tests + a real Astro build with base /system-design/ scanned for unprefixed links (found a harness bug: vitest's BASE_URL env leaked into the child build; fixed with a clean env); spikes/ deleted; 50/50 tests; lint, check, plan check clean
 2026-11-26T17:36Z · R-04 · T-00.08 · done
+2026-11-26T17:41Z · R-04 · T-00.09 · steps 1-4 · .dependency-cruiser.cjs (index-only imports, direction table from modules.md, no cycles), lint:boundaries script, CI step, tests/boundaries.test.ts (TOOL-06.AC1-2 tagged + allowed-import, cycle, real-code cases); real code: 17 modules, 41 deps, 0 violations; note: config written before its tests (seeded-violation tests prove the rules fire); limitation: .astro files aren't parsed, so page imports are reviewed by hand; 55/55 tests
+2026-11-26T17:41Z · R-04 · T-00.09 · done

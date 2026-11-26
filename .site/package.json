@@ -14,6 +14,7 @@
     "check": "astro check",
     "test": "vitest run",
     "lint": "eslint .",
+    "lint:boundaries": "depcruise src tools --config .dependency-cruiser.cjs",
     "format": "prettier --write .",
     "tools": "node tools/cli.ts",
     "setup-hooks": "git config core.hooksPath .site/tools/hooks"

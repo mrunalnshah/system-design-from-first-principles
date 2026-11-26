@@ -41,6 +41,8 @@ jobs:
           cache-dependency-path: .site/package-lock.json
       - run: npm ci
       - run: npm run lint
+      - name: Module boundaries (TOOL-06)
+        run: npm run lint:boundaries
       - run: npm run check
       - run: npm test
       - name: Plan check (TOOL-03)
