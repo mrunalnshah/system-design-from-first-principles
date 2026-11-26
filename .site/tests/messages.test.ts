@@ -65,6 +65,14 @@ describe("build-message harness (TOOL-15)", () => {
     expect(rows.find((r) => r.code === "W-DIAGRAM-NO-CAPTION")?.fixStart).toBe("Add a caption: ![[file.svg|Caption]].");
   });
 
+  // @req TOOL-15.AC1
+  it("fails the fixture broken/E-BOOK-MISSING with E-BOOK-MISSING and the contract's fix text", () => {
+    const [issue, ...rest] = readVault(join(brokenDir, "E-BOOK-MISSING")).issues;
+    expect(rest).toEqual([]);
+    expect(issue).toMatchObject({ severity: "error", code: "E-BOOK-MISSING", file: "book.md" });
+    expect(issue!.fix.startsWith(rows.find((r) => r.code === "E-BOOK-MISSING")!.fixStart)).toBe(true);
+  });
+
   // @req TOOL-15.AC2
   it("fails, naming the code, when a contract code has no fixture", () => {
     expect(fixtureProblems(["E-NO-SUCH-FIXTURE"], brokenDir, () => undefined)).toEqual([

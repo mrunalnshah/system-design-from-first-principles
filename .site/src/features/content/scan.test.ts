@@ -97,7 +97,7 @@ describe("vault scan", () => {
   });
 
   it("reports two chapters that would share an address, and a reserved slug", () => {
-    const root = vault({ "part-1_a/chapter-1_caching.md": "X", "part-2_b/chapter-2_caching.md": "Y", "articles/404.md": "Z" });
+    const root = vault({ "part-1_a/chapter-1_caching.md": "X", "part-2_b/chapter-2_caching.md": "Y", "articles/404.md": "---\ndate: 2026-11-01\n---\nZ" });
     const issues = scanVault(root).issues;
     expect(issues.map((i) => [i.code, i.file])).toEqual([
       ["E-SLUG-CLASH", "part-1_a/chapter-1_caching.md"],

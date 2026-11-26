@@ -8,37 +8,43 @@
  * - pages: `about.md` at the vault root.
  * Everything else (`.obsidian/`, `excalidraw/`, `templates/`, planning files, `book.md`, …) is never read.
  *
- * Problems come back as `issues` (E-CHAPTER-DUPLICATE, E-SLUG-CLASH), never as exceptions.
+ * Drafts (`draft: true`) are left out of every list (REQ-CNT-004); chapter numbers are still checked across
+ * drafts too, so publishing one later can't clash. Articles are sorted newest first, then undated ones.
+ *
+ * Problems come back as `issues` (E-CHAPTER-DUPLICATE, E-SLUG-CLASH, the frontmatter rules' E-FRONTMATTER-YAML
+ * and E-FRONTMATTER-FIELD, W-ARTICLE-UNDATED), never as exceptions.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseFrontmatter } from "@astrojs/markdown-remark";
 import type { BuildIssue } from "../site/index.ts";
 import { parseArticleFile, parseChapterFile, parsePartFolder, RESERVED_SLUGS, titleFromSlug } from "./naming.ts";
+import { readFrontmatter, type ArticleFrontmatter, type ChapterFrontmatter, type PageFrontmatter } from "./schemas.ts";
 
 /** What every entry carries from its file. */
-type EntryFile = {
+type EntryFile<F> = {
   slug: string;
   /** `title:` from the frontmatter, else derived from the slug (REQ-CNT-002). */
   title: string;
   /** Vault-relative, `/`-separated; used in messages. */
   sourcePath: string;
-  frontmatter: Record<string, unknown>;
+  /** The checked frontmatter, with defaults filled in (specs/contracts/frontmatter.schema.json). */
+  frontmatter: F;
   /** The Markdown after the frontmatter, with the frontmatter's lines left blank so line numbers match the file. */
   body: string;
 };
 
 export type ScannedPart = { number: number; slug: string; title: string; sourcePath: string; chapters: ScannedChapter[] };
-export type ScannedChapter = EntryFile & { kind: "chapter"; number: number; part: { number: number; slug: string; title: string } };
-export type ScannedArticle = EntryFile & { kind: "article" };
-export type ScannedPage = EntryFile & { kind: "page" };
+export type ScannedChapter = EntryFile<ChapterFrontmatter> & { kind: "chapter"; number: number; part: { number: number; slug: string; title: string } };
+/** `date` is `yyyy-mm-dd`, or undefined for an undated article. */
+export type ScannedArticle = EntryFile<ArticleFrontmatter> & { kind: "article"; date?: string };
+export type ScannedPage = EntryFile<PageFrontmatter> & { kind: "page" };
 
 export type VaultScan = {
-  /** Parts in number order, each with its chapters; a part without chapters is left out. */
+  /** Parts in number order, each with its published chapters; a part without any is left out. */
   parts: ScannedPart[];
-  /** Every chapter in book order: by part number, then chapter number. */
+  /** Every published chapter in book order: by part number, then chapter number. */
   chapters: ScannedChapter[];
-  /** Articles in file-name order (dates and sorting come with the frontmatter rules). */
+  /** Published articles, newest first, then undated ones by file name. */
   articles: ScannedArticle[];
   pages: ScannedPage[];
   issues: BuildIssue[];
@@ -48,6 +54,12 @@ export type VaultScan = {
 export function scanVault(root: string): VaultScan {
   const issues: BuildIssue[] = [];
   const top = entries(root);
+  const read = <K extends keyof FrontmatterOf>(sourcePath: string, slug: string, kind: K) => {
+    const entry = readEntry(root, sourcePath, slug, kind);
+    issues.push(...entry.issues);
+    return entry.entry;
+  };
+  const allChapters: ScannedChapter[] = [];
 
   const parts: ScannedPart[] = [];
   for (const dir of top.filter((e) => e.isDirectory())) {
@@ -57,8 +69,10 @@ export function scanVault(root: string): VaultScan {
     for (const file of entries(join(root, dir.name)).filter((e) => e.isFile())) {
       const c = parseChapterFile(file.name);
       if (!c) continue;
-      const entry = readEntry(root, `${dir.name}/${file.name}`, c.slug);
-      part.chapters.push({ ...entry, kind: "chapter", number: c.number, part: { number: part.number, slug: part.slug, title: part.title } });
+      const entry = read(`${dir.name}/${file.name}`, c.slug, "chapter");
+      const chapter: ScannedChapter = { ...entry, kind: "chapter", number: c.number, part: { number: part.number, slug: part.slug, title: part.title } };
+      allChapters.push(chapter);
+      if (!entry.frontmatter.draft) part.chapters.push(chapter);
     }
     part.chapters.sort(byNumber);
     parts.push(part);
@@ -70,18 +84,40 @@ export function scanVault(root: string): VaultScan {
   if (top.some((e) => e.isDirectory() && e.name === "articles")) {
     for (const file of entries(join(root, "articles")).filter((e) => e.isFile())) {
       const a = parseArticleFile(file.name);
-      if (a) articles.push({ ...readEntry(root, `articles/${file.name}`, a.slug), kind: "article" });
+      if (!a) continue;
+      const entry = read(`articles/${file.name}`, a.slug, "article");
+      if (entry.frontmatter.draft) continue;
+      const article: ScannedArticle = { ...entry, kind: "article" };
+      if (entry.frontmatter.date) article.date = entry.frontmatter.date;
+      articles.push(article);
     }
   }
-  articles.sort((a, b) => a.sourcePath.localeCompare(b.sourcePath));
+  // Newest first; undated last (REQ-CNT-003.AC3). Dates are yyyy-mm-dd, so text order is date order.
+  articles.sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "") || a.sourcePath.localeCompare(b.sourcePath));
+  for (const a of articles.filter((x) => !x.date)) issues.push(undated(a));
 
-  const pages: ScannedPage[] = top.some((e) => e.isFile() && e.name === "about.md") ? [{ ...readEntry(root, "about.md", "about"), kind: "page" }] : [];
+  const pages: ScannedPage[] = [];
+  if (top.some((e) => e.isFile() && e.name === "about.md")) {
+    const about = read("about.md", "about", "page");
+    if (!about.frontmatter.draft) pages.push({ ...about, kind: "page" });
+  }
 
-  issues.push(...duplicateNumbers(chapters), ...slugClashes(chapters, "chapter"), ...slugClashes(articles, "article"));
+  issues.push(...duplicateNumbers(allChapters), ...slugClashes(chapters, "chapter"), ...slugClashes(articles, "article"));
   return { parts: parts.filter((p) => p.chapters.length), chapters, articles, pages, issues };
 }
 
-/** E-CHAPTER-DUPLICATE: chapter numbers are unique across the whole book (REQ-CNT-001.AC3). One issue per number. */
+/** W-ARTICLE-UNDATED: the article still publishes, listed after the dated ones and showing no date. */
+function undated(a: ScannedArticle): BuildIssue {
+  return {
+    severity: "warning",
+    code: "W-ARTICLE-UNDATED",
+    file: a.sourcePath,
+    message: "This article has no date, so it's listed after the dated ones and shows no date.",
+    fix: "Add date: yyyy-mm-dd to sort it. For example: date: 2026-11-01",
+  };
+}
+
+/** E-CHAPTER-DUPLICATE: chapter numbers are unique across the whole book, drafts included (REQ-CNT-001.AC3). One issue per number. */
 function duplicateNumbers(chapters: ScannedChapter[]): BuildIssue[] {
   return groups(chapters, (c) => String(c.number)).map((same) => {
     const files = same.map((c) => c.sourcePath);
@@ -119,19 +155,14 @@ function slugClashes(entries: (ScannedChapter | ScannedArticle)[], kind: "chapte
   return [...shared, ...reserved];
 }
 
-function readEntry(root: string, sourcePath: string, slug: string): EntryFile {
-  const text = readFileSync(join(root, sourcePath), "utf8").replace(/\r\n?/g, "\n");
-  let frontmatter: Record<string, unknown> = {};
-  let body = text;
-  try {
-    const parsed = parseFrontmatter(text, { frontmatter: "empty-with-lines" });
-    frontmatter = parsed.frontmatter as Record<string, unknown>;
-    body = parsed.content;
-  } catch {
-    // Invalid YAML: reported by the frontmatter rules (E-FRONTMATTER-YAML); the entry keeps its derived title.
-  }
-  const title = typeof frontmatter.title === "string" && frontmatter.title.trim() ? frontmatter.title.trim() : titleFromSlug(slug);
-  return { slug, title, sourcePath, frontmatter, body };
+type FrontmatterOf = { chapter: ChapterFrontmatter; article: ArticleFrontmatter; page: PageFrontmatter };
+
+function readEntry<K extends keyof FrontmatterOf>(root: string, sourcePath: string, slug: string, kind: K): { entry: EntryFile<FrontmatterOf[K]>; issues: BuildIssue[] } {
+  const { data, body, issues } = readFrontmatter(readFileSync(join(root, sourcePath), "utf8"), sourcePath, kind);
+  // Entry schemas have no required fields, so `data` is always there; the guard names the invariant.
+  if (!data) throw new Error(`Frontmatter of ${sourcePath} has no values although ${kind} fields are all optional`);
+  const frontmatter = data as FrontmatterOf[K];
+  return { entry: { slug, title: frontmatter.title ?? titleFromSlug(slug), sourcePath, frontmatter, body }, issues };
 }
 
 /** Directory entries, skipping hidden ones (`.obsidian`, `.git`, …). */
