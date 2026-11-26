@@ -1,0 +1,47 @@
+<p>Before we can learn how to design large-scale distributed system, we need to understand how computer works, atleast at high level.</p>
+<figure data-files="part-1_foundations/diagram/01-light.svg part-1_foundations/diagram/01-dark.svg"></figure>
+<h2 id="components"><span class="section-number">1.1</span> Components</h2>
+<h3 id="disk"><span class="section-number">1.1.1</span> Disk</h3>
+<ul>
+<li>HDD, SDD</li>
+<li>Store all data - persistently</li>
+<li>Measured in 100's of GB or TB
+<ul>
+<li>1 Byte = 8 Bits and each bit can store either 0 or 1</li>
+</ul>
+</li>
+<li>reading and writing is <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mfrac><mn>1</mn><msup><mn>10</mn><mn>3</mn></msup></mfrac></mrow><annotation encoding="application/x-tex">\frac{1}{10^3}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.1901em;vertical-align:-0.345em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8451em;"><span style="top:-2.655em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span><span class="mord mtight"><span class="mord mtight">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.7463em;"><span style="top:-2.786em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mtight">3</span></span></span></span></span></span></span></span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.394em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.345em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></li>
+</ul>
+<h3 id="ram-random-access-memory"><span class="section-number">1.1.2</span> RAM (Random Access Memory)</h3>
+<ul>
+<li>Storing information, lot smaller than disk, its not persistent</li>
+<li>storage in 2 GB, 4 GB, 8 GB, 16 GB, ...</li>
+<li>Costlier than disk, but cheaper in  resources
+<ul>
+<li>Writing and reading to a RAM is measured in <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>μ</mi><mi>s</mi></mrow><annotation encoding="application/x-tex">\mu s</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal">μ</span><span class="mord mathnormal">s</span></span></span></span> (micro-second) (<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>≈</mo><mfrac><mn>1</mn><msup><mn>10</mn><mn>6</mn></msup></mfrac></mrow><annotation encoding="application/x-tex">\approx \frac{1}{10^6}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4831em;"></span><span class="mrel">≈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1901em;vertical-align:-0.345em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8451em;"><span style="top:-2.655em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span><span class="mord mtight"><span class="mord mtight">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.7463em;"><span style="top:-2.786em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mtight">6</span></span></span></span></span></span></span></span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.394em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.345em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span>)
+<ul>
+<li>very  fast (lot faster than disk)</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="cpu-central-processing-unit"><span class="section-number">1.1.3</span> CPU (Central Processing Unit)</h3>
+<ul>
+<li>Used to compute, talk with different components</li>
+<li>Reading/Writing information to Disk, RAM and execute code.</li>
+</ul>
+<h3 id="cache"><span class="section-number">1.1.4</span> Cache</h3>
+<ul>
+<li>Lot smaller than RAM</li>
+<li>in MBs</li>
+<li>measured in ns (nano second)</li>
+<li>Cache is expensive, but small cache can improve the system by a lot.</li>
+<li>CPU caan check if the data is in cache, it can make it faster.</li>
+</ul>
+<h2 id="limitations"><span class="section-number">1.2</span> Limitations</h2>
+<p>Increasing Disk, RAM, Cache doesn't help. Biggest problem is CPU, for how much we can compute in a given time.</p>
+<h2 id="moores-law"><span class="section-number">1.3</span> Moore's Law</h2>
+<ul>
+<li>Founders of Intel</li>
+</ul>

@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { readVault } from "../src/features/content/index.ts";
+import { createFileResolver, renderObsidian } from "../src/features/markdown/index.ts";
 // The report's own files, not ../src/features/site/index.ts: that index also exports an .astro component, which
 // Vitest (plain Vite, without Astro's plugin) can't load.
 import { buildReport } from "../src/features/site/build-report.ts";
@@ -11,7 +12,8 @@ import { createIssueCollector } from "../src/features/site/issues.ts";
  * TOOL-15 Build-message harness (plan/tools.md, NFR-013, specs/contracts/build-messages.md).
  * Each message code has a small broken vault in `tests/fixtures/broken/<code>/`, with an `expected.json`
  * naming the file and line the issue must point at. The harness reads each fixture through the vault
- * reader and checks it produces exactly that one issue, with the contract's severity and fix text, and that
+ * reader, renders every published entry as the loader will (T-01.14 takes this over), and checks it produces
+ * exactly that one issue, with the contract's severity and fix text, and that
  * an error fails the build while a warning doesn't.
  *
  * Codes arrive with the task that introduces them (plan/tools.md: "one case added by each task that
@@ -55,6 +57,37 @@ function waitingFor(code: string): string | undefined {
   return tasks.length && open.length === tasks.length ? `waits for ${open.join(", ")}` : undefined;
 }
 
+/**
+ * Every issue a fixture vault produces: the vault's own, then each published entry's render, with the context the
+ * loader (T-01.14) will give: links to published entries, embeds over the vault's files, chapter numbering, and a
+ * stand-in figure (MOD-diagrams draws the real one).
+ */
+async function issuesOf(vaultDir: string) {
+  const vault = readVault(vaultDir);
+  const files = allFiles(vaultDir);
+  const entries = [...vault.chapters, ...vault.articles, ...vault.pages];
+  const notes = new Map(entries.map((e) => [e.sourcePath.split("/").pop()!.replace(/\.md$/, ""), { href: `/${e.kind}/${e.slug}/`, title: e.title }]));
+  const rendered = await Promise.all(
+    entries.map((e) =>
+      renderObsidian(readFileSync(join(vaultDir, e.sourcePath), "utf8"), {
+        filePath: e.sourcePath,
+        resolveFile: createFileResolver(files),
+        resolveNote: (target) => notes.get(target),
+        headingNumbers: e.kind === "chapter" ? { prefix: String(e.number) } : false,
+        figure: () => ({ html: "<figure></figure>", issues: [] }),
+      }),
+    ),
+  );
+  return [...vault.issues, ...rendered.flatMap((r) => r.issues)];
+}
+
+/** Vault-relative paths of every file under `dir`. */
+function allFiles(dir: string, prefix = ""): string[] {
+  return readdirSync(join(dir, prefix), { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? allFiles(dir, `${prefix}${e.name}/`) : [`${prefix}${e.name}`],
+  );
+}
+
 /** Fixture folders present now, each named after its code. */
 function fixtures(): string[] {
   return existsSync(brokenDir) ? readdirSync(brokenDir).filter((d) => statSync(join(brokenDir, d)).isDirectory()) : [];
@@ -89,12 +122,12 @@ describe("build-message harness (TOOL-15)", () => {
     for (const code of UNOWNED) expect(waitingFor(code), `${code} now has a task: remove it from UNOWNED`).toBe("no task yet");
   });
 
-  it("gets exactly its own message from each fixture, with the contract's severity and fix text", () => {
+  it("gets exactly its own message from each fixture, with the contract's severity and fix text", async () => {
     expect(fixtures().length).toBeGreaterThan(0);
     for (const code of fixtures()) {
       const expected = JSON.parse(readFileSync(join(brokenDir, code, "expected.json"), "utf8")) as { file: string; line?: number };
       const row = rows.find((r) => r.code === code)!;
-      const issues = readVault(join(brokenDir, code)).issues;
+      const issues = await issuesOf(join(brokenDir, code));
       expect(issues.map((i) => i.code), `fixture ${code}`).toEqual([code]);
       const [issue] = issues;
       expect({ severity: issue!.severity, file: issue!.file, line: issue!.line }, `fixture ${code}`).toEqual({ severity: row.severity, file: expected.file, line: expected.line });
@@ -106,7 +139,7 @@ describe("build-message harness (TOOL-15)", () => {
   it("fails the build for an error fixture and not for a warning fixture", async () => {
     for (const code of fixtures()) {
       const collector = createIssueCollector();
-      readVault(join(brokenDir, code)).issues.forEach((i) => collector.add(i));
+      (await issuesOf(join(brokenDir, code))).forEach((i) => collector.add(i));
       const exits: number[] = [];
       const hook = buildReport({ issues: collector, write: async () => {}, exit: (c) => void exits.push(c) }).hooks["astro:build:done"] as unknown as () => Promise<void>;
       await hook();
