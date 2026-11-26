@@ -2,7 +2,7 @@
  * `renderObsidian` (ADR-0004): one Obsidian Markdown document → accessible HTML, built on Astro's own Markdown
  * processor (CommonMark, GFM, Shiki) plus this module's plugins, in this order:
  *   remark-math → math guard (Obsidian's `$` rule) → comments removed → embeds → links/highlights → callouts
- *   → headings → collect → math typeset → HTML (Shiki highlights code at build time).
+ *   → headings → collect → footnotes as margin notes → math typeset → HTML (Shiki highlights code at build time).
  * The order is hidden here; callers only pass a `RenderContext`.
  *
  * A fresh processor per document keeps each render's state apart (renders may run in parallel); Astro caches
@@ -13,6 +13,7 @@ import remarkMath from "remark-math";
 import { remarkCallouts } from "./plugins/callouts.ts";
 import { remarkEmbeds } from "./plugins/embeds.ts";
 import { plainText, remarkHeadings } from "./plugins/headings.ts";
+import { remarkFootnotes } from "./plugins/footnotes.ts";
 import { remarkMathGuard, remarkMathRender } from "./plugins/math.ts";
 import { PLUGIN_BLOCKS, remarkComments, remarkObsidianInline } from "./plugins/obsidian-inline.ts";
 import { walk } from "./tree.ts";
@@ -30,8 +31,9 @@ export async function renderObsidian(source: string, ctx: RenderContext): Promis
     gfm: true,
     smartypants: false, // as in Obsidian: "--flag" and straight quotes stay as written
     syntaxHighlight: { type: "shiki", excludeLangs: [...PLUGIN_BLOCKS] },
-    // Both themes as CSS variables (--shiki-light, --shiki-dark); the reader's stylesheet picks one per theme.
-    shikiConfig: { themes: { light: "github-light", dark: "github-dark" }, defaultColor: false },
+    // Both themes as CSS variables (--shiki-light, --shiki-dark); reader/content.css picks one per theme. These two
+    // keep every token at 4.5:1 or more on the code background tokens; GitHub's default light and dark don't (CR-0006).
+    shikiConfig: { themes: { light: "github-light-high-contrast", dark: "github-dark-default" }, defaultColor: false },
     remarkPlugins: [
       remarkMath,
       withState(remarkMathGuard, state),
@@ -41,6 +43,7 @@ export async function renderObsidian(source: string, ctx: RenderContext): Promis
       withState(remarkCallouts, state),
       withState(remarkHeadings, state),
       withState(remarkCollect, state),
+      remarkFootnotes as unknown as RemarkPlugin,
       withState(remarkMathRender, state),
     ],
   });

@@ -1,0 +1,30 @@
+/*
+ * Styles for what the Markdown renderer writes (T-01.23, CR-0006); ReaderLayout.astro imports this once (T-01.16).
+ * - Math: KaTeX's own stylesheet; the build bundles it and its fonts into the site's files (no other host).
+ * - Code: Shiki writes both themes' colours on every token as --shiki-light / --shiki-dark; this picks one per
+ *   theme, on the code background token. The themes (GitHub Light High Contrast, GitHub Dark Default) keep every
+ *   token at 4.5:1 or more on that background in both themes (NFR-003; checked in tests/content-css.test.ts).
+ */
+@import "katex/dist/katex.min.css";
+
+.astro-code {
+  background-color: var(--color-code-bg);
+  color: var(--shiki-light);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+.astro-code span {
+  color: var(--shiki-light);
+}
+
+@media (prefers-color-scheme: dark) {
+  .astro-code,
+  .astro-code span {
+    color: var(--shiki-dark);
+  }
+}
