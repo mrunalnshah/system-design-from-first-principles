@@ -50,13 +50,13 @@ Sources: the npm registry (`npm view <pkg> time --json`), nodejs.org (`dist/inde
 | CI | GitHub Actions | — | — | 2026-11-26 | docs.github.com | — | Builds, tests and deploys on push |
 | Action | actions/checkout | v7.0.1 | stable | 2026-11-26 | GitHub releases (2026-07-20) | — | |
 | Action | actions/setup-node | v7.1.0 | stable | 2026-11-26 | GitHub releases (2026-10-08) | — | |
-| Action | actions/configure-pages | v6.0.0 | stable | 2026-11-26 | GitHub releases (2026-03-25) | — | |
+| Action | actions/configure-pages | v6.0.0 | — | 2026-11-26 | GitHub releases (2026-03-25) | — | **Not used** (T-00.05): it only reports the base path, which astro.config.ts fixes, and would need extra Pages permissions in the build job |
 | Action | actions/upload-pages-artifact | v5.0.0 | stable | 2026-11-26 | GitHub releases (2026-04-10) | — | |
 | Action | actions/deploy-pages | v5.0.1 | stable | 2026-11-26 | GitHub releases (2026-09-01) | — | Deploys only when every check passed (REQ-SITE-007.AC2) |
 | Secret scanner | gitleaks (binary) | v8.30.1 | stable | 2026-11-26 | GitHub releases (2026-03-21) | — | Runs the MIT-licensed binary directly, in pre-commit and CI; avoids the gitleaks-action licence question. The npm package named `gitleaks` is unrelated and must not be used |
 | Analytics | none | — | — | 2026-11-26 | user's choice at G3 | — | REQ-SITE-006 deferred |
 
-Pin actions to the full commit SHA of each tag in the workflow (resolved in T-00.01) and keep the tag in a comment.
+Actions are pinned to full commit SHAs in the workflow, with the tag in a comment (resolved live in T-00.05, 2026-11-26): checkout `3d3c42e5…`, setup-node `949feb24…`, upload-pages-artifact `fc324d35…`, deploy-pages `368f8252…`.
 
 ## Compatibility notes
 - Node 26.13.1 meets every engine range found: astro `>=22.23.4`, vitest `^22.12 || ^24 || >=26`, @lhci/cli `>=22.19.0`, eslint `^22.13 || >=24`, eslint-plugin-astro `>=26.3.0`, dependency-cruiser `^22||^24||>=26`, @axe-core/playwright `>=22.12.0`, linkinator `>=22`.

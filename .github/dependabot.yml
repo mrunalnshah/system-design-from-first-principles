@@ -1,0 +1,24 @@
+# Weekly, grouped dependency updates with the same 7-day release-age cooldown as .site/.npmrc
+# (specs/stack.md#supply-chain-settings). Every update must pass the publish checks before merging.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /.site
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      npm:
+        patterns: ["*"]
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]

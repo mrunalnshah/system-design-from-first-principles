@@ -33,3 +33,5 @@
 2026-11-26T17:03Z · R-02 · T-00.04 · steps 5-6 · reviews pass after must-fix: care compared case-insensitively + unknown care values reported; also: finished rounds exempt from later budgets, only test files count as @req evidence (fixture tag file moved to .site/tests/), Status: Open case-insensitive, missing specs/features named, tests for >1 Careful task; 39/39 tests, check passes
 2026-11-26T17:03Z · R-02 · T-00.03 · done
 2026-11-26T17:03Z · R-02 · T-00.04 · done
+2026-11-26T17:04Z · R-03 · start · pack R-03 (~11k tokens); T-00.05 is Careful (announced)
+2026-11-26T17:06Z · R-03 · T-00.05 · steps 1-4 (local) · publish.yml (checks → build → deploy; SHA-pinned; deploy-only pages/id-token), dependabot.yml (weekly, grouped, cooldown 7 days per GitHub docs), eslint.config.js (typescript-eslint + astro; url() rule), .prettierrc.json, vitest.config.ts; + .site/tests/workflow.test.ts (6th file, within M) for REQ-SITE-007.AC3; lint now passes on all code incl. R-01/R-02 tools (no fixes needed; seeded violations caught); 42/42 tests; build ok; configure-pages dropped (not needed), noted in stack.md
