@@ -118,3 +118,4 @@
 2026-11-26T21:16Z · R-08 · T-01.13 · done
 2026-11-26T21:16Z · R-08 · T-01.23 · done
 2026-11-27T00:05Z · R-08 · end · T-01.10, T-01.11, T-01.12, T-01.13, T-01.23 done (27/52 tasks); pushed to 576aeaf; publish run green on every job incl. the new 'Screen tests (TOOL-09)'; CR-0007 proposed, awaiting the author; next: R-09 (Chapter 1 live)
+2026-11-27T00:10Z · planning · CR-0007 approved by the author (option A) and merged: T-01.14 renders every entry during sync with vaultRoot(); T-01.16 sets --figure-room and checks KaTeX same-origin on a built page; T-01.18 hides .sidenote without JS below 1100 px; T-02.05 draws the hero with DiagramFigure; interfaces.md gains indexOf, DiagramIndex.root, createIssueCollector, vaultRoot; no points or rounds changed

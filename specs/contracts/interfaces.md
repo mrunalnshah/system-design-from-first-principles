@@ -31,13 +31,15 @@ export type RenderResult = { html: string; sections: Section[]; footnoteCount: n
 
 ## MOD-diagrams (`.site/src/features/diagrams/index.ts`)
 ```ts
-/** Scans the vault once and indexes every SVG and Excalidraw source. Cached per build. */
+/** Scans the vault once and indexes every SVG in the part folders and articles/ (never a drawing source). Cached per build; `DiagramIndex` carries its vault `root`. */
 export function getDiagramIndex(vaultRoot: string): Promise<DiagramIndex>;
+/** An index built from given SVG texts (path → text), for tests. */
+export function indexOf(svgs: Record<string, string>): DiagramIndex;
 /** Returns the renderer MOD-obsidian-markdown calls for SVG embeds. Groups light/dark pairs into one figure. */
 export function createFigureRenderer(index: DiagramIndex): FigureRenderer;
-/** Static paths for every referenced diagram asset (used by src/pages/diagrams/[...file].ts). */
+/** Static paths for every referenced diagram asset, i.e. one a figure has drawn (used by src/pages/diagrams/[...file].ts; CR-0007). */
 export function diagramAssetPaths(index: DiagramIndex): { params: { file: string }; props: { sourcePath: string } }[];
-export { default as DiagramFigure } from "./DiagramFigure.astro"; // props: { file: string; alt?: string; eager?: boolean }
+export { default as DiagramFigure } from "./DiagramFigure.astro"; // props: { file: string; alt?: string; eager?: boolean }; its problems go to the build report
 // client: import "…/diagrams/client/diagram-viewer" (auto-binds to [data-diagram] figures)
 ```
 
@@ -71,6 +73,10 @@ export function url(route: Route): string;
 export function absoluteUrl(route: Route): string;
 /** Collects build issues from every module; the build report prints them grouped and fails on any error. */
 export const buildIssues: { add(issue: BuildIssue): void; all(): readonly BuildIssue[]; hasErrors(): boolean };
+/** A fresh collector of the same shape, for tests (CR-0007). */
+export function createIssueCollector(): typeof buildIssues;
+/** The vault's absolute path (the folder holding .site/), fixed by astro.config.ts (CR-0007). */
+export function vaultRoot(): string;
 export function buildReport(): AstroIntegration;
 export { default as BaseLayout } from "./BaseLayout.astro";    // props: { title; description; route; ogImage? }
 ```
