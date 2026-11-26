@@ -28,3 +28,11 @@ if ! "$gl" git --pre-commit --staged --redact --no-banner --log-level warn --con
   echo "Remove it from the file, then commit again. If it was ever pushed, revoke the key as well." >&2
   exit 1
 fi
+
+# Module boundaries (TOOL-06), when the site's dependencies are installed and code is being committed.
+if [ -d "$root/.site/node_modules/dependency-cruiser" ] && git diff --cached --name-only | grep -q '^\.site/\(src\|tools\)/'; then
+  if ! npm --prefix "$root/.site" run --silent lint:boundaries; then
+    echo "pre-commit: a module boundary rule failed (above). See specs/modules.md." >&2
+    exit 1
+  fi
+fi

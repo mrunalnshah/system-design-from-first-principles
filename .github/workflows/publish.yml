@@ -52,10 +52,16 @@ jobs:
         run: npm run tools -- check
       - name: Dependency audit (TOOL-14)
         env:
-          # The commit to compare the lockfile with: the previous push, or the PR's base. Empty on
-          # scheduled runs (no cooldown comparison, just advisories and licences).
-          AUDIT_BASE: ${{ github.event.before || github.event.pull_request.base.sha || '' }}
-        run: npm run tools -- audit ${AUDIT_BASE:+--base "$AUDIT_BASE"}
+          # The commit to compare the lockfile with: a PR's base (never the previous PR push, so a
+          # re-push can't skip a failed check), else the previous push. Empty on scheduled runs
+          # (advisories and licences only). A base the repo doesn't have fails the audit.
+          # Known limit: on main, a push after a failed run compares with that failed push; the
+          # local `min-release-age=7` in .npmrc and Dependabot's cooldown still guard new versions.
+          AUDIT_BASE: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+        run: |
+          base="$AUDIT_BASE"
+          if [ "$base" = "0000000000000000000000000000000000000000" ]; then base="HEAD~1"; fi
+          npm run tools -- audit ${base:+--base "$base"}
 
   secrets:
     name: Secret scan (gitleaks)

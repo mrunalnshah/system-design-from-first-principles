@@ -8,10 +8,14 @@
 // The TypeScript config is passed on the command line (`--ts-config tsconfig.json` in package.json),
 // so this file needs no imports and the tests can reuse it in projects without a tsconfig.
 
-/** Which modules each feature folder may import (from specs/modules.md). */
+/**
+ * Which modules each feature folder may import: exactly the "Depends on" lists in specs/modules.md.
+ * Open question for T-01.12–T-01.14: the vault loader must create MOD-diagrams' figure renderer to
+ * hand it to MOD-obsidian-markdown, which content → diagrams doesn't allow yet. Settle it there, by CR.
+ */
 const ALLOWED = {
-  content: ["markdown", "diagrams", "site"], // MOD-vault
-  markdown: ["site"], // MOD-obsidian-markdown: general-purpose, no book knowledge
+  content: ["markdown", "site"], // MOD-vault
+  markdown: [], // MOD-obsidian-markdown: general-purpose; diagrams only through the figure renderer in ctx
   diagrams: ["site"],
   book: ["content", "site"],
   reader: ["content", "book", "diagrams", "site"],
@@ -42,6 +46,20 @@ module.exports = {
       comment: "Code outside src/features (pages, tests) imports a module only through its index.ts.",
       from: { path: "^src/", pathNot: "^src/features/" },
       to: { path: "^src/features/[^/]+/", pathNot: "^src/features/[^/]+/index\\.ts$" },
+    },
+    {
+      name: "known-modules-only",
+      severity: "error",
+      comment: "Every feature folder is a module listed in specs/modules.md (and in ALLOWED here).",
+      from: { path: "^src/features/", pathNot: `^src/features/(${Object.keys(ALLOWED).join("|")})/` },
+      to: {},
+    },
+    {
+      name: "modules-never-import-pages",
+      severity: "error",
+      comment: "Pages use modules, never the other way round.",
+      from: { path: "^src/features/" },
+      to: { path: "^src/pages/" },
     },
     ...Object.entries(ALLOWED).map(([module, deps]) => ({
       name: `direction-${module}`,

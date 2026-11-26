@@ -1,8 +1,9 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { audit, licenceAllowed } from "./audit.ts";
+import { audit, baseLockfileFor, licenceAllowed } from "./audit.ts";
 
 const tempRoots: string[] = [];
 afterAll(() => tempRoots.forEach((r) => rmSync(r, { recursive: true, force: true })));
@@ -84,11 +85,62 @@ describe("licences", () => {
     expect(licenceAllowed("(GPL-3.0 OR MIT) AND Apache-2.0", ok)).toBe(true);
     expect(licenceAllowed("GPL-3.0", ok)).toBe(false);
   });
+
+  it("fails closed on anything that isn't a complete, valid expression", () => {
+    const ok = new Set(["MIT", "Apache-2.0"]);
+    expect(licenceAllowed("MIT or GPL-3.0-only", ok)).toBe(false); // lowercase operator
+    expect(licenceAllowed("MIT GPL-3.0-only", ok)).toBe(false); // two IDs in a row
+    expect(licenceAllowed("MIT WITH foo AND GPL-3.0-only", ok)).toBe(false);
+    expect(licenceAllowed("(MIT", ok)).toBe(false);
+    expect(licenceAllowed("MIT)", ok)).toBe(false);
+    expect(licenceAllowed("", ok)).toBe(false);
+    expect(licenceAllowed("Apache-2.0 WITH LLVM-exception", ok)).toBe(true);
+  });
+});
+
+describe("base commit for the cooldown", () => {
+  /** A git repo with a commit before the lockfile existed, then one adding it. */
+  function gitRepo(): { root: string; before: string } {
+    const root = repo({ "left-pad": { version: "1.3.0", license: "MIT" } });
+    const git = (...args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: "pipe" }).trim();
+    git("init", "-q", "-b", "main");
+    git("config", "user.name", "Test");
+    git("config", "user.email", "test@example.invalid");
+    writeFileSync(join(root, "README.md"), "x\n");
+    git("add", "README.md");
+    git("commit", "-q", "--no-verify", "-m", "before");
+    const before = git("rev-parse", "HEAD");
+    git("add", ".site/package-lock.json");
+    git("commit", "-q", "--no-verify", "-m", "lockfile");
+    return { root, before };
+  }
+
+  it("refuses a ref that isn't a commit, instead of skipping the check", () => {
+    const { root } = gitRepo();
+    expect(() => baseLockfileFor(root, "0000000000000000000000000000000000000000")).toThrow(/isn't a commit/);
+    expect(() => baseLockfileFor(root, "no-such-branch")).toThrow(/isn't a commit/);
+  });
+
+  it("treats a commit from before the lockfile existed as an empty lockfile, so every entry is checked", () => {
+    const { root, before } = gitRepo();
+    const seen: string[] = [];
+    const r = audit({ root, baseLockfile: baseLockfileFor(root, before), changedAt, advisories: none,
+      publishTime: (n, v) => { seen.push(`${n}@${v}`); return new Date(changedAt.getTime() - 30 * day); } });
+    expect(r.ok).toBe(true);
+    expect(seen).toEqual(["left-pad@1.3.0"]);
+    expect(JSON.parse(baseLockfileFor(root, "HEAD")).packages["node_modules/left-pad"].version).toBe("1.3.0");
+  });
 });
 
 describe("vulnerabilities", () => {
   it("fails on high or critical advisories", () => {
     const r = audit({ root: repo({}), advisories: () => ["lodash: Prototype pollution (high)"] });
     expect(r.problems).toEqual(["Vulnerability (high or critical): lodash: Prototype pollution (high)."]);
+  });
+
+  it("treats an npm audit that can't run (e.g. no network) as a problem, not a pass", () => {
+    const r = audit({ root: repo({}), advisories: () => { throw new Error("getaddrinfo ENOTFOUND registry.npmjs.org"); } });
+    expect(r.ok).toBe(false);
+    expect(r.problems.join("\n")).toMatch(/npm audit couldn't run.*ENOTFOUND/);
   });
 });

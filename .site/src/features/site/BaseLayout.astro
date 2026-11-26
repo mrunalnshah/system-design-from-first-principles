@@ -5,13 +5,15 @@
  *
  * Props: `title` (the page's own title; the book name is added), `description` (one sentence for
  * search results and link previews) and `route` (this page's address, for the canonical link).
+ * Pages with no address of their own (the 404, redirect pages) leave `route` out: they get no
+ * canonical link and are kept out of search results (`noindex`).
  */
 import { absoluteUrl, type Route } from "./url.ts";
 
 interface Props {
   title: string;
   description: string;
-  route: Route;
+  route?: Route;
 }
 
 const { title, description, route } = Astro.props;
@@ -26,7 +28,7 @@ const fullTitle = title === BOOK ? BOOK : `${title} · ${BOOK}`;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={absoluteUrl(route)} />
+    {route ? <link rel="canonical" href={absoluteUrl(route)} /> : <meta name="robots" content="noindex" />}
   </head>
   <body>
     <a href="#main">Skip to content</a>

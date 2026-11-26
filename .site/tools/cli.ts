@@ -2,13 +2,13 @@
  * Entry point for the project tools (plan/tools.md): `npm --prefix .site run tools -- <command> [args]`.
  * Runs on Node's built-in TypeScript support (CR-0001), so this file uses erasable syntax only.
  *
- * Commands: `status`, `next`, `done <task>`, `pack <task-or-round> [--out FILE]`, `check`, `trace`.
+ * Commands: `status`, `next`, `done <task>`, `pack <task-or-round> [--out FILE]`, `check`, `trace`,
+ * `audit [--base <git-ref>] [--sbom FILE]`.
  * Returns the process exit code; never calls process.exit, so tests can call `main()` directly.
  */
-import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { audit } from "./audit.ts";
+import { audit, baseLockfileFor, lockfileChangedAt } from "./audit.ts";
 import { check } from "./check.ts";
 import { pack } from "./pack.ts";
 import { formatGroup, loadPlan, markDone, nextTasks, statusReport } from "./plan.ts";
@@ -73,9 +73,20 @@ export function main(argv: string[], root: string = repoRoot, io: Io = console):
         io.log("Wrote specs/trace.md");
         return 0;
       case "audit": {
-        const flag = (name: string) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
+        const flag = (name: string): string | undefined => {
+          if (!args.includes(name)) return undefined;
+          const value = args[args.indexOf(name) + 1];
+          if (!value || value.startsWith("--")) throw new Error(`${name} needs a value`);
+          return value;
+        };
         const base = flag("--base");
-        const result = audit({ root, baseLockfile: base ? lockfileAt(root, base) : undefined, changedAt: lockfileChangedAt(root), sbomPath: flag("--sbom") });
+        const sbom = flag("--sbom");
+        const result = audit({
+          root,
+          baseLockfile: base ? baseLockfileFor(root, base) : undefined,
+          changedAt: lockfileChangedAt(root),
+          sbomPath: sbom ? resolve(process.env.INIT_CWD ?? process.cwd(), sbom) : undefined,
+        });
         result.notes.forEach((n) => io.log(n));
         if (result.ok) { io.log("Dependency audit passed."); return 0; }
         io.error(`Dependency audit found ${result.problems.length} problem(s):\n` + result.problems.map((p) => `  - ${p}`).join("\n"));
@@ -89,23 +100,6 @@ export function main(argv: string[], root: string = repoRoot, io: Io = console):
     io.error(e instanceof Error ? e.message : String(e));
     return 1;
   }
-}
-
-const LOCKFILE = ".site/package-lock.json";
-const git = (root: string, args: string[]) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 64 * 1024 * 1024 });
-
-/** The lockfile as of `ref`, or undefined when that commit has none (e.g. before the project existed). */
-function lockfileAt(root: string, ref: string): string | undefined {
-  try { return git(root, ["show", `${ref}:${LOCKFILE}`]); } catch { return undefined; }
-}
-
-/** When the current lockfile's versions were chosen: now if it has uncommitted changes, else its last commit's time. */
-function lockfileChangedAt(root: string): Date {
-  try {
-    if (git(root, ["status", "--porcelain", "--", LOCKFILE]).trim()) return new Date();
-    const iso = git(root, ["log", "-1", "--format=%cI", "--", LOCKFILE]).trim();
-    return iso ? new Date(iso) : new Date();
-  } catch { return new Date(); }
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

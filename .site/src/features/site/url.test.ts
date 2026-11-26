@@ -49,7 +49,8 @@ function internalAddresses(dir: string): { file: string; address: string }[] {
       const p = join(d, name);
       if (statSync(p).isDirectory()) walk(p);
       else if (name.endsWith(".html"))
-        for (const m of readFileSync(p, "utf8").matchAll(/\s(?:href|src|action)="(\/[^"]*)"/g)) found.push({ file: p.slice(dir.length), address: m[1]! });
+        for (const m of readFileSync(p, "utf8").matchAll(/\s(?:href|src|action|content)="((?:https:\/\/mrunalnshah\.github\.io)?\/[^"]*)"/g))
+          found.push({ file: p.slice(dir.length), address: m[1]!.replace("https://mrunalnshah.github.io", "") });
     }
   };
   walk(dir);

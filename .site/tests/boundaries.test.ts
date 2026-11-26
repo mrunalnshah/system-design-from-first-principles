@@ -69,6 +69,18 @@ describe("boundary rules (TOOL-06)", () => {
     expect(cruise(root, ["src"]).report).toContain("no-circular");
   });
 
+  it("fails on a feature folder that isn't a known module, and on a module importing a page", () => {
+    const root = project({
+      "src/features/stray/x.ts": "import { s } from '../site/index.js';\nexport const x = s;\n",
+      "src/features/site/index.ts": "export const s = 1;\n",
+      "src/features/site/y.ts": "import '../../pages/thing.js';\nexport const y = 1;\n",
+      "src/pages/thing.ts": "export const t = 1;\n",
+    });
+    const { report } = cruise(root, ["src"]);
+    expect(report).toContain("known-modules-only");
+    expect(report).toContain("modules-never-import-pages");
+  });
+
   it("passes on the real code", () => {
     const { status, report } = cruise(site, ["src", "tools", "--ts-config", "tsconfig.json"]);
     expect(status, report).toBe(0);

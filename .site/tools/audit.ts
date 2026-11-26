@@ -24,9 +24,37 @@ export type AuditOptions = {
   publishTime?: (name: string, version: string) => Date | undefined;
   /** High or critical advisories as `name: title`. Defaults to `npm audit --json`. */
   advisories?: () => string[];
-  /** Also write a CycloneDX SBOM here (relative paths resolve against the repository root). */
+  /** Also write a CycloneDX SBOM to this absolute path. */
   sbomPath?: string;
 };
+
+/** An empty lockfile: what a base commit "had" before the project's lockfile existed. */
+const EMPTY_LOCKFILE = JSON.stringify({ lockfileVersion: 3, packages: { "": {} } });
+
+/**
+ * The lockfile as of git `ref`, for the cooldown comparison. Throws when `ref` isn't a commit in the
+ * repository (a typo, or a force-pushed-away SHA): the check must never be skipped silently. A commit
+ * from before the lockfile existed yields an empty lockfile, so every current entry gets checked.
+ */
+export function baseLockfileFor(root: string, ref: string): string {
+  try { git(root, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]); }
+  catch { throw new Error(`--base ${ref} isn't a commit in this repository, so the cooldown can't be checked against it.`); }
+  try { return git(root, ["show", `${ref}:${LOCKFILE}`]); } catch { return EMPTY_LOCKFILE; }
+}
+
+/** When the current lockfile's versions were chosen: now if it has uncommitted changes, else its last commit's time. */
+export function lockfileChangedAt(root: string): Date {
+  try {
+    if (git(root, ["status", "--porcelain", "--", LOCKFILE]).trim()) return new Date();
+    const iso = git(root, ["log", "-1", "--format=%cI", "--", LOCKFILE]).trim();
+    return iso ? new Date(iso) : new Date();
+  } catch { return new Date(); }
+}
+
+const LOCKFILE = ".site/package-lock.json";
+function git(root: string, args: string[]): string {
+  return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 64 * 1024 * 1024 });
+}
 
 export const COOLDOWN_DAYS = 7;
 
@@ -36,8 +64,12 @@ export function audit(opts: AuditOptions): AuditResult {
   const notes: string[] = [];
   const lock = parseLockfile(readFileSync(join(opts.root, ".site/package-lock.json"), "utf8"));
 
-  // 1. Known vulnerabilities.
-  for (const a of (opts.advisories ?? npmAdvisories(opts.root))()) problems.push(`Vulnerability (high or critical): ${a}.`);
+  // 1. Known vulnerabilities. If npm audit itself can't run, that's a problem, never a pass.
+  try {
+    for (const a of (opts.advisories ?? npmAdvisories(opts.root))()) problems.push(`Vulnerability (high or critical): ${a}.`);
+  } catch (e) {
+    problems.push(`npm audit couldn't run, so vulnerabilities weren't checked: ${e instanceof Error ? e.message : String(e)}`);
+  }
 
   // 2. Cooldown for new or changed entries.
   if (opts.baseLockfile === undefined) notes.push("Cooldown check skipped: no base lockfile to compare with (pass --base <git-ref>).");
@@ -47,7 +79,7 @@ export function audit(opts: AuditOptions): AuditResult {
     const changedAt = opts.changedAt ?? new Date();
     const publishTime = opts.publishTime ?? registryPublishTime();
     for (const [path, e] of changed) {
-      const name = nameOf(path);
+      const name = e.name ?? nameOf(path);
       const published = publishTime(name, e.version);
       if (!published) { problems.push(`${name}@${e.version}: its publish time couldn't be found, so the ${COOLDOWN_DAYS}-day cooldown can't be checked.`); continue; }
       const ageDays = (changedAt.getTime() - published.getTime()) / 86_400_000;
@@ -59,7 +91,7 @@ export function audit(opts: AuditOptions): AuditResult {
   // 3. Licences, two tiers (CR-0004).
   const shipped = shippedClosure(lock);
   for (const [path, e] of lock.entries) {
-    const id = `${nameOf(path)}@${e.version}`;
+    const id = `${e.name ?? nameOf(path)}@${e.version}`;
     const tier = shipped.has(path) ? "shipped to readers" : "build or development tool";
     if (!e.license) problems.push(`${id} has no licence in the lockfile (${tier}): check it by hand before keeping it.`);
     else if (!licenceAllowed(e.license, shipped.has(path) ? SHIPPED_LICENCES : TOOL_LICENCES))
@@ -67,7 +99,7 @@ export function audit(opts: AuditOptions): AuditResult {
   }
 
   if (opts.sbomPath) {
-    writeFileSync(join(opts.root, opts.sbomPath), npm(opts.root, ["sbom", "--sbom-format", "cyclonedx"]));
+    writeFileSync(opts.sbomPath, npm(opts.root, ["sbom", "--sbom-format", "cyclonedx"]));
     notes.push(`SBOM written to ${opts.sbomPath}.`);
   }
   return { ok: problems.length === 0, problems, notes };
@@ -75,20 +107,36 @@ export function audit(opts: AuditOptions): AuditResult {
 
 /**
  * Whether an SPDX licence expression (e.g. `MIT`, `(MIT OR CC0-1.0)`, `Apache-2.0 AND LGPL-3.0-or-later`)
- * is satisfied by the allowed licence IDs: OR needs one side allowed, AND needs both.
+ * is satisfied by the allowed licence IDs: OR needs one side allowed, AND needs both. `ID WITH exception`
+ * counts as ID. Anything that isn't a complete, valid expression (lowercase operators, a missing `)`,
+ * two IDs in a row, leftovers) is not allowed: the check fails closed.
  */
 export function licenceAllowed(expression: string, allowed: ReadonlySet<string>): boolean {
-  const tokens = expression.replace(/[()]/g, (p) => ` ${p} `).trim().split(/\s+/);
+  const tokens = expression.replace(/[()]/g, (p) => ` ${p} `).trim().split(/\s+/).filter(Boolean);
+  const OPERATORS = new Set(["AND", "OR", "WITH", "(", ")"]);
   let i = 0;
-  // Grammar: or := and ("OR" and)* ; and := atom ("AND" atom)* ; atom := ID | "(" or ")"
-  const atom = (): boolean => {
-    const t = tokens[i++];
-    if (t === "(") { const v = or(); i++; return v; }
-    return !!t && allowed.has(t);
+  const fail = (): never => { throw new SyntaxError("invalid SPDX expression"); };
+  const id = (): string => { const t = tokens[i++]; if (!t || OPERATORS.has(t) || !/^[A-Za-z0-9.+-]+$/.test(t)) fail(); return t!; };
+  // Grammar: or := and ("OR" and)* ; and := factor ("AND" factor)* ; factor := "(" or ")" | ID ["WITH" ID]
+  const factor = (): boolean => {
+    if (tokens[i] === "(") {
+      i++;
+      const v = or();
+      if (tokens[i++] !== ")") fail();
+      return v;
+    }
+    const licence = id();
+    if (tokens[i] === "WITH") { i++; id(); }
+    return allowed.has(licence);
   };
-  const and = (): boolean => { let v = atom(); while (tokens[i] === "AND") { i++; const r = atom(); v = v && r; } return v; };
+  const and = (): boolean => { let v = factor(); while (tokens[i] === "AND") { i++; const r = factor(); v = v && r; } return v; };
   const or = (): boolean => { let v = and(); while (tokens[i] === "OR") { i++; const r = and(); v = v || r; } return v; };
-  return or();
+  try {
+    const v = or();
+    return i === tokens.length && v;
+  } catch {
+    return false;
+  }
 }
 
 // ---------- policy (CR-0004) ----------
@@ -108,7 +156,15 @@ const SHIPPED_ROOTS = [/^katex$/, /^@panzoom\/panzoom$/, /^@fontsource-variable\
 
 // ---------- internals ----------
 
-type LockEntry = { version: string; license?: string; dependencies?: Record<string, string> };
+type LockEntry = {
+  version: string;
+  /** Set by npm only for aliased installs (`"x": "npm:real-name@1"`): the package's real name. */
+  name?: string;
+  license?: string;
+  dependencies?: Record<string, string>;
+  optionalDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
+};
 type Lock = { rootDependencies: string[]; entries: Map<string, LockEntry> };
 
 function parseLockfile(text: string): Lock {
@@ -138,7 +194,8 @@ function shippedClosure(lock: Lock): Set<string> {
   const visit = (path: string | undefined) => {
     if (!path || seen.has(path)) return;
     seen.add(path);
-    for (const dep of Object.keys(lock.entries.get(path)?.dependencies ?? {})) visit(resolve(path, dep));
+    const e = lock.entries.get(path);
+    for (const dep of Object.keys({ ...e?.dependencies, ...e?.optionalDependencies, ...e?.peerDependencies })) visit(resolve(path, dep));
   };
   for (const name of lock.rootDependencies) if (SHIPPED_ROOTS.some((r) => r.test(name))) visit(resolve("", name));
   return seen;
@@ -151,6 +208,8 @@ function shippedClosure(lock: Lock): Set<string> {
  */
 function runNpm(args: string[], cwd?: string): string {
   const cli = process.env.npm_execpath;
+  if (!(cli && /\.c?js$/.test(cli)) && process.platform === "win32")
+    throw new Error("npm can't be found without a shell on Windows: run this through `npm --prefix .site run tools -- audit`.");
   const [file, argv] = cli && /\.c?js$/.test(cli) ? [process.execPath, [cli, ...args]] : ["npm", args];
   return execFileSync(file, argv, { cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
 }
@@ -168,8 +227,13 @@ function npm(root: string, args: string[]): string {
 
 function npmAdvisories(root: string): () => string[] {
   return () => {
-    const report = JSON.parse(npm(root, ["audit", "--json"])) as { vulnerabilities?: Record<string, { severity: string; via: (string | { title?: string })[] }> };
-    return Object.entries(report.vulnerabilities ?? {})
+    const report = JSON.parse(npm(root, ["audit", "--json"])) as {
+      error?: { summary?: string };
+      vulnerabilities?: Record<string, { severity: string; via: (string | { title?: string })[] }>;
+    };
+    // A network or registry failure comes back as {"error": …} with no vulnerability list: fail, don't pass.
+    if (report.error || !report.vulnerabilities) throw new Error(report.error?.summary ?? "npm audit returned no vulnerability report");
+    return Object.entries(report.vulnerabilities)
       .filter(([, v]) => v.severity === "high" || v.severity === "critical")
       .map(([name, v]) => `${name}: ${v.via.map((x) => (typeof x === "string" ? `via ${x}` : x.title)).join("; ")} (${v.severity})`);
   };
@@ -177,6 +241,7 @@ function npmAdvisories(root: string): () => string[] {
 
 function registryPublishTime(): (name: string, version: string) => Date | undefined {
   const cache = new Map<string, Record<string, string>>();
+  runNpm(["--version"]); // npm itself must work; only a missing package may read as "publish time not found"
   return (name, version) => {
     if (!cache.has(name)) {
       try { cache.set(name, JSON.parse(runNpm(["view", name, "time", "--json"]))); }
