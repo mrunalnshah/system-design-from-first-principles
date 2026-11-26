@@ -8,7 +8,7 @@ Dependency direction (no cycles): `site ← book ← vault → obsidian-markdown
 - Purpose: turn the Obsidian vault into a validated, ordered `Book` with chapters, articles and pages, ready to render.
 - Interface: `vaultLoader(options)` (the Astro content loader registered in `content.config.ts`); `getBook(): Promise<Book>`; `getArticles(): Promise<Article[]>`; `getPage(slug): Promise<Page | undefined>`.
 - Hides: which folders and file names count as content; the `part-<n>_` / `chapter-<n>_` naming rules; frontmatter schemas and defaults; draft filtering; title derivation; summary extraction; reading-time rules; the vault file index; how and when Markdown is rendered (Astro loader details).
-- Depends on: MOD-obsidian-markdown (`renderObsidian`), MOD-site (`BuildIssues` collector type only), Astro content layer, `astro/zod`.
+- Depends on: MOD-obsidian-markdown (`renderObsidian`), MOD-site (`url()`, the build-issue collector, `stopOnErrors`, `buildRun`), Astro content layer, `astro/zod`. MOD-diagrams' figure renderer is handed in by `content.config.ts` (CR-0008).
 - Owns data: the Astro content store collections `chapters`, `articles`, `pages`, `book` (build-time only).
 - Serves: REQ-CNT-001, REQ-CNT-002, REQ-CNT-003, REQ-CNT-004, REQ-CNT-007, REQ-CNT-008, REQ-CNT-009, REQ-CNT-011, REQ-ART-003, REQ-HOME-002 (featured flags), REQ-HOME-003 (ordering data)
 - Paths: .site/src/features/content/**, .site/src/content.config.ts

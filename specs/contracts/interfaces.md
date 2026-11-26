@@ -46,7 +46,10 @@ export { default as DiagramFigure } from "./DiagramFigure.astro"; // props: { fi
 ## MOD-vault (`.site/src/features/content/index.ts`)
 ```ts
 /** Astro content loader for the vault one folder above .site/. Registers chapters, articles, pages and book. */
-export function vaultLoader(options: { vaultRoot: string }): Loader;
+export function vaultLoader(options: { vaultRoot: string; figures: () => Promise<FigureRenderer>; collection: "chapters" | "articles" | "pages" | "book" }): Loader;
+/** The loader's pure core (CR-0008): the vault as data, and rendered. For tests and the build-message harness. */
+export function readVault(root: string): Vault;
+export function buildVault(options: { vaultRoot: string; figures: () => Promise<FigureRenderer> }): Promise<RenderedVault>;
 /** The published book in reading order. Drafts are never included. */
 export function getBook(): Promise<Book>;
 /** Published articles: featured first, then newest first, then undated. */
@@ -78,7 +81,12 @@ export function createIssueCollector(): typeof buildIssues;
 /** The vault's absolute path (the folder holding .site/), fixed by astro.config.ts (CR-0007). */
 export function vaultRoot(): string;
 export function buildReport(): AstroIntegration;
-export { default as BaseLayout } from "./BaseLayout.astro";    // props: { title; description; route; ogImage? }
+export { default as BaseLayout } from "./BaseLayout.astro";    // props: { title; description; route?; ogImage?; book: { title; author; authorUrl }; current?; section?; type? } (CR-0008)
+/** Stops a build right after content sync when there's an error, printing the report once (CR-0008). */
+export function stopOnErrors(options?: ReportOptions): Promise<void>;
+/** The current Astro command and run, so per-build caches never leak between builds (CR-0008). */
+export function buildRun(): { id: object; command: string };
+export function headTags(page: PageHead): HeadTag[];
 ```
 
 ## MOD-reader, MOD-home, MOD-articles

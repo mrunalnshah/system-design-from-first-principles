@@ -10,8 +10,8 @@
 
 /**
  * Which modules each feature folder may import: exactly the "Depends on" lists in specs/modules.md.
- * Open question for T-01.12–T-01.14: the vault loader must create MOD-diagrams' figure renderer to
- * hand it to MOD-obsidian-markdown, which content → diagrams doesn't allow yet. Settle it there, by CR.
+ * Settled in T-01.14 (CR-0008): MOD-diagrams' figure renderer reaches the vault loader through
+ * src/content.config.ts, so content never imports diagrams.
  */
 const ALLOWED = {
   content: ["markdown", "site"], // MOD-vault
