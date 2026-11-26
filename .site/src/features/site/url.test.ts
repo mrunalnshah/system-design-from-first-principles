@@ -41,6 +41,9 @@ describe("url()", () => {
   });
 });
 
+/** The fixture's author_url (book.md): the author's own site, on the same host. */
+const PORTFOLIO = "https://mrunalnshah.github.io/";
+
 /** Every href/src/action in the built HTML that starts with `/`. */
 function internalAddresses(dir: string): { file: string; address: string }[] {
   const found: { file: string; address: string }[] = [];
@@ -49,8 +52,12 @@ function internalAddresses(dir: string): { file: string; address: string }[] {
       const p = join(d, name);
       if (statSync(p).isDirectory()) walk(p);
       else if (name.endsWith(".html"))
-        for (const m of readFileSync(p, "utf8").matchAll(/\s(?:href|src|action|content)="((?:https:\/\/mrunalnshah\.github\.io)?\/[^"]*)"/g))
+        for (const m of readFileSync(p, "utf8").matchAll(/\s(?:href|src|action|content)="((?:https:\/\/mrunalnshah\.github\.io)?\/[^"]*)"/g)) {
+          // The author's portfolio (author_url in book.md) shares the host but is another site: only that exact
+          // address is left out, before the host is stripped, so a bare "/" link of ours is still caught.
+          if (m[1] === PORTFOLIO) continue;
           found.push({ file: p.slice(dir.length), address: m[1]!.replace("https://mrunalnshah.github.io", "") });
+        }
     }
   };
   walk(dir);
@@ -71,8 +78,9 @@ describe("the built site", () => {
     execFileSync(process.execPath, ["--input-type=module", "-e", script, siteRoot, outDir], { stdio: "pipe", env });
     const addresses = internalAddresses(outDir);
     expect(addresses.length).toBeGreaterThan(0);
-    // The author's portfolio (author_url in book.md) shares the host but is another site, so it isn't ours to prefix.
-    const portfolio = /^author_url:\s*"?https:\/\/mrunalnshah\.github\.io(\/[^"\s]*)"?/m.exec(readFileSync(join(siteRoot, "tests/fixtures/vault/book.md"), "utf8"))![1];
-    expect(addresses.filter((a) => !a.address.startsWith("/system-design/") && a.address !== portfolio)).toEqual([]);
+    expect(addresses.filter((a) => !a.address.startsWith("/system-design/"))).toEqual([]);
+    // No asset is inlined as a data: URL, which the CSP would block (security.md B4).
+    const css = readdirSync(join(outDir, "_astro")).filter((f) => f.endsWith(".css")).map((f) => readFileSync(join(outDir, "_astro", f), "utf8")).join("\n");
+    expect(css).not.toMatch(/url\(\s*["']?data:/);
   }, 120_000);
 });

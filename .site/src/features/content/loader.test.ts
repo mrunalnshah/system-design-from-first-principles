@@ -33,8 +33,7 @@ describe("vault loader", () => {
     expect(url({ kind: "chapter", slug: chapter.slug })).toMatch(/\/book\/computer-architecture\/$/);
   });
 
-  // @req NFR-009
-  it("renders the real Chapter 1 text (with drawing embeds) without edits: figures, math, numbered sections, no issues", async () => {
+  it("renders the fixture's Chapter 1 (its text, with captioned drawing embeds): figures, math, numbered sections, no issues", async () => {
     const vault = await buildVault(options(fixture));
     const [chapter] = vault.chapters;
     expect(vault.issues).toEqual([]);

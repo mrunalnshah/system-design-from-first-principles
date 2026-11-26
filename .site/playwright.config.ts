@@ -6,7 +6,8 @@ import { defineConfig, type Project } from "@playwright/test";
  * The harness's own spec (helpers.spec.ts) tests the shared checks once, on pages it makes itself.
  * Never hits the network: the site is served locally, and specs route anything else away.
  */
-const PORT = 4321;
+/** Not astro dev's 4321, so a dev server the author has running is never mistaken for the fixture build. */
+const PORT = 4329;
 const BASE = "/system-design-from-first-principles/";
 
 const sizes = [

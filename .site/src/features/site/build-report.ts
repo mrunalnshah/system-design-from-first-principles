@@ -7,6 +7,7 @@
  * author, and a plain `process.exitCode` is overwritten when Astro exits 0 itself.
  */
 import type { AstroIntegration } from "astro";
+import { buildRun, startBuildRun } from "./build-run.ts";
 import { buildIssues, type BuildIssue, type IssueCollector } from "./issues.ts";
 
 /** What the report needs from the outside world; tests pass their own. */
@@ -50,6 +51,8 @@ export function buildReport(options: ReportOptions = {}): AstroIntegration {
   return {
     name: "sdfp:build-report",
     hooks: {
+      // A new run for every Astro start: caches keyed by it start empty, and modules know the command.
+      "astro:config:setup": ({ command }) => void startBuildRun(command),
       "astro:build:done": async () => {
         const text = formatReport(issues.all());
         if (text) await write(text);
@@ -71,8 +74,9 @@ export async function stopOnErrors(options: ReportOptions = {}): Promise<void> {
   const STOPPING = Symbol.for("sdfp.stopping");
   const shared = globalThis as typeof globalThis & { [STOPPING]?: WeakSet<object> };
   const stopping = (shared[STOPPING] ??= new WeakSet());
-  if (stopping.has(issues)) return;
-  stopping.add(issues);
+  const key = options.issues ?? buildRun().id; // the shared collector is per run, so the run is the key
+  if (stopping.has(key)) return;
+  stopping.add(key);
   const write = options.write ?? ((text: string) => new Promise<void>((done) => process.stdout.write(text, () => done())));
   await write(formatReport(issues.all()));
   (options.exit ?? ((code: number) => process.exit(code)))(1);

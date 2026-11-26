@@ -21,7 +21,13 @@
 @media (min-width: 1100px) {
   .reader {
     display: grid;
-    grid-template-columns: var(--size-chapter-menu) minmax(0, var(--size-reading-column)) var(--size-margin-note);
+    /*
+     * The text column fills first (up to 42rem), then the menu and the margin share what's left, from 12rem up to their
+     * 15rem (the whole grid is capped at that full width). So the column keeps its 60–75 characters as long as it can.
+     */
+    grid-template-columns: minmax(12rem, 1fr) minmax(0, var(--size-reading-column)) minmax(12rem, 1fr);
+    max-inline-size: calc(var(--size-chapter-menu) + var(--size-reading-column) + var(--size-margin-note) + 2 * var(--space-12) + 2 * var(--space-8));
+    margin-inline: auto;
     column-gap: var(--space-12);
     justify-content: center;
     padding-inline: var(--space-8);
@@ -29,7 +35,8 @@
 
   .reader--article,
   .reader--page {
-    grid-template-columns: minmax(0, var(--size-reading-column)) var(--size-margin-note);
+    grid-template-columns: minmax(0, var(--size-reading-column)) minmax(12rem, 1fr);
+    max-inline-size: calc(var(--size-reading-column) + var(--size-margin-note) + var(--space-12) + 2 * var(--space-8));
   }
 
   .reader-menu {
@@ -45,7 +52,8 @@
     max-inline-size: none;
     margin: 0;
     /* The column, the gap and the margin: where a wide figure may go. */
-    --figure-room: calc(100% + var(--space-12) + var(--size-margin-note));
+    /* With the margin at its narrowest (12rem), so a figure never reaches past the page. */
+    --figure-room: calc(100% + var(--space-12) + 12rem);
   }
 
   .reader--article .reader-column,
@@ -53,9 +61,12 @@
     grid-column: 1;
   }
 
-  /* A figure wider than the column is centred in that room, so it grows into the margin, never over the menu. */
+  /*
+   * A figure wider than the column grows to the right, centred in that room once it can be, and never over the menu.
+   * Continuous: a figure one pixel wider than the column moves one pixel, not a jump.
+   */
   .reader-column .diagram {
-    margin-inline-start: min((var(--figure-room) - var(--diagram-width)) / 2, max(0px, var(--diagram-width) - 100%) * 1000);
+    margin-inline-start: max(0px, min((var(--figure-room) - var(--diagram-width)) / 2, var(--diagram-width) - 100%));
     margin-inline-end: 0;
   }
 }
@@ -163,11 +174,9 @@
 }
 
 /* Headings: the section number at the right, the anchor link on hover or focus (REQ-READ-004.AC3). */
+/* A block, so the heading's margins still collapse with the text around it. */
 .prose .heading {
   position: relative;
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
 }
 
 .prose h2,
@@ -208,14 +217,22 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* In the gutter left of the heading on wide screens; on narrow ones (no gutter) at the heading's right end. */
 .prose .heading-anchor {
   position: absolute;
-  inset-inline-start: -1.25em;
-  inset-block-start: 50%;
+  inset-inline-end: 0;
+  inset-block-start: 0;
   font-family: var(--font-sans);
   color: var(--color-text-muted);
   text-decoration: none;
   opacity: 0;
+}
+
+@media (min-width: 1100px) {
+  .prose .heading-anchor {
+    inset-inline-end: auto;
+    inset-inline-start: -1.25em;
+  }
 }
 
 .prose .heading:hover .heading-anchor,

@@ -10,10 +10,10 @@
  * the report, so no page is built from content that has an error. In `astro dev` they're logged and the site stays up.
  */
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import type { Loader } from "astro/loaders";
 import { renderObsidian, createFileResolver, type FigureRenderer, type Section } from "../markdown/index.ts";
-import { buildIssues, stopOnErrors, url, type BuildIssue } from "../site/index.ts";
+import { buildIssues, buildRun, stopOnErrors, url, type BuildIssue } from "../site/index.ts";
 import type { BookSettings } from "./book-settings.ts";
 import { readingMinutes, summaryOf } from "./summary.ts";
 import { readVault } from "./vault.ts";
@@ -116,28 +116,52 @@ export function vaultLoader(options: LoaderOptions & { collection: Collection })
   return {
     name: `sdfp-vault-${options.collection}`,
     load: async ({ store, logger, watcher }) => {
-      const fill = async () => {
-        const vault = await shared(options, !!watcher);
+      const fill = async (vault: RenderedVault) => {
         report(vault.issues);
         store.clear();
         for (const entry of entriesOf(vault, options.collection)) store.set({ id: entry.id, data: entry.data, rendered: { html: entry.html } });
-        // A build stops on an error; `astro dev`, `astro check` and `astro sync` only list the problems (a type check
-        // shouldn't fail because a chapter has a typo).
-        const building = !watcher && !process.argv.slice(2).some((a) => a === "check" || a === "sync");
-        if (building) await stopOnErrors();
-        // The four collections share one vault, so one of them lists its problems.
-        else if (options.collection === "book") for (const i of vault.issues) logger.warn(`${i.code} ${i.file}${i.line ? `:${i.line}` : ""}: ${i.message}`);
       };
-      await fill();
-      if (watcher) {
-        // astro dev: a change anywhere in the vault (outside .site/) reloads it.
-        watcher.add(options.vaultRoot);
-        watcher.on("all", (_event: string, path: string) => {
-          if (!/[\\/]\.site[\\/]/.test(path) && /\.(md|svg)$/i.test(path)) void fill();
-        });
-      }
+      const vault = await shared(options);
+      await fill(vault);
+      // A build stops on an error; `astro dev` and `astro sync` (which `astro check` runs) only list the problems:
+      // a type check shouldn't fail because a chapter has a typo. The four collections share one vault, so one lists.
+      if (buildRun().command === "build") await stopOnErrors();
+      else if (options.collection === "book") for (const i of vault.issues) logger.warn(`${i.code} ${i.file}${i.line ? `:${i.line}` : ""}: ${i.message}`);
+      if (watcher) watchVault(watcher, options, async (fresh) => fill(fresh));
     },
   };
+}
+
+type Watcher = NonNullable<Parameters<Loader["load"]>[0]["watcher"]>;
+/** Per watcher: the collections to refill, and whether its listener is registered. */
+const watched = new WeakMap<Watcher, Map<Collection, (vault: RenderedVault) => Promise<void>>>();
+
+/**
+ * astro dev: a saved .md or .svg anywhere in the vault (outside .site/) re-renders it once, about 100 ms after the
+ * last event (Obsidian writes several per save), and every collection is refilled from that one render. A render that
+ * finishes after a newer one has started is dropped, so the store never goes back to older content.
+ */
+function watchVault(watcher: Watcher, options: LoaderOptions & { collection: Collection }, refill: (vault: RenderedVault) => Promise<void>): void {
+  let fills = watched.get(watcher);
+  const first = !fills;
+  if (!fills) watched.set(watcher, (fills = new Map()));
+  fills.set(options.collection, refill);
+  if (!first) return;
+  watcher.add(options.vaultRoot);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let generation = 0;
+  watcher.on("all", (_event: string, path: string) => {
+    const inVault = relative(options.vaultRoot, path).replace(/\\/g, "/");
+    if (inVault.startsWith("..") || inVault.startsWith(".site/") || !/\.(md|svg)$/i.test(inVault)) return;
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const mine = ++generation;
+      const vault = await buildVault(options);
+      if (mine !== generation) return; // a newer save is already being rendered
+      remember(options, vault);
+      for (const fill of fills!.values()) await fill(vault);
+    }, 100);
+  });
 }
 
 /** The entries of one collection, with their stored data (html travels in `rendered`). */
@@ -156,17 +180,28 @@ function entriesOf(vault: RenderedVault, collection: Collection): { id: string; 
 }
 
 const SHARED = Symbol.for("sdfp.vault");
-/** One render of the vault per build, shared by the four collections; under `astro dev` each load reads afresh. */
-function shared(options: LoaderOptions, dev: boolean): Promise<RenderedVault> {
-  const holder = globalThis as typeof globalThis & { [SHARED]?: Map<string, Promise<RenderedVault>> };
-  const cache = (holder[SHARED] ??= new Map());
-  if (dev) cache.delete(options.vaultRoot);
-  let vault = cache.get(options.vaultRoot);
+/** Renders per run and vault, on `globalThis` (the four collections may load in separate module graphs). */
+function cache(): Map<string, Promise<RenderedVault>> {
+  const holder = globalThis as typeof globalThis & { [SHARED]?: WeakMap<object, Map<string, Promise<RenderedVault>>> };
+  const runs = (holder[SHARED] ??= new WeakMap());
+  const run = buildRun().id;
+  let byRoot = runs.get(run);
+  if (!byRoot) runs.set(run, (byRoot = new Map()));
+  return byRoot;
+}
+
+/** One render of the vault per run, shared by the four collections; a second build in the same process renders anew. */
+function shared(options: LoaderOptions): Promise<RenderedVault> {
+  let vault = cache().get(options.vaultRoot);
   if (!vault) {
     vault = buildVault(options);
-    cache.set(options.vaultRoot, vault);
+    cache().set(options.vaultRoot, vault);
   }
   return vault;
+}
+
+function remember(options: LoaderOptions, vault: RenderedVault): void {
+  cache().set(options.vaultRoot, Promise.resolve(vault));
 }
 
 /** Adds the vault's issues to the build report (the collector keeps one of each, so four collections add them once). */

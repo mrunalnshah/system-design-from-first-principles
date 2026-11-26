@@ -79,7 +79,8 @@ describe("build issues and build report", () => {
     const first = (await import("./issues.ts")).buildIssues;
     vi.resetModules();
     const second = (await import("./issues.ts")).buildIssues;
-    expect(second).toBe(first);
+    first.add({ ...warning("W-ABOUT-MISSING", "shared-check.md") });
+    expect(second.all().some((i) => i.file === "shared-check.md")).toBe(true);
   });
 
   it("stops at once on an error, printing the report once even when several loaders ask", async () => {

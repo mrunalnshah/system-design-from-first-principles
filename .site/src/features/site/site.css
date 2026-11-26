@@ -5,6 +5,8 @@
  */
 :root {
   color-scheme: light dark;
+  /* A section link lands below the sticky header, never under it (WCAG 2.4.11). */
+  scroll-padding-block-start: calc(4rem + var(--space-4));
 }
 
 *,
@@ -42,8 +44,10 @@ a:hover {
   *,
   *::before,
   *::after {
-    animation-duration: 0s !important;
-    transition-duration: 0s !important;
+    /* 0.01 ms, not 0: end-of-animation events still fire for scripts that wait on them. */
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
 }
@@ -137,14 +141,14 @@ a:hover {
   border-radius: var(--radius-sm);
 }
 
-.nav-inline a[aria-current="page"],
-.nav-menu nav a[aria-current="page"] {
+.nav-inline a[aria-current],
+.nav-menu nav a[aria-current] {
   color: var(--color-accent);
   font-weight: var(--font-weight-semibold);
 }
 
 .external::after {
-  content: " ↗";
+  content: " ↗" / ""; /* seen, not read: "(external site)" says it in words */
   color: var(--color-text-muted);
 }
 

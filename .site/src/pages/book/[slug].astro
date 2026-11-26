@@ -20,7 +20,7 @@ interface Props {
 const { chapter, settings } = Astro.props;
 ---
 
-<BaseLayout title={chapter.title} description={chapter.summary} route={{ kind: "chapter", slug: chapter.slug }} book={settings} current="contents" type="article">
+<BaseLayout title={chapter.title} description={chapter.summary} route={{ kind: "chapter", slug: chapter.slug }} book={settings} section="contents" type="article">
   <ReaderLayout kind="chapter">
     <header class="chapter-head">
       <ChapterTitle chapter={chapter} />

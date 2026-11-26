@@ -38,6 +38,5 @@ export function headTags(page: PageHead): HeadTag[] {
   ];
   if (canonical) tags.push({ tag: "meta", attrs: { property: "og:url", content: canonical } });
   if (page.ogImage) tags.push({ tag: "meta", attrs: { property: "og:image", content: absoluteUrl({ kind: "asset", path: page.ogImage }) } });
-  tags.push({ tag: "meta", attrs: { name: "twitter:card", content: page.ogImage ? "summary_large_image" : "summary" } });
   return tags;
 }

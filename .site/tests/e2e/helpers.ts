@@ -8,16 +8,27 @@ import { test as base, expect, type BrowserContext, type Page } from "@playwrigh
 
 /** Every URL each page asked for, from before it navigated, including requests that failed or were blocked. */
 const requested = new WeakMap<Page, string[]>();
+/** Every Content-Security-Policy violation the browser reported for each page (it reports them with JavaScript off too). */
+const violations = new WeakMap<Page, string[]>();
 
-/** Playwright's `test`, with a page that records its requests. */
+/** Playwright's `test`, with a page that records its requests and CSP violations. */
 export const test = base.extend({
   page: async ({ page }, use) => {
     const urls: string[] = [];
+    const csp: string[] = [];
     requested.set(page, urls);
+    violations.set(page, csp);
     page.on("request", (r) => void urls.push(r.url()));
+    page.on("console", (m) => void (/Content Security Policy/i.test(m.text()) && csp.push(m.text())));
     await use(page);
   },
 });
+
+/** Fails if the browser blocked anything under the page's Content-Security-Policy (security.md checklist), naming it. */
+export async function expectNoCspViolations(page: Page): Promise<void> {
+  const seen = violations.get(page) ?? [];
+  expect(seen, `CSP violations:\n${seen.join("\n")}`).toEqual([]);
+}
 
 /** WCAG 2.2 A and AA, the level the site promises (NFR-003). */
 const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
@@ -34,6 +45,8 @@ export async function expectNoA11yViolations(page: Page): Promise<void> {
     const copy = await page.context().browser()!.newContext({ javaScriptEnabled: true, viewport: page.viewportSize(), colorScheme: use.colorScheme ?? "light" });
     try {
       const twin = await copy.newPage();
+      // The page as a reader without JavaScript gets it: the site's own scripts don't run, axe does.
+      await twin.route("**/*.js", (r) => r.abort());
       await twin.goto(page.url());
       await check(twin);
     } finally {

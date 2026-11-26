@@ -27,7 +27,12 @@ export default defineConfig({
   trailingSlash: "always",
   output: "static",
   // The vault is the folder above .site/, wherever the build is started from (site/vault-root.ts).
-  vite: { define: { "import.meta.env.SDFP_VAULT_ROOT": JSON.stringify(vault) } },
+  vite: {
+    define: { "import.meta.env.SDFP_VAULT_ROOT": JSON.stringify(vault) },
+    // Every asset is its own file, never an inline data: URL, so the CSP's font-src 'self' and script-src 'self'
+    // allow them all (security.md B4: small KaTeX and JetBrains Mono fonts were being inlined).
+    build: { assetsInlineLimit: 0 },
+  },
   // Keep buildReport() last: when there's an error it ends the build, so hooks after it wouldn't run.
   integrations: [sitemap({ filter: (page) => !/\/404\/?$|\/diagrams\//.test(page) }), buildReport()],
 });

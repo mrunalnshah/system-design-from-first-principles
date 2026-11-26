@@ -7,7 +7,8 @@
  * Props: `title` (the page's own title; the book's is added), `description` (one sentence for search results and link
  * previews), `route` (this page's address, for the canonical link; leave it out for the 404 and redirect pages, which
  * get `noindex`), `ogImage` (an asset path for link previews), `book` (title, author and portfolio from book.md:
- * this module can't read the vault, so pages hand it over), `current` (the header link for this page), and `type`.
+ * this module can't read the vault, so pages hand it over), `current` / `section` (the header link that is this page,
+ * or whose section it's in), and `type`.
  */
 import "@fontsource-variable/inter";
 import "@fontsource-variable/source-serif-4";
@@ -26,10 +27,11 @@ interface Props {
   ogImage?: string;
   book: { title: string; author: string; authorUrl: string };
   current?: "contents" | "articles" | "about";
+  section?: "contents" | "articles" | "about";
   type?: PageHead["type"];
 }
 
-const { title, description, route, ogImage, book, current, type } = Astro.props;
+const { title, description, route, ogImage, book, current, section, type } = Astro.props;
 const tags = headTags({ title, description, book: book.title, ...(route ? { route } : {}), ...(ogImage ? { ogImage } : {}), ...(type ? { type } : {}) });
 ---
 
@@ -47,7 +49,7 @@ const tags = headTags({ title, description, book: book.title, ...(route ? { rout
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
-    <SiteHeader book={book} current={current} />
+    <SiteHeader book={book} current={current} section={section} />
     <main id="main">
       <slot />
     </main>

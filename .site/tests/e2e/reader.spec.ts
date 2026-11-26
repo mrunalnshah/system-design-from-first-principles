@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import { expectNoA11yViolations, expectNoHorizontalScroll, expectOnlySameOriginRequests, test } from "./helpers.ts";
+import { expectNoA11yViolations, expectNoCspViolations, expectNoHorizontalScroll, expectOnlySameOriginRequests, test } from "./helpers.ts";
 
 /** T-01.16: the reading page, on Chapter 1 and on the fixture's Chapter 2 (epigraph, wide formula, footnote). */
 const CHAPTER_1 = "book/computer-architecture/";
@@ -31,6 +31,7 @@ test.describe("reader layout", () => {
   });
 
   // @req REQ-READ-002.AC1
+  // The chapter menu arrives in T-01.17, which extends this test to it (CR-0008); until then the site menu stands in.
   test("opens menus without animation for a reader who asks for reduced motion", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 375, height: 700 });
@@ -39,7 +40,9 @@ test.describe("reader layout", () => {
     const moving = await page.evaluate(() =>
       [...document.querySelectorAll("*")].filter((el) => {
         const s = getComputedStyle(el);
-        return parseFloat(s.transitionDuration) > 0 || parseFloat(s.animationDuration) > 0;
+        // Durations come back in seconds; 0.01 ms (site.css) is no visible motion, anything from 1 ms up would be.
+        const longest = (list: string) => Math.max(...list.split(",").map((d) => parseFloat(d) * (d.trim().endsWith("ms") ? 0.001 : 1)));
+        return longest(s.transitionDuration) >= 0.001 || longest(s.animationDuration) >= 0.001;
       }).length,
     );
     expect(moving).toBe(0);
@@ -118,6 +121,7 @@ test.describe("reader layout", () => {
     await page.evaluate(() => document.fonts.ready);
     expect(await page.evaluate(() => [...document.fonts].some((f) => f.family === "KaTeX_Main" && f.status === "loaded"))).toBe(true);
     await expectOnlySameOriginRequests(page);
+    await expectNoCspViolations(page);
   });
 
   test("passes the accessibility check on a chapter with an epigraph, a formula and a note", async ({ page }) => {

@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import { expectNoA11yViolations, expectNoCookies, expectNoHorizontalScroll, expectOnlySameOriginRequests, test } from "./helpers.ts";
+import { expectNoA11yViolations, expectNoCookies, expectNoCspViolations, expectNoHorizontalScroll, expectOnlySameOriginRequests, test } from "./helpers.ts";
 
 /** T-01.14: Chapter 1 from the fixture vault (the real text, with drawing embeds), in every project. */
 const CHAPTER = "book/computer-architecture/";
@@ -31,8 +31,11 @@ test.describe("Chapter 1", () => {
     const img = page.locator("figure.diagram img").first();
     await img.scrollIntoViewIfNeeded();
     await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.currentSrc)).toMatch(/01-computer-architecture-dark\.svg$/);
+    // Every figure, all the way down: no light image is ever fetched.
+    for (const f of await page.locator("figure.diagram img").all()) await f.scrollIntoViewIfNeeded();
+    await page.waitForLoadState("networkidle");
     expect(svgs.some((u) => /01-computer-architecture-dark\.svg$/.test(u))).toBe(true);
-    expect(svgs.some((u) => /01-computer-architecture-light\.svg$/.test(u))).toBe(false);
+    expect(svgs.filter((u) => /-light\.svg$/.test(u))).toEqual([]);
   });
 
   // @req REQ-DIAG-001.AC5
@@ -83,6 +86,7 @@ test.describe("Chapter 1", () => {
     await expectNoA11yViolations(page);
     await expectNoHorizontalScroll(page);
     await expectOnlySameOriginRequests(page);
+    await expectNoCspViolations(page);
     await expectNoCookies(context);
   });
 });

@@ -3,6 +3,7 @@
  * Content problems are never thrown: every module adds them here as `BuildIssue` values, and the
  * build report (build-report.ts) prints them all together at the end of the build, failing on any error.
  */
+import { buildRun } from "./build-run.ts";
 
 /** One problem in the author's files. `code` is a row of specs/contracts/build-messages.md. */
 export type BuildIssue = {
@@ -52,7 +53,19 @@ export function createIssueCollector(): IssueCollector {
  * The one collector every module adds to during a build. It lives on `globalThis` because Astro loads
  * astro.config.ts (which holds the report) in a separate, throwaway module graph: a plain module-level value
  * would give the report and the content loader two different collectors, and the report would see nothing.
+ * Each run (build-run.ts) gets its own, so a second build in one process starts clean.
  */
 const KEY = Symbol.for("sdfp.buildIssues");
-const shared = globalThis as typeof globalThis & { [KEY]?: IssueCollector };
-export const buildIssues: IssueCollector = (shared[KEY] ??= createIssueCollector());
+const shared = globalThis as typeof globalThis & { [KEY]?: WeakMap<object, IssueCollector> };
+const collectorFor = () => {
+  const all = (shared[KEY] ??= new WeakMap());
+  const run = buildRun().id;
+  let c = all.get(run);
+  if (!c) all.set(run, (c = createIssueCollector()));
+  return c;
+};
+export const buildIssues: IssueCollector = {
+  add: (issue) => collectorFor().add(issue),
+  all: () => collectorFor().all(),
+  hasErrors: () => collectorFor().hasErrors(),
+};

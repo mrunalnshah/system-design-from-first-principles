@@ -46,12 +46,13 @@ test.describe("site shell", () => {
   // @req REQ-SITE-002.AC1
   test("shows the dark theme from the first paint for a reader in dark mode, without JavaScript", async ({ page, colorScheme }) => {
     test.skip(colorScheme !== "dark", "dark mode only");
-    await page.goto(PAGES[1]!, { waitUntil: "commit" });
-    await page.waitForFunction(() => document.body !== null);
-    // The theme is CSS only: render-blocking stylesheets in <head>, switched by prefers-color-scheme.
-    const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-    expect(bg).toBe("rgb(18, 18, 18)");
+    await page.goto(PAGES[1]!);
+    // The theme is CSS only: stylesheets in <head> block the first paint, and switch on prefers-color-scheme, so no
+    // script runs before the dark background shows.
+    expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(18, 18, 18)");
     expect(await page.locator("head script").count()).toBe(0);
+    const firstInHead = await page.evaluate(() => [...document.head.children].findIndex((el) => el.matches('link[rel="stylesheet"], style')));
+    expect(firstInHead).toBeGreaterThan(-1);
   });
 
   // @req REQ-SITE-005.AC1

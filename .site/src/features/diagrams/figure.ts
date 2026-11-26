@@ -10,7 +10,7 @@
  * file name made URL-safe (Excalidraw's default names have spaces). Only diagrams some figure actually shows are
  * published (`diagramAssetPaths`), so a diagram used only by a draft stays off the site.
  */
-import { url, type BuildIssue } from "../site/index.ts";
+import { buildRun, url, type BuildIssue } from "../site/index.ts";
 import type { DiagramFile, DiagramIndex } from "./index-svg.ts";
 import { planFigure, type Embed } from "./pairs.ts";
 
@@ -78,14 +78,18 @@ export function diagramAssetPaths(index: DiagramIndex): { params: { file: string
 const assetUrl = (file: DiagramFile) => url({ kind: "asset", path: assetPath(file) });
 
 /**
- * Diagrams shown so far, per vault. Kept on `globalThis` because Astro renders entries (in the content loader) and
- * builds pages in separate module graphs, like the build issues (site/issues.ts).
+ * Diagrams shown so far, per run and vault. Kept on `globalThis` because Astro renders entries (in the content loader)
+ * and builds pages in separate module graphs, like the build issues (site/issues.ts); per run, so a second build in
+ * one process doesn't publish the first one's diagrams.
  */
 function referenced(index: DiagramIndex): Set<string> {
   const KEY = Symbol.for("sdfp.diagrams.referenced");
-  const all = ((globalThis as Record<symbol, Map<string, Set<string>>>)[KEY] ??= new Map());
-  let set = all.get(index.root);
-  if (!set) all.set(index.root, (set = new Set()));
+  const runs = ((globalThis as Record<symbol, WeakMap<object, Map<string, Set<string>>>>)[KEY] ??= new WeakMap());
+  const run = buildRun().id;
+  let byRoot = runs.get(run);
+  if (!byRoot) runs.set(run, (byRoot = new Map()));
+  let set = byRoot.get(index.root);
+  if (!set) byRoot.set(index.root, (set = new Set()));
   return set;
 }
 

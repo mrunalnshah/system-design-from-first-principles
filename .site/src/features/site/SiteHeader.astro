@@ -4,15 +4,19 @@
  * to Contents, Articles, About and the author's portfolio. Wide screens show the links in a row; under 768 px they
  * sit behind a "Menu" disclosure, which opens without JavaScript. The portfolio link opens in the same tab and is
  * announced as an external site.
- * Props: `book` (title, author and portfolio address from book.md) and `current` (which link is this page's).
+ * Props: `book` (title, author and portfolio address from book.md), `current` (the link that is this page:
+ * `aria-current="page"`) and `section` (the link whose section this page is in, such as Contents for a chapter:
+ * `aria-current="true"`).
  */
 import { url } from "./url.ts";
 
 interface Props {
   book: { title: string; author: string; authorUrl: string };
   current?: "contents" | "articles" | "about";
+  section?: "contents" | "articles" | "about";
 }
-const { book, current } = Astro.props;
+const { book, current, section } = Astro.props;
+const mark = (key: string) => (current === key ? "page" : section === key ? "true" : undefined);
 const links = [
   { key: "contents", label: "Contents", href: url({ kind: "contents" }) },
   { key: "articles", label: "Articles", href: url({ kind: "articles" }) },
@@ -27,13 +31,13 @@ const links = [
       <span class="byline">by <a href={url({ kind: "about" })}>{book.author}</a></span>
     </p>
     <nav class="nav-inline" aria-label="Site">
-      {links.map((l) => <a href={l.href} aria-current={current === l.key ? "page" : undefined}>{l.label}</a>)}
+      {links.map((l) => <a href={l.href} aria-current={mark(l.key)}>{l.label}</a>)}
       <a class="external" href={book.authorUrl}>Portfolio<span class="visually-hidden"> (external site)</span></a>
     </nav>
     <details class="nav-menu">
       <summary>Menu</summary>
       <nav aria-label="Site">
-        {links.map((l) => <a href={l.href} aria-current={current === l.key ? "page" : undefined}>{l.label}</a>)}
+        {links.map((l) => <a href={l.href} aria-current={mark(l.key)}>{l.label}</a>)}
         <a class="external" href={book.authorUrl}>Portfolio<span class="visually-hidden"> (external site)</span></a>
       </nav>
     </details>
