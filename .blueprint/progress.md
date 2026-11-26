@@ -1,0 +1,28 @@
+# Progress log
+2026-11-26 · planning · sitting A started; setup answered (coding agent, Medium = 8 points, ~10 h/week, no deadline); level L3
+2026-11-26 · planning · interview round 1: G-01..G-10 confirmed; no newsletter (RSS instead); signature = diagrams + calm reading; look = clean and technical
+2026-11-26 · planning · interview round 2: light coding; cookieless analytics; free host + free address; About/Archive/404; RSS deferred; ASM-001..005 proposed
+2026-11-26 · planning · Gate G1 approved; ASM-001..005 accepted; sitting B started
+2026-11-26 · planning · design intake: refs Crafting Interpreters + Substack; airy; blueprint blue; serif body/sans UI; margin notes; chapter touches x4; homepage hero→chapters→articles; header title+name+portfolio
+2026-11-26 · planning · sitting B spec drafted: 7 features, 44 active reqs, 105 criteria, 13 NFRs, 7 screens, tokens, components, flows; CNF-001 tested (KaTeX 0.19.1 lacks \micro); CNF-003 raised (free GitHub Pages needs public repo)
+2026-11-26 · planning · Gate G2 approved; CNF-001 → author writes \mu; CNF-003 → public repo + GitHub Pages (drafts visible accepted); REQ-SITE-013 base path added
+2026-11-26 · planning · Gate G2 approved; CNF-001 → author writes mu; CNF-003 → public repo + GitHub Pages (drafts visible, accepted); REQ-SITE-013 base path added
+2026-11-26 · planning · section 6: versions verified live (npm, nodejs.org, GitHub releases) with 7-day cooldown; TS pinned 6.0.3 (compat); own KaTeX step (rehype-katex pins 0.16); stack A Astro 7 (ASM-006, ADR-0001); no analytics
+2026-11-26 · planning · Gate G3 approved; repo system-design-from-first-principles (public); checkpoint after sitting B; next: sitting C (architecture, G4) + D (design preview, GD) in a new conversation
+2026-11-26 · planning · sitting C drafted in the same session (user's choice): architecture, modules, data model, contracts (routes, frontmatter schema, interfaces, build messages), ADR-0002..0011, security, operations, constitution, standards; CNF-004..006 (unverified, checks scheduled)
+2026-11-26 · planning · G4 change requests applied: ADR-0012 (Excalidraw auto-export, sources gitignored), REQ-DIAG-006, REQ-BOOK-007 (moved_from redirects), CNF-007 resolved, CNF-008 spike S-02, ASM-007
+2026-11-26 · planning · Gate G4 approved; ASM-007 accepted; sitting D (design preview) started
+2026-11-26 · planning · sitting D: design/preview/index.html built (8 views: 7 screens + build report; laptop/phone; light/dark; real Chapter 1 + diagrams; KaTeX MathML); swept all screens×states×themes×widths: 0 JS errors, 0 overflow, 1 h1 each; fixes: small diagrams no longer upscaled (REQ-DIAG-002.AC2), phone sheet positioning, hash navigation; added keyboard nav + redirect state for traceability; README (T21) written; awaiting Gate GD
+2026-11-26 · planning · Gate GD approved (no changes); checkpoint after sittings C+D; next: sitting E (roadmap, rounds, packets, tools, readiness G5, zip)
+2026-11-26 · planning · sitting E: plan/tools.md (16 tools, 38 criteria), roadmap, 49 task packets (140 points), rounds.md (20 Medium rounds, R-01 = 5), START-HERE, AGENTS, CLAUDE, .claude files; readiness READY (2 parallel-safe overlaps fixed); awaiting G5
+2026-11-26 · planning · Gate G5 approved; architecture package created (sdfp-website-architecture.zip)
+2026-11-26T16:31Z · R-01 · start · package moved from sdfp-website-architecture/ to the vault root; git init -b main (nothing committed); tools not built yet, so state read by hand
+2026-11-26T16:38Z · R-01 · T-00.01 · step 3 · install failed (eslint-plugin-jsx-a11y 6.10.2 has no ESLint 10 support); CR-0001 approved by the user: removed eslint-plugin-jsx-a11y, github-slugger, tsx after a maintenance audit; tools run on Node 26 native TypeScript
+2026-11-26T16:40Z · R-01 · T-00.01 · step 4 · verify ok: npm ci ok; npm ls exit 0; astro build 1 page; .gitignore:3 ignores *.excalidraw.md; 23/23 direct deps at pinned versions; npm audit: 0 high/critical, 6 low/moderate (glob+minimatch via linkinator, dev-only; nested katex via micromark-extension-math, unused path); npm's fixes are major downgrades, not taken; for T-00.10 to track
+2026-11-26T16:43Z · R-01 · T-00.02 · step 2 · 8 tests written, all failing (not implemented)
+2026-11-26T16:43Z · R-01 · T-00.02 · step 4 · verify: vitest 8/8 pass (TOOL-02.AC1-3 tagged); astro check 0 errors/0 warnings; real plan: status/next ok, done T-99.99 exit 1 'Unknown task'; lint NOT runnable yet: eslint.config.js arrives in T-00.05 (R-03); packet Verify lists lint too early (plan sequencing gap, no code issue)
+2026-11-26T16:46Z · R-01 · T-00.01 · steps 5-6 · reviews pass (spec + quality); no vault files changed
+2026-11-26T16:46Z · R-01 · T-00.02 · steps 5-6 · reviews pass; applied 7 reviewer nice-to-haves (CRLF-preserving rewrites, BOM, missing id/status guards, interface comments, temp cleanup, looser real-plan smoke test); vitest 12/12; astro check clean
+2026-11-26T16:46Z · R-01 · T-00.01 · done
+2026-11-26T16:46Z · R-01 · T-00.02 · done
+2026-11-26T16:50Z · R-01 · end · calibration: 'easy, I could do more' → budget 8 → 13; R-02..R-15 regrouped (15 rounds total; order, deps, phases kept); references updated in START-HERE, AGENTS, roadmap, conflicts, readiness; .gitignore: zip + .obsidian plugin code excluded (user's choice)

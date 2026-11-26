@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mrunalnshah.github.io/system-design-from-first-principles/contracts/frontmatter.schema.json",
+  "title": "Frontmatter of the vault's published Markdown files",
+  "description": "Source of truth for MOD-vault's zod schemas. Unknown keys are allowed (Obsidian adds its own, such as tags and aliases) and ignored by the site. All fields are optional unless listed in 'required'.",
+  "$defs": {
+    "common": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 160, "description": "Overrides the title derived from the file name (REQ-CNT-002)" },
+        "description": { "type": "string", "maxLength": 300, "description": "Summary for cards and meta description (REQ-CNT-008)" },
+        "draft": { "type": "boolean", "default": false, "description": "true keeps the file off the website (REQ-CNT-004). It stays visible on GitHub (CNF-003)." },
+        "featured": { "type": "boolean", "default": false, "description": "Chapter: shown in Featured chapters. Article: pinned first in Latest articles" },
+        "moved_from": { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" }, "uniqueItems": true, "description": "Old slugs that redirect here (REQ-BOOK-007)" }
+      }
+    },
+    "book": {
+      "type": "object",
+      "required": ["title", "author", "author_url"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "subtitle": { "type": "string" },
+        "author": { "type": "string", "minLength": 1 },
+        "author_url": { "type": "string", "pattern": "^https://", "description": "REQ-CNT-011.AC3" },
+        "hero_image": { "type": "string", "pattern": "\\.svg$", "description": "File name of a diagram in the vault, e.g. 01-light.svg; its pair is used for dark mode" }
+      },
+      "examples": [{ "title": "System Design from First Principles", "author": "Mrunal Nirajkumar Shah", "author_url": "https://mrunalnshah.github.io/", "hero_image": "01-light.svg" }]
+    },
+    "chapter": {
+      "allOf": [{ "$ref": "#/$defs/common" }],
+      "type": "object",
+      "properties": {
+        "epigraph": { "type": "string", "maxLength": 400, "description": "REQ-READ-005" },
+        "epigraph_source": { "type": "string", "maxLength": 120 }
+      },
+      "dependentRequired": { "epigraph_source": ["epigraph"] }
+    },
+    "article": {
+      "allOf": [{ "$ref": "#/$defs/common" }],
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date", "description": "yyyy-mm-dd. Missing → published, undated, sorted last, with a warning (REQ-CNT-003.AC3)" }
+      }
+    },
+    "page": { "allOf": [{ "$ref": "#/$defs/common" }], "type": "object" }
+  }
+}

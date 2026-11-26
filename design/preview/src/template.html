@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design preview · System Design from First Principles</title>
+<style>
+/*@@FONTS@@*/
+/*@@TOKENS_CSS@@*/
+
+/* ---------- Preview chrome (not part of the product) ---------- */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body.pv { background: #e9ecf1; color: #1b2230; font: 14px/1.4 Inter, system-ui, sans-serif; }
+.pv-bar { position: sticky; top: 0; z-index: 100; background: #1b2230; color: #fff; padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+.pv-badge { font-weight: 700; letter-spacing: .02em; background: #ffcf5c; color: #1b2230; padding: 3px 8px; border-radius: 4px; font-size: 12px; }
+.pv-group { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.pv-group > span { color: #a0a8b5; font-size: 12px; margin-right: 4px; }
+.pv-bar button, .pv-bar select { font: inherit; font-size: 13px; color: #fff; background: #2c3442; border: 1px solid #485264; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+.pv-bar button[aria-pressed="true"] { background: #7fb0ff; color: #0d1b33; border-color: #7fb0ff; font-weight: 600; }
+.pv-bar button:focus-visible, .pv-bar select:focus-visible { outline: 2px solid #ffcf5c; outline-offset: 2px; }
+.pv-note { padding: 8px 16px; font-size: 13px; color: #3c4556; background: #f6f8fb; border-bottom: 1px solid #d0d7e1; }
+.pv-note b { color: #1b2230; }
+.pv-stage { display: flex; gap: 24px; align-items: flex-start; padding: 20px 16px 40px; flex-wrap: wrap; justify-content: center; }
+.pv-device { display: flex; flex-direction: column; gap: 6px; }
+.pv-label { font-size: 12px; color: #566173; }
+.pv-scaler { position: relative; overflow: hidden; border-radius: 10px; box-shadow: 0 6px 24px rgba(20,30,50,.18); background: #000; }
+.frame { position: absolute; top: 0; left: 0; transform-origin: top left; container-name: site; container-type: inline-size; overflow: hidden; }
+.frame-scroll { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; background: var(--bg); scroll-behavior: auto; }
+.pv-ribbon { position: absolute; right: 8px; bottom: 8px; z-index: 50; background: rgba(255,207,92,.95); color: #1b2230; font: 600 11px/1 Inter, system-ui, sans-serif; padding: 5px 7px; border-radius: 4px; pointer-events: none; }
+.pv-toast { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); z-index: 60; background: #1b2230; color: #fff; font: 13px/1.4 Inter, sans-serif; padding: 10px 14px; border-radius: 8px; max-width: 90%; box-shadow: 0 4px 16px rgba(0,0,0,.3); }
+
+/* ---------- Product styles (picture of the product) ---------- */
+.site { min-height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+.site a { color: var(--accent); }
+.site a:hover { color: var(--accent-hover); }
+.site :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 3px; }
+.sample { display: inline-block; font: 600 10px/1 var(--font-sans); letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); border: 1px dashed var(--text-muted); border-radius: 3px; padding: 3px 5px; vertical-align: middle; margin-left: 6px; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+.skip { position: absolute; left: -999px; }
+
+/* header */
+.hdr { position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 1px solid var(--divider); }
+.hdr .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; }
+.brand { display: flex; flex-direction: column; text-decoration: none; }
+.site a.brand { color: var(--text); }
+.brand strong { font-size: 15px; font-weight: 650; letter-spacing: -.005em; line-height: 1.2; }
+.brand span { font-size: 12.5px; color: var(--text-muted); }
+.hdr nav { display: none; gap: 4px; align-items: center; }
+.hdr nav a { text-decoration: none; font-size: 15px; padding: 10px 10px; border-radius: 6px; }
+.site .hdr nav a { color: var(--text); }
+.site .hdr nav a[aria-current="page"] { color: var(--accent); font-weight: 600; }
+.hdr nav a.ext::after { content: " ↗"; color: var(--text-muted); }
+.menu-btn { font: 500 14px var(--font-sans); color: var(--text); background: transparent; border: 1px solid var(--border); border-radius: 6px; padding: 0 12px; min-height: 44px; cursor: pointer; }
+.hdr-menu { border-top: 1px solid var(--divider); padding: 4px 16px 12px; display: flex; flex-direction: column; }
+.hdr-menu a { padding: 12px 0; text-decoration: none; font-size: 16px; border-bottom: 1px solid var(--divider); }
+.site .hdr-menu a { color: var(--text); }
+@container site (min-width: 768px) {
+  .wrap { padding: 0 32px; }
+  .hdr nav { display: flex; }
+  .menu-btn, .hdr-menu { display: none; }
+  .brand { flex-direction: row; align-items: baseline; gap: 10px; }
+}
+
+/* footer */
+.ftr { margin-top: 96px; border-top: 1px solid var(--divider); padding: 28px 0 40px; color: var(--text-muted); font-size: 14px; }
+.ftr .wrap { display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; }
+.ftr nav { display: flex; gap: 16px; }
+.site .ftr a { color: var(--text-muted); }
+
+/* buttons, eyebrows */
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 22px; border-radius: 8px; background: var(--accent); font: 600 16px var(--font-sans); text-decoration: none; border: 0; cursor: pointer; }
+.site a.btn { color: var(--on-accent); }
+.site a.btn:hover { background: var(--accent-hover); color: var(--on-accent); }
+.lnk { font: 600 15px var(--font-sans); text-decoration: none; display: inline-flex; align-items: center; min-height: 44px; }
+.eyebrow { font: 600 12.5px var(--font-sans); letter-spacing: .07em; text-transform: uppercase; color: var(--text-muted); }
+
+/* home */
+.hero { display: grid; gap: 28px; padding: 40px 0 48px; border-bottom: 1px solid var(--divider); }
+.hero h1 { font-size: clamp(2.1rem, 6.2cqw, 3.4rem); line-height: 1.08; letter-spacing: -.02em; margin: 8px 0 12px; font-weight: 700; }
+.hero .sub { font-size: 1.2rem; color: var(--text-muted); margin: 0 0 6px; }
+.hero .by { font-size: 15px; margin: 0 0 20px; }
+.hero .pitch { font: 1.15rem/1.65 var(--font-serif); margin: 0 0 18px; max-width: 34em; }
+.hero .stats { font-size: 14px; color: var(--text-muted); margin: 0 0 22px; }
+.hero .actions { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
+.hero-art img { display: block; width: 100%; height: auto; }
+.hero.noimg { grid-template-columns: 1fr !important; }
+@container site (min-width: 1100px) { .hero { grid-template-columns: 1.05fr .95fr; align-items: center; padding: 72px 0 72px; gap: 56px; } }
+.sec { padding: 48px 0 0; }
+.sec-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 20px; }
+.sec-head h2 { font-size: 1.5rem; margin: 0; letter-spacing: -.01em; }
+.cards { display: grid; gap: 16px; grid-template-columns: 1fr; }
+@container site (min-width: 768px) { .cards { grid-template-columns: 1fr 1fr; } }
+@container site (min-width: 1100px) { .cards { grid-template-columns: 1fr 1fr 1fr; } }
+.card { display: flex; flex-direction: column; gap: 8px; padding: 22px; border: 1px solid var(--border); border-radius: 10px; text-decoration: none; background: var(--bg); }
+.site a.card { color: var(--text); }
+.card:hover { border-color: var(--accent); }
+.card:hover h3 { text-decoration: underline; text-underline-offset: 3px; }
+.card .num { font: 700 2.25rem/1 var(--font-sans); color: var(--chapter-number); }
+.card h3 { font-size: 1.2rem; margin: 0; line-height: 1.3; }
+.card p { margin: 0; color: var(--text-muted); font-size: 15px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.card .meta { margin-top: auto; padding-top: 6px; font-size: 13.5px; color: var(--text-muted); }
+.rows { max-width: 44rem; }
+.row { display: block; padding: 18px 0; border-bottom: 1px solid var(--divider); text-decoration: none; }
+.site a.row { color: var(--text); }
+.row:first-child { border-top: 1px solid var(--divider); }
+.row h3 { font-size: 1.15rem; margin: 0 0 4px; line-height: 1.35; }
+.row:hover h3 { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.row .meta { font-size: 13.5px; color: var(--text-muted); margin-bottom: 6px; }
+.row p { margin: 0; color: var(--text-muted); font-size: 15px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tag { display: inline-block; font: 600 11px/1 var(--font-sans); letter-spacing: .05em; text-transform: uppercase; color: var(--accent); border: 1px solid var(--accent); border-radius: 3px; padding: 3px 5px; margin-left: 6px; vertical-align: 1px; }
+
+/* page titles */
+.page-head { padding: 48px 0 24px; max-width: 44rem; }
+.page-head h1 { font-size: clamp(2rem, 5cqw, 2.75rem); margin: 6px 0 8px; letter-spacing: -.015em; line-height: 1.15; }
+.page-head p { color: var(--text-muted); margin: 0; }
+.narrow { max-width: 44rem; }
+
+/* contents */
+.toc-part { margin: 36px 0 0; }
+.toc-part h2 { font: 600 14px var(--font-sans); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 8px; color: var(--text); }
+.toc-part h2 .rn { color: var(--accent); margin-right: 8px; }
+.toc-part ol { list-style: none; margin: 0; padding: 0; }
+.toc-ch { display: grid; grid-template-columns: 2.2rem 1fr; padding: 12px 0; border-bottom: 1px solid var(--divider); }
+.toc-ch .n { color: var(--text-muted); font-variant-numeric: tabular-nums; padding-top: 2px; }
+.toc-ch .t { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.toc-ch .t a { font-weight: 600; font-size: 17px; text-decoration: none; }
+.site .toc-ch .t a { color: var(--text); }
+.toc-ch .t a:hover { color: var(--accent); text-decoration: underline; }
+.toc-ch .rt { color: var(--text-muted); font-size: 14px; }
+.toc-ch ul { grid-column: 2; list-style: none; padding: 4px 0 0; margin: 0; display: flex; flex-wrap: wrap; gap: 2px 16px; }
+.toc-ch ul a { font-size: 14px; text-decoration: none; }
+.toc-ch ul a:hover { text-decoration: underline; }
+
+/* reader */
+.reader { padding: 0 16px; }
+.reader-col { max-width: 42rem; margin: 0 auto; }
+.menu-panel { display: none; }
+.phone-bar { position: sticky; top: 64px; z-index: 8; background: var(--bg); border-bottom: 1px solid var(--divider); display: flex; align-items: center; gap: 10px; padding: 6px 16px; font-size: 14px; color: var(--text-muted); }
+.phone-bar button { font: 500 14px var(--font-sans); color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; min-height: 40px; padding: 0 12px; cursor: pointer; }
+.phone-bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@container site (min-width: 1100px) {
+  .phone-bar { display: none; }
+  .reader { display: grid; grid-template-columns: 15rem minmax(0, 42rem) 15rem; column-gap: 3rem; justify-content: center; padding: 0 32px; }
+  .reader.article { grid-template-columns: minmax(0, 42rem) 15rem; }
+  .reader-col { grid-column: 2; margin: 0; max-width: none; min-width: 0; }
+  .reader.article .reader-col { grid-column: 1; }
+  .menu-panel { display: block; grid-column: 1; grid-row: 1; position: sticky; top: 88px; align-self: start; padding-top: 56px; font-size: 14px; }
+}
+.menu-panel .bt { font-weight: 650; text-decoration: none; display: block; line-height: 1.3; margin-bottom: 14px; }
+.site .menu-panel .bt { color: var(--text); }
+.menu-panel ol { list-style: none; margin: 8px 0 20px; padding: 0; border-left: 1px solid var(--divider); }
+.menu-panel li a { display: block; padding: 5px 0 5px 12px; margin-left: -1px; border-left: 2px solid transparent; text-decoration: none; line-height: 1.35; }
+.site .menu-panel li a { color: var(--text-muted); }
+.menu-panel li.d3 a { padding-left: 24px; font-size: 13px; }
+.site .menu-panel li a[aria-current="location"] { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+.menu-panel .pn { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--divider); padding-top: 12px; }
+.menu-panel .pn a { text-decoration: none; font-size: 13.5px; }
+
+.ch-head { padding: 40px 0 8px; }
+.ch-title { display: flex; align-items: flex-start; gap: 18px; }
+.bignum { font: 700 4.5rem/.82 var(--font-sans); color: var(--chapter-number); letter-spacing: -.04em; flex: none; }
+.ch-title h1 { font-size: clamp(1.9rem, 4.6cqw, 2.75rem); line-height: 1.12; letter-spacing: -.015em; margin: 0; padding-top: 4px; }
+.ch-meta { margin: 14px 0 0; color: var(--text-muted); font-size: 14.5px; }
+@container site (min-width: 1100px) { .bignum { font-size: 7rem; } .ch-head { padding-top: 56px; } }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.epi { margin: 28px 0 8px; padding: 0; }
+.epi blockquote { margin: 0; font: italic 1.2rem/1.55 var(--font-serif); color: var(--text-muted); }
+.epi figcaption { margin-top: 8px; font-size: 14px; color: var(--text-muted); }
+.nojs-toc { margin: 24px 0 0; padding: 16px 20px; border: 1px solid var(--divider); border-radius: 8px; font-size: 15px; }
+.nojs-toc ol { margin: 6px 0 0; padding-left: 0; list-style: none; }
+.nojs-toc li { padding: 3px 0; }
+
+.prose { font-family: var(--font-serif); font-size: clamp(1.125rem, 1rem + .35cqw, 1.3125rem); line-height: 1.65; }
+.prose p, .prose ul, .prose ol { margin: 0 0 1.1em; }
+.prose ul ul { margin: .25em 0 .25em; }
+.prose li { margin: .2em 0; }
+.prose a { text-decoration: underline; text-underline-offset: 3px; }
+.prose h2, .prose h3 { font-family: var(--font-sans); display: flex; align-items: baseline; gap: 16px; letter-spacing: -.01em; }
+.prose h2 { font-size: 1.55rem; line-height: 1.25; margin: 2.2em 0 .6em; }
+.prose h3 { font-size: 1.2rem; line-height: 1.3; margin: 1.8em 0 .5em; }
+.prose h2 .hn, .prose h3 .hn { margin-left: auto; color: var(--text-muted); font-weight: 500; font-size: .8em; font-variant-numeric: tabular-nums; order: 2; }
+.prose .anchor { order: 1; opacity: 0; font-size: .7em; text-decoration: none; color: var(--text-muted); }
+.prose h2:hover .anchor, .prose h3:hover .anchor, .prose .anchor:focus { opacity: 1; }
+.prose math { font-size: 1.05em; }
+.prose .ref { font: 600 .7em var(--font-sans); vertical-align: super; line-height: 0; color: var(--accent); background: none; border: 0; padding: 0 2px; cursor: pointer; }
+.sn { display: none; }
+.sn.open { display: block; margin: .4em 0 .8em; padding: 10px 14px; background: var(--surface); border-left: 3px solid var(--accent); font: 14.5px/1.5 var(--font-sans); color: var(--text-muted); }
+.sn b { color: var(--accent); margin-right: 4px; }
+.endnotes { border-top: 1px solid var(--divider); margin-top: 2.5em; padding-top: 1em; font: 15px/1.55 var(--font-sans); color: var(--text-muted); }
+@container site (min-width: 1100px) {
+  .sn, .sn.open { display: block; float: right; clear: right; width: 15rem; margin: .3em -18rem 1em 0; padding: 0; background: none; border: 0; font: 13.5px/1.5 var(--font-sans); color: var(--text-muted); }
+  .endnotes.wide-hidden { display: none; }
+}
+.fig { margin: 2em 0; }
+.fig button, .fig a.figlink { display: block; width: 100%; padding: 0; border: 0; background: var(--diagram-bg); cursor: zoom-in; border-radius: 4px; }
+.fig img { display: block; width: 100%; height: auto; }
+.fig figcaption { font: 14px/1.45 var(--font-sans); color: var(--text-muted); margin-top: 10px; }
+@container site (min-width: 1100px) { .fig.wide { width: min(900px, calc(100% + 18rem), max(var(--nw, 900px), 100%)); clear: both; } }
+.prevnext { display: grid; gap: 12px; margin: 56px 0 0; padding-top: 24px; border-top: 1px solid var(--divider); }
+@container site (min-width: 768px) { .prevnext { grid-template-columns: 1fr 1fr; } }
+.pn-box { display: block; padding: 16px 18px; border: 1px solid var(--border); border-radius: 10px; text-decoration: none; }
+.site a.pn-box { color: var(--text); }
+.pn-box:hover { border-color: var(--accent); }
+.pn-box small { display: block; color: var(--text-muted); font-size: 13px; margin-bottom: 4px; }
+.pn-box strong { font-size: 16px; }
+.pn-box.next { text-align: right; }
+.art-end { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--divider); }
+
+/* sheet, viewer */
+.sheet-back { position: absolute; inset: 0; z-index: 40; background: rgba(0,0,0,.35); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 41; background: var(--bg); color: var(--text); border-radius: 14px 14px 0 0; padding: 16px 20px 24px; max-height: 75%; overflow: auto; font-family: var(--font-sans); box-shadow: 0 -8px 30px rgba(0,0,0,.25); }
+.sheet .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.sheet .top strong { font-size: 15px; }
+.sheet button.x, .viewer button { font: 600 14px var(--font-sans); min-width: 44px; min-height: 44px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
+.sheet ol { list-style: none; margin: 0; padding: 0; }
+.sheet li a { display: block; padding: 11px 0; border-bottom: 1px solid var(--divider); text-decoration: none; font-size: 15.5px; }
+.site .sheet li a { color: var(--text); }
+.sheet li.d3 a { padding-left: 18px; font-size: 14.5px; color: var(--text-muted); }
+.viewer { position: absolute; inset: 0; z-index: 45; background: var(--diagram-bg); display: flex; flex-direction: column; font-family: var(--font-sans); }
+.viewer .vt { display: flex; gap: 8px; justify-content: flex-end; padding: 12px; color: var(--text-muted); align-items: center; }
+.viewer .vt span { margin-right: auto; font-size: 13px; }
+.viewer .vc { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; }
+.viewer .vc img { max-width: 95%; max-height: 95%; transform-origin: center; }
+
+/* code-like build log */
+.log { font: 14px/1.6 var(--font-mono); background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; overflow-x: auto; white-space: pre; color: var(--text); }
+.log .e { color: #c62828; font-weight: 700; }
+.theme-dark .log .e { color: #ff8a80; }
+.log .w { color: #8a5a00; font-weight: 700; }
+.theme-dark .log .w { color: #ffcc66; }
+.log .m { color: var(--text-muted); }
+.nf { text-align: center; padding: 72px 0 24px; max-width: 34rem; margin: 0 auto; }
+.nf .big { font: 700 7rem/.9 var(--font-sans); color: var(--chapter-number); letter-spacing: -.04em; }
+.nf h1 { font-size: 2rem; margin: 10px 0 8px; }
+.nf p { color: var(--text-muted); margin: 0 0 24px; }
+.nf .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 20px; align-items: center; }
+.empty { padding: 28px; border: 1px dashed var(--border); border-radius: 10px; color: var(--text-muted); max-width: 44rem; }
+.year { font-size: 1.25rem; margin: 36px 0 4px; }
+</style>
+</head>
+<body class="pv">
+<div class="pv-bar" role="region" aria-label="Preview controls">
+  <span class="pv-badge">Design preview: not the real product</span>
+  <div class="pv-group" id="screens" role="group" aria-label="Screen"></div>
+  <div class="pv-group"><span>State</span><select id="state" aria-label="State"></select></div>
+  <div class="pv-group" role="group" aria-label="Width"><span>Width</span>
+    <button data-view="both">Both</button><button data-view="laptop">Laptop</button><button data-view="phone">Phone</button></div>
+  <div class="pv-group" role="group" aria-label="Theme"><span>Theme</span>
+    <button data-theme="light">Light</button><button data-theme="dark">Dark</button></div>
+</div>
+<div class="pv-note" id="pvnote"></div>
+<div class="pv-stage" id="stage"></div>
+
+<script>
+const A = "@@ASSETS@@";
+const BASE = "/system-design-from-first-principles/";
+const SCREENS = [
+  { id: "home", label: "Home", states: ["Default", "No featured chapters (\"Start here\")", "No articles yet", "No hero image"], note: "J1/J2/J3 start here. Book hero → featured chapters → latest articles (REQ-HOME-001…004). No JavaScript on this page." },
+  { id: "chapter", label: "Chapter 1", states: ["Default (real Chapter 1)", "With epigraph + margin note (sample)", "JavaScript off", "Last chapter"], note: "Real Chapter 1 text and both real diagrams. Click a diagram to open the full-screen view. On the phone, tap 'Sections'. Press ← or → for previous/next. The two diagrams have no caption yet (see Build report)." },
+  { id: "contents", label: "Contents", states: ["Default", "No published chapters"], note: "Parts with Roman numerals, chapters numbered straight through, sections as sub-links (REQ-BOOK-001). Parts II–III are samples." },
+  { id: "article", label: "Article", states: ["Default", "Undated article"], note: "A sample article: same calm reader, no numbering, no chapter menu, margin note on the right (REQ-READ-006, 009)." },
+  { id: "articles", label: "All articles", states: ["Default", "No articles yet"], note: "Every article, newest first, grouped by year (REQ-ART-002). All entries are samples." },
+  { id: "about", label: "About", states: ["Default"], note: "Renders your about.md (REQ-SITE-003). The text here is a placeholder until you write it." },
+  { id: "notfound", label: "404", states: ["Default", "Old address (redirect page)"], note: "Friendly 'page not found' in the site's look (REQ-SITE-004). The second state is what an old address shows for a moment before it forwards the reader (moved_from, REQ-BOOK-007)." },
+  { id: "publish", label: "Build report", states: ["Today's vault (publishes)", "A typo that blocks publishing (sample)"], note: "J5 has no screen of its own: this is the build report at the end of each publish run on GitHub (REQ-CNT-007). Errors stop the publish; warnings don't." }
+];
+const S = { screen: "home", state: 0, view: innerWidth < 900 ? "phone" : "both", theme: "light", overlay: {} };
+
+const SAMPLE = '<span class="sample">Sample</span>';
+const sampleChapters = [
+  { n: 2, part: "II", partTitle: "Networks", title: "How the Internet Moves Bytes", sum: "Packets, routing and why the speed of light is a design constraint.", rt: 14 },
+  { n: 3, part: "II", partTitle: "Networks", title: "Latency and Bandwidth", sum: "Two numbers that decide what a system can and can't promise its users.", rt: 11 },
+  { n: 4, part: "III", partTitle: "Storage", title: "Databases from First Principles", sum: "From files on a disk to indexes, logs and transactions.", rt: 18 }
+];
+const sampleArticles = [
+  { title: "Why a disk read feels slow", date: "2026-11-12", d: "12 November 2026", rt: 6, featured: true, sum: "Nanoseconds, microseconds and milliseconds look alike on paper. In a running system they're the difference between instant and noticeable." },
+  { title: "Back-of-the-envelope maths for system design", date: "2026-10-28", d: "28 October 2026", rt: 9, sum: "A handful of numbers you can multiply in your head is enough to rule out most bad designs before you draw a single box." },
+  { title: "What \"scale\" actually means", date: "2026-09-30", d: "30 September 2026", rt: 7, sum: "More users, more data or more requests per second: three different problems that need three different answers." },
+  { title: "Notes on reading a classic distributed-systems paper", date: "2025-12-04", d: "4 December 2025", rt: 12, sum: "How to read a dense paper slowly, and what to write down while you do." }
+];
+
+function img(key, theme, alt, eager) {
+  const src = A.svg[key + (theme === "dark" ? "d" : "l")];
+  const [w, h] = A.size[key];
+  return `<img src="${src}" width="${Math.round(w)}" height="${Math.round(h)}" alt="${alt}" ${eager ? "" : 'loading="lazy"'}>`;
+}
+function header(active, ctx) {
+  const open = S.overlay[ctx.id + "menu"];
+  return `<a class="skip" href="#main">Skip to content</a>
+  <header class="hdr"><div class="wrap">
+    <a class="brand" href="#" data-go="home"><strong>System Design from First Principles</strong><span>by <span data-go="about" style="text-decoration:underline;text-underline-offset:2px;cursor:pointer">Mrunal Nirajkumar Shah</span></span></a>
+    <nav aria-label="Site">
+      <a href="#" data-go="contents" ${active === "contents" || active === "chapter" ? 'aria-current="page"' : ""}>Contents</a>
+      <a href="#" data-go="articles" ${active === "articles" || active === "article" ? 'aria-current="page"' : ""}>Articles</a>
+      <a href="#" data-go="about" ${active === "about" ? 'aria-current="page"' : ""}>About</a>
+      <a href="#" class="ext" data-toast="Opens https://mrunalnshah.github.io/ (your portfolio) in the same tab.">Portfolio<span class="vh"> (external site)</span></a>
+    </nav>
+    <button class="menu-btn" data-toggle="${ctx.id}menu" aria-expanded="${!!open}">Menu</button>
+  </div>${open ? `<div class="hdr-menu"><a href="#" data-go="contents">Contents</a><a href="#" data-go="articles">Articles</a><a href="#" data-go="about">About</a><a href="#" data-toast="Opens https://mrunalnshah.github.io/ (your portfolio).">Portfolio ↗</a></div>` : ""}</header>`;
+}
+function footer() {
+  return `<footer class="ftr"><div class="wrap"><span>© 2026 Mrunal Nirajkumar Shah</span><nav aria-label="Footer"><a href="#" data-go="about">About</a><a href="#" data-toast="Opens https://mrunalnshah.github.io/ (your portfolio).">Portfolio ↗</a></nav></div></footer>`;
+}
+function chapterCard(c, real) {
+  return `<a class="card" href="#" ${real ? 'data-go="chapter"' : 'data-toast="Sample chapter: not part of this preview."'}>
+    <span class="num" aria-hidden="true">${c.n}</span>
+    <span class="eyebrow">Chapter ${c.n} · Part ${c.part} · ${c.partTitle}${real ? "" : SAMPLE}</span>
+    <h3>${c.title}</h3><p>${c.sum}</p><span class="meta">${c.rt} min read</span></a>`;
+}
+const ch1 = () => ({ n: 1, part: "I", partTitle: "Foundations", title: "Computer Architecture", sum: A.ch1.summary, rt: A.ch1.rt });
+function articleRow(a, showDate = true) {
+  return `<a class="row" href="#" data-go="article"><h3>${a.title}${a.featured ? '<span class="tag">Featured</span>' : ""}${SAMPLE}</h3>
+    <div class="meta">${showDate && a.d ? `<time datetime="${a.date}">${a.d}</time> · ` : ""}${a.rt} min read</div><p>${a.sum}</p></a>`;
+}
+
+/* ---------- screens ---------- */
+function home(st, ctx) {
+  const noFeat = st === 1, noArt = st === 2, noImg = st === 3;
+  const cards = noFeat ? [chapterCard(ch1(), true), chapterCard(sampleChapters[0]), chapterCard(sampleChapters[1])]
+                       : [chapterCard(ch1(), true), chapterCard(sampleChapters[1]), chapterCard(sampleChapters[2])];
+  return header("home", ctx) + `<main id="main" class="wrap">
+  <section class="hero ${noImg ? "noimg" : ""}" aria-labelledby="bt">
+    <div>
+      <span class="eyebrow">A book in progress</span>
+      <h1 id="bt">System Design from First Principles</h1>
+      <p class="sub">Understand the machine, then design the system.${SAMPLE}</p>
+      <p class="by">by <a href="#" data-go="about">Mrunal Nirajkumar Shah</a></p>
+      <p class="pitch">Large systems are built from small machines with hard limits. This book starts with what a disk, RAM, a CPU and a cache really do, and builds up to designing systems that serve millions.${SAMPLE}</p>
+      <p class="stats">1 chapter · ${A.ch1.rt} min read · new chapters as they're written</p>
+      <div class="actions"><a class="btn" href="#" data-go="chapter">Read from the start</a><a class="lnk" href="#" data-go="contents">Contents →</a></div>
+    </div>
+    ${noImg ? "" : `<div class="hero-art">${img("01", ctx.theme, "Diagram: " + A.alt["01"], true)}</div>`}
+  </section>
+  <section class="sec" aria-labelledby="fc"><div class="sec-head"><h2 id="fc">${noFeat ? "Start here" : "Featured chapters"}</h2><a class="lnk" href="#" data-go="contents">All chapters →</a></div>
+    <div class="cards">${cards.join("")}</div></section>
+  ${noArt ? "" : `<section class="sec" aria-labelledby="la"><div class="sec-head"><h2 id="la">Latest articles</h2><a class="lnk" href="#" data-go="articles">All articles →</a></div>
+    <div class="rows">${sampleArticles.slice(0, 3).map(a => articleRow(a)).join("")}</div></section>`}
+  </main>` + footer();
+}
+function contents(st, ctx) {
+  const ch1sec = A.ch1.sections.filter(s => s.d === 2);
+  const body = st === 1 ? `<div class="empty">The first chapter is on its way. Meanwhile, <a href="#" data-go="articles">read the articles</a>.</div>` : `
+  <section class="toc-part"><h2><span class="rn">I.</span>Foundations</h2><ol>
+    <li class="toc-ch"><span class="n">1.</span><div class="t"><a href="#" data-go="chapter">Computer Architecture</a><span class="rt">${A.ch1.rt} min</span></div>
+      <ul>${ch1sec.map(s => `<li><a href="#" data-go="chapter" data-sec="${s.id}">${s.text}</a></li>`).join("")}</ul></li></ol></section>
+  <section class="toc-part"><h2><span class="rn">II.</span>Networks${SAMPLE}</h2><ol>
+    ${sampleChapters.slice(0, 2).map(c => `<li class="toc-ch"><span class="n">${c.n}.</span><div class="t"><a href="#" data-toast="Sample chapter: not part of this preview.">${c.title}</a><span class="rt">${c.rt} min</span></div></li>`).join("")}</ol></section>
+  <section class="toc-part"><h2><span class="rn">III.</span>Storage${SAMPLE}</h2><ol>
+    <li class="toc-ch"><span class="n">4.</span><div class="t"><a href="#" data-toast="Sample chapter: not part of this preview.">${sampleChapters[2].title}</a><span class="rt">${sampleChapters[2].rt} min</span></div></li></ol></section>`;
+  return header("contents", ctx) + `<main id="main" class="wrap"><div class="page-head"><span class="eyebrow">The book</span><h1>Contents</h1><p>System Design from First Principles · ${st === 1 ? "0 chapters" : "1 published chapter · 3 samples"}</p></div><div class="narrow">${body}</div></main>` + footer();
+}
+function sectionList(cls, ctx) {
+  return `<ol>${A.ch1.sections.map(s => `<li class="d${s.d}"><a href="#${ctx.id}-${s.id}" data-jump="${s.id}" ${ctx.current === s.id && cls === "panel" ? 'aria-current="location"' : ""}>${s.num} ${s.text}</a></li>`).join("")}</ol>`;
+}
+function chapterBody(st, ctx) {
+  const noJS = st === 2, withNote = st === 1;
+  const nw = (key) => `style="--nw:${Math.round(A.size[key][0])}px"`;
+  const fig = (key) => noJS
+    ? `<figure class="fig wide" ${nw(key)}><a class="figlink" href="#" data-toast="Without JavaScript, the diagram opens as the SVG file itself.">${img(key, ctx.theme, "Diagram: " + A.alt[key])}</a></figure>`
+    : `<figure class="fig wide" ${nw(key)} data-diagram="${key}"><button data-view-diagram="${key}" aria-label="Open diagram full screen">${img(key, ctx.theme, "Diagram: " + A.alt[key])}</button></figure>`;
+  const h = (id, num, text, lvl) => `<h${lvl} id="${ctx.id}-${id}"><a class="anchor" href="#" aria-label="Link to this section">#</a>${text}<span class="hn">${num}</span></h${lvl}>`;
+  const ref = (n) => noJS ? `<a class="ref" href="#">${n}</a>` : `<button class="ref" data-note="${ctx.id}n${n}" aria-expanded="${!!S.overlay[ctx.id + "n" + n]}">${n}</button>`;
+  const sn = (n, t) => `<span class="sn ${S.overlay[ctx.id + "n" + n] ? "open" : ""}" role="note"><b>${n}</b>${t}</span>`;
+  const m = A.math;
+  return `
+  <p>Before we can learn how to design large-scale distributed system, we need to understand how computer works, atleast at high level.</p>
+  ${fig("01")}
+  ${h("components", "1.1", "Components", 2)}
+  ${h("disk", "1.1.1", "Disk", 3)}
+  <ul><li>HDD, SDD</li><li>Store all data - persistently</li><li>Measured in 100's of GB or TB<ul><li>1 Byte = 8 Bits and each bit can store either 0 or 1</li></ul></li><li>reading and writing is ${m.frac3}</li></ul>
+  ${h("ram", "1.1.2", "RAM (Random Access Memory)", 3)}
+  <ul><li>Storing information, lot smaller than disk, its not persistent</li><li>storage in 2 GB, 4 GB, 8 GB, 16 GB, ...</li><li>Costlier than disk, but cheaper in  resources<ul><li>Writing and reading to a RAM is measured in ${m.mus} (micro-second) (${m.approx6})<ul><li>very  fast (lot faster than disk)</li></ul></li></ul></li></ul>
+  ${h("cpu", "1.1.3", "CPU (Central Processing Unit)", 3)}
+  <ul><li>Used to compute, talk with different components</li><li>Reading/Writing information to Disk, RAM and execute code.</li></ul>
+  ${h("cache", "1.1.4", "Cache", 3)}
+  <ul><li>Lot smaller than RAM</li><li>in MBs</li><li>measured in ns (nano second)</li><li>Cache is expensive, but small cache can improve the system by a lot.${withNote ? ref(1) + sn(1, "Sample margin note: on a laptop this sits beside its line; on a phone, tap the number to open it. Written in Obsidian as a normal footnote [^1].") : ""}</li><li>CPU caan check if the data is in cache, it can make it faster.</li></ul>
+  ${h("limitations", "1.2", "Limitations", 2)}
+  <p>Increasing Disk, RAM, Cache doesn't help. Biggest problem is CPU, for how much we can compute in a given time.</p>
+  ${h("moores-law", "1.3", "Moore's Law", 2)}
+  <ul><li>Founders of Intel</li></ul>
+  ${fig("02")}
+  ${withNote && noJS ? "" : ""}
+  ${noJS && withNote ? "" : ""}`;
+}
+function chapter(st, ctx) {
+  const noJS = st === 2, last = st === 3, withNote = st === 1;
+  const sheetOpen = S.overlay[ctx.id + "sheet"];
+  const pn = last
+    ? `<nav class="prevnext" aria-label="Chapter navigation"><a class="pn-box" href="#" data-toast="Sample: would open the previous chapter."><small>← Previous</small><strong>3 · Latency and Bandwidth</strong></a><a class="pn-box next" href="#" data-go="contents"><small>The end, for now</small><strong>Back to contents →</strong></a></nav>`
+    : `<nav class="prevnext" aria-label="Chapter navigation"><a class="pn-box" href="#" data-go="contents"><small>← Start</small><strong>Contents</strong></a><a class="pn-box next" href="#" data-toast="Sample chapter: not part of this preview."><small>Next →</small><strong>2 · How the Internet Moves Bytes</strong></a></nav>`;
+  return header("chapter", ctx) +
+  (noJS ? "" : `<div class="phone-bar"><button data-toggle="${ctx.id}sheet" aria-expanded="${!!sheetOpen}">Sections</button><span>1 · Computer Architecture</span></div>`) +
+  `<main id="main" class="reader">
+    ${noJS ? "" : `<nav class="menu-panel" aria-label="Chapter"><a class="bt" href="#" data-go="contents">System Design from First Principles</a><span class="eyebrow">Chapter 1</span>${sectionList("panel", ctx)}
+      <div class="pn">${last ? `<a href="#" data-toast="Sample: previous chapter.">← 3 · Latency and Bandwidth</a>` : `<a href="#" data-go="contents">← Contents</a><a href="#" data-toast="Sample chapter: not part of this preview.">2 · How the Internet Moves Bytes →</a>`}</div></nav>`}
+    <article class="reader-col">
+      <header class="ch-head">
+        <div class="ch-title"><span class="bignum" aria-hidden="true">${last ? 4 : 1}</span><h1><span class="vh">Chapter ${last ? 4 : 1}: </span>${last ? "Databases from First Principles" + SAMPLE : "Computer Architecture"}</h1></div>
+        <p class="ch-meta">Part ${last ? "III · Storage" : "I · Foundations"} · ${A.ch1.rt} min read</p>
+        ${withNote ? `<figure class="epi"><blockquote>“Every system is a negotiation with the limits of the machine underneath it.”</blockquote><figcaption>— Sample epigraph, from <code>epigraph:</code> in the chapter's frontmatter</figcaption></figure>` : ""}
+        ${noJS ? `<nav class="nojs-toc" aria-label="Chapter"><strong>In this chapter</strong>${sectionList("plain", ctx)}</nav>` : ""}
+      </header>
+      <div class="prose">${chapterBody(st, ctx)}</div>
+      ${noJS && withNote ? "" : ""}
+      ${pn}
+    </article>
+  </main>` + footer() +
+  (sheetOpen ? `<div class="sheet-back" data-close="${ctx.id}sheet"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="Sections"><div class="top"><strong>1 · Computer Architecture</strong><button class="x" data-close="${ctx.id}sheet" aria-label="Close">✕</button></div>${sectionList("sheet", ctx)}</div>` : "");
+}
+function article(st, ctx) {
+  const a = sampleArticles[0];
+  const noteOpen = S.overlay[ctx.id + "an1"];
+  return header("article", ctx) + `<main id="main" class="reader article"><article class="reader-col">
+    <header class="ch-head"><span class="eyebrow">Article${SAMPLE}</span><h1 style="font-size:clamp(1.9rem,4.6cqw,2.75rem);line-height:1.12;letter-spacing:-.015em;margin:8px 0 0">${a.title}</h1>
+      <p class="ch-meta">${st === 1 ? "" : `<time datetime="${a.date}">${a.d}</time> · `}${a.rt} min read</p></header>
+    <div class="prose">
+      <p>On paper, a nanosecond, a microsecond and a millisecond look like neighbours. In practice each step is a thousand times longer than the last. If a cache lookup took one second, reading the same data from RAM would take a few minutes, and from a spinning disk it would take weeks.<button class="ref" data-note="${ctx.id}an1" aria-expanded="${!!noteOpen}">1</button><span class="sn ${noteOpen ? "open" : ""}" role="note"><b>1</b>Rough orders of magnitude, not benchmarks. The point is the ratio, not the exact numbers.</span></p>
+      <p>That ratio is why so much of system design is about keeping the next piece of data close to the CPU: in a cache, in memory, or at least on the same machine. Chapter 1 of the book, <a href="#" data-go="chapter">Computer Architecture</a>, introduces the parts involved.</p>
+      <h2 id="${ctx.id}-ratio">The ratio is the lesson</h2>
+      <p>Hardware keeps getting faster, but the gaps between the layers have stayed stubborn. The diagram below, from the book, shows why waiting for faster CPUs stopped being a plan.</p>
+      <figure class="fig wide" data-diagram="02"><button data-view-diagram="02" aria-label="Open diagram full screen">${img("02", ctx.theme, "Diagram: " + A.alt["02"])}</button><figcaption>Moore's Law, from Chapter 1.</figcaption></figure>
+      <p>Next time a page feels slow, ask which layer it's waiting on. The answer is usually further from the CPU than you think.</p>
+    </div>
+    <div class="art-end"><a class="lnk" href="#" data-go="articles">← All articles</a><a class="lnk" href="#" data-go="contents">Read the book →</a></div>
+  </article></main>` + footer();
+}
+function articles(st, ctx) {
+  const by = {}; sampleArticles.forEach(a => (by[a.date.slice(0, 4)] ||= []).push(a));
+  const body = st === 1 ? `<div class="empty">No articles yet. <a href="#" data-go="chapter">Start with the book →</a></div>`
+    : Object.keys(by).sort().reverse().map(y => `<h2 class="year">${y}</h2><div class="rows">${by[y].map(a => articleRow(a)).join("")}</div>`).join("");
+  return header("articles", ctx) + `<main id="main" class="wrap"><div class="page-head"><span class="eyebrow">Writing</span><h1>Articles</h1><p>Standalone essays outside the book.</p></div><div class="narrow">${body}</div></main>` + footer();
+}
+function about(st, ctx) {
+  return header("about", ctx) + `<main id="main" class="reader article"><article class="reader-col">
+    <header class="ch-head"><span class="eyebrow">About</span><h1 style="font-size:clamp(1.9rem,4.6cqw,2.75rem);line-height:1.12;margin:8px 0 0">Mrunal Nirajkumar Shah</h1></header>
+    <div class="prose"><p>This page shows your <code>about.md</code>.${SAMPLE} Who you are, why you're writing this book, and what readers can expect from it. Until you write it, the text here is a placeholder.</p>
+    <p>Portfolio: <a href="#" data-toast="Opens https://mrunalnshah.github.io/">mrunalnshah.github.io</a></p></div>
+    <div class="art-end"><a class="lnk" href="#" data-go="chapter">Start reading the book →</a></div></article></main>` + footer();
+}
+function notfound(st, ctx) {
+  if (st === 1) return header("", ctx) + `<main id="main" class="wrap"><div class="nf"><h1>This chapter has moved</h1><p>Taking you to its new address…</p>
+    <div class="actions"><a class="btn" href="#" data-go="chapter">Go to “Computer Architecture”</a></div>
+    <p style="margin-top:24px;font-size:14px">Example: <code>${BASE}book/how-computers-work/</code> → <code>${BASE}book/computer-architecture/</code>${SAMPLE}</p></div></main>` + footer();
+  return header("", ctx) + `<main id="main" class="wrap"><div class="nf"><div class="big" aria-hidden="true">404</div><h1>Page not found</h1><p>This page may have moved when a chapter was renamed.</p>
+    <div class="actions"><a class="btn" href="#" data-go="chapter">Read from the start</a><a class="lnk" href="#" data-go="contents">Contents</a><a class="lnk" href="#" data-go="home">Home</a></div></div></main>` + footer();
+}
+function publish(st, ctx) {
+  const L = A.lines, bad = st === 1;
+  const log = `<span class="m">Publish run · job "build" · step "Build report"</span>
+${bad ? `
+<span class="e">✖ ERROR E-EMBED-MISSING</span>  part-1_foundations/chapter-1_computer-architecture.md:${L.d02}   <span class="m">(sample typo)</span>
+  The diagram "02-ligth.svg" can't be found in the vault.
+  Fix: check the spelling (did you mean "02-light.svg"?), or save the drawing again so Excalidraw exports it.
+` : ""}
+<span class="w">⚠ WARNING W-DIAGRAM-NO-CAPTION</span>  part-1_foundations/chapter-1_computer-architecture.md:${L.d01}
+  The diagram "01-light.svg" has no caption, so its alt text came from its own text:
+  "${A.alt["01"]}".
+  Fix: add a caption, e.g. ![[01-light.svg|How a computer is put together]].
+
+<span class="w">⚠ WARNING W-DIAGRAM-NO-CAPTION</span>  part-1_foundations/chapter-1_computer-architecture.md:${L.d02}
+  The diagram "02-light.svg" has no caption.
+  Fix: add a caption, e.g. ![[02-light.svg|Moore's Law]].
+
+${bad ? `<span class="m">1 error, 2 warnings. Nothing was published; the live site is unchanged.</span>` : `<span class="m">0 errors, 2 warnings. Published to mrunalnshah.github.io/system-design-from-first-principles/</span>`}`;
+  return `<div class="site-pad" style="padding:24px 16px 48px;max-width:980px;margin:0 auto">
+    <p class="eyebrow">The build report at the end of a publish run on GitHub</p>
+    <h1 style="font-size:1.6rem;margin:6px 0 16px">${bad ? "Publish stopped: 1 thing to fix" : "Published, with 2 suggestions"}</h1>
+    <div class="log" role="region" aria-label="Build report" tabindex="0">${log}</div>
+    <p style="color:var(--text-muted);font-size:15px;max-width:44rem">Every message names the file, the line and the fix in plain words (REQ-CNT-007). ${bad ? "Fix it in Obsidian and push again." : "Your <code>\\mu</code> edit means Chapter 1's math already builds cleanly; only the two caption suggestions remain."}</p></div>`;
+}
+const RENDER = { home, chapter, contents, article, articles, about, notfound, publish };
+
+/* ---------- preview engine ---------- */
+const devices = [];
+function buildStage() {
+  const stage = document.getElementById("stage"); stage.innerHTML = ""; devices.length = 0;
+  const show = S.view === "both" ? ["laptop", "phone"] : [S.view];
+  const avail = Math.max(320, stage.clientWidth - 32);
+  for (const kind of show) {
+    const W = kind === "laptop" ? 1280 : 375, H = kind === "laptop" ? 800 : 760;
+    let scale = 1;
+    if (kind === "laptop") scale = Math.min(1, (S.view === "both" ? avail - 375 - 24 : avail) / W);
+    if (kind === "phone") scale = Math.min(1, avail / W);
+    scale = Math.max(scale, 0.35);
+    const dev = document.createElement("div"); dev.className = "pv-device";
+    dev.innerHTML = `<div class="pv-label">${kind === "laptop" ? "Laptop · 1280 px" : "Phone · 375 px"} · ${S.theme}${scale < 1 ? ` · shown at ${Math.round(scale * 100)}%` : ""}</div>`;
+    const scaler = document.createElement("div"); scaler.className = "pv-scaler"; scaler.style.width = W * scale + "px"; scaler.style.height = H * scale + "px";
+    const frame = document.createElement("div"); frame.className = "frame theme-" + S.theme; frame.style.width = W + "px"; frame.style.height = H + "px"; frame.style.transform = `scale(${scale})`;
+    const scroll = document.createElement("div"); scroll.className = "frame-scroll";
+    frame.appendChild(scroll);
+    const rib = document.createElement("div"); rib.className = "pv-ribbon"; rib.textContent = "Design preview: not the real product"; frame.appendChild(rib);
+    scaler.appendChild(frame); dev.appendChild(scaler); stage.appendChild(dev);
+    devices.push({ id: kind, frame, scroll, current: "components" });
+  }
+  renderAll();
+}
+function renderAll(keepScroll) {
+  for (const d of devices) {
+    const top = keepScroll ? d.scroll.scrollTop : 0;
+    const ctx = { id: d.id, theme: S.theme, current: d.current };
+    d.scroll.innerHTML = `<div class="site">${RENDER[S.screen](S.state, ctx)}</div>`;
+    d.frame.querySelectorAll(":scope > .viewer, :scope > .ovl").forEach(v => v.remove());
+    const moved = [...d.scroll.querySelectorAll(".sheet-back, .sheet")];
+    if (moved.length) { const o = document.createElement("div"); o.className = "ovl site"; o.style.cssText = "position:absolute;inset:0;z-index:40;min-height:0;background:transparent"; moved.forEach(m => o.appendChild(m)); d.frame.appendChild(o); }
+    const vk = S.overlay[d.id + "viewer"];
+    if (vk) openViewer(d, vk);
+    d.scroll.scrollTop = top;
+  }
+}
+function openViewer(d, key) {
+  const z = S.overlay[d.id + "zoom"] || 1;
+  const v = document.createElement("div"); v.className = "viewer"; v.setAttribute("role", "dialog"); v.setAttribute("aria-modal", "true"); v.setAttribute("aria-label", "Diagram, full screen");
+  v.innerHTML = `<div class="vt"><span>Pinch, scroll or use + and − to zoom · Esc to close</span><button data-zoom="-1" aria-label="Zoom out">−</button><button data-zoom="1" aria-label="Zoom in">+</button><button data-closeviewer aria-label="Close">✕</button></div>
+    <div class="vc"><img src="${A.svg[key + (S.theme === "dark" ? "d" : "l")]}" alt="Diagram: ${A.alt[key]}" style="transform:scale(${z})"></div>`;
+  d.frame.appendChild(v); v.querySelector("[data-closeviewer]").focus();
+}
+function toast(d, msg) {
+  const t = document.createElement("div"); t.className = "pv-toast"; t.textContent = msg; d.frame.appendChild(t); setTimeout(() => t.remove(), 2600);
+}
+function go(screen, sec) {
+  S.screen = screen; S.state = 0; S.overlay = {}; syncControls(); renderAll();
+  if (sec) for (const d of devices) { const el = d.scroll.querySelector("#" + d.id + "-" + sec); if (el) d.scroll.scrollTop = el.offsetTop - 120; }
+}
+function spy(d) {
+  if (S.screen !== "chapter") return;
+  const hs = [...d.scroll.querySelectorAll(".prose h2, .prose h3")]; let cur = hs[0] && hs[0].id;
+  for (const h of hs) if (h.getBoundingClientRect().top - d.scroll.getBoundingClientRect().top < 160 * (1 / (d.frame.getBoundingClientRect().width / d.frame.offsetWidth))) cur = h.id;
+  const id = cur ? cur.replace(d.id + "-", "") : "components";
+  if (id !== d.current) { d.current = id; d.scroll.querySelectorAll(".menu-panel li a").forEach(a => a.toggleAttribute("aria-current", a.dataset.jump === id)); d.scroll.querySelectorAll('.menu-panel li a[aria-current]').forEach(a => a.setAttribute("aria-current", "location")); }
+}
+document.getElementById("stage").addEventListener("click", e => {
+  const d = devices.find(x => x.frame.contains(e.target)); if (!d) return;
+  const t = e.target.closest("[data-go],[data-toast],[data-toggle],[data-close],[data-view-diagram],[data-closeviewer],[data-zoom],[data-note],[data-jump],a");
+  if (!t) return;
+  e.preventDefault();
+  if (t.dataset.go) return go(t.dataset.go, t.dataset.sec);
+  if (t.dataset.toast) return toast(d, t.dataset.toast);
+  if (t.dataset.toggle) { S.overlay[t.dataset.toggle] = !S.overlay[t.dataset.toggle]; return renderAll(true); }
+  if (t.dataset.close) { S.overlay[t.dataset.close] = false; return renderAll(true); }
+  if (t.dataset.note) { S.overlay[t.dataset.note] = !S.overlay[t.dataset.note]; return renderAll(true); }
+  if (t.dataset.viewDiagram) { S.overlay[d.id + "viewer"] = t.dataset.viewDiagram; S.overlay[d.id + "zoom"] = 1; return openViewer(d, t.dataset.viewDiagram); }
+  if (t.hasAttribute("data-closeviewer")) { S.overlay[d.id + "viewer"] = null; d.frame.querySelector(".viewer").remove(); return; }
+  if (t.dataset.zoom) { const z = Math.min(4, Math.max(1, (S.overlay[d.id + "zoom"] || 1) + Number(t.dataset.zoom) * 0.5)); S.overlay[d.id + "zoom"] = z; d.frame.querySelector(".viewer img").style.transform = `scale(${z})`; return; }
+  if (t.dataset.jump) { const sheet = S.overlay[d.id + "sheet"]; S.overlay[d.id + "sheet"] = false; if (sheet) renderAll(true); const el = d.scroll.querySelector("#" + d.id + "-" + t.dataset.jump); if (el) d.scroll.scrollTop = el.offsetTop - 120; return; }
+});
+document.addEventListener("keydown", e => {
+  if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && S.screen === "chapter" && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey
+      && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && !devices.some(d => S.overlay[d.id + "viewer"])) {
+    const d = devices[0]; if (d) toast(d, e.key === "ArrowRight" ? "→ would open Chapter 2 (REQ-BOOK-005)" : "← would open the Contents (no previous chapter)");
+    return;
+  }
+  if (e.key !== "Escape") return;
+  let changed = false;
+  for (const d of devices) for (const k of [d.id + "viewer", d.id + "sheet", d.id + "menu"]) if (S.overlay[k]) { S.overlay[k] = k.endsWith("viewer") ? null : false; changed = true; }
+  if (changed) renderAll(true);
+});
+document.getElementById("stage").addEventListener("scroll", e => { const d = devices.find(x => x.scroll === e.target); if (d) spy(d); }, true);
+function syncControls() {
+  const sc = SCREENS.find(s => s.id === S.screen);
+  document.querySelectorAll("#screens button").forEach(b => b.setAttribute("aria-pressed", b.dataset.screen === S.screen));
+  const sel = document.getElementById("state"); sel.innerHTML = sc.states.map((s, i) => `<option value="${i}" ${i === S.state ? "selected" : ""}>${s}</option>`).join("");
+  document.querySelectorAll("[data-view]").forEach(b => b.setAttribute("aria-pressed", b.dataset.view === S.view));
+  document.querySelectorAll("[data-theme]").forEach(b => b.setAttribute("aria-pressed", b.dataset.theme === S.theme));
+  document.getElementById("pvnote").innerHTML = `<b>${sc.label}:</b> ${sc.note} <span style="color:#566173">· Items marked <i>Sample</i> are placeholders, not your content. Fonts: Source Serif 4, Inter, JetBrains Mono (self-hosted).</span>`;
+  location.hash = S.screen + (S.state ? "/" + S.state : "");
+}
+document.getElementById("screens").innerHTML = SCREENS.map(s => `<button data-screen="${s.id}">${s.label}</button>`).join("");
+document.getElementById("screens").addEventListener("click", e => { const b = e.target.closest("button"); if (b) go(b.dataset.screen); });
+document.getElementById("state").addEventListener("change", e => { S.state = Number(e.target.value); S.overlay = {}; syncControls(); renderAll(); });
+document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => { S.view = b.dataset.view; syncControls(); buildStage(); }));
+document.querySelectorAll("[data-theme]").forEach(b => b.addEventListener("click", () => { S.theme = b.dataset.theme; syncControls(); buildStage(); }));
+addEventListener("hashchange", () => { const [h, st] = location.hash.slice(1).split("/"); if (SCREENS.some(s => s.id === h) && (h !== S.screen || (Number(st) || 0) !== S.state)) { S.screen = h; S.state = Number(st) || 0; S.overlay = {}; syncControls(); renderAll(); } });
+addEventListener("resize", () => { clearTimeout(window.__r); window.__r = setTimeout(buildStage, 150); });
+(function init() {
+  const [h, st] = location.hash.slice(1).split("/");
+  if (SCREENS.some(s => s.id === h)) { S.screen = h; S.state = Number(st) || 0; }
+  if (matchMedia("(prefers-color-scheme: dark)").matches) S.theme = "dark";
+  syncControls(); buildStage();
+})();
+</script>
+</body>
+</html>

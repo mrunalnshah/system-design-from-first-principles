@@ -1,0 +1,58 @@
+{
+  "blueprint": "1.2",
+  "project": "sdfp-website",
+  "level": "L3",
+  "web_search": true,
+  "existing_codebase": false,
+  "existing_content": "Obsidian vault at the repository root (part-1_foundations/chapter-1_computer-architecture.md, diagram/*.svg, excalidraw/*.md)",
+  "round": {
+    "budget": 13,
+    "calibrated": true,
+    "history": [
+      {
+        "date": "2026-11-26",
+        "budget": 8,
+        "reason": "starting size: Medium (user's choice)"
+      },
+      {
+        "date": "2026-11-26",
+        "budget": 13,
+        "reason": "after R-01: easy, I could do more (8 -> 13)"
+      }
+    ]
+  },
+  "builds_in": "coding agent (Claude Code)",
+  "hours_per_week": 10,
+  "deadline": null,
+  "sitting": "done",
+  "sittings_plan": "Medium: A+B together, then C+D, then E",
+  "gates": {
+    "G1": "approved",
+    "G2": "approved",
+    "G3": "approved",
+    "G4": "approved",
+    "GD": "approved",
+    "G5": "approved"
+  },
+  "build": {
+    "current_round": "R-01",
+    "last_done": "T-00.02"
+  },
+  "checkpoint": {
+    "date": "2026-11-26",
+    "after": "G5 approved; package zipped",
+    "next": "build round R-01 in a fresh conversation"
+  },
+  "site": {
+    "repo": "system-design-from-first-principles",
+    "visibility": "public",
+    "url": "https://mrunalnshah.github.io/system-design-from-first-principles/",
+    "base_path": "/system-design-from-first-principles/"
+  },
+  "plan": {
+    "tasks": 49,
+    "rounds": 15,
+    "points": 140,
+    "first_round": "R-01 (5 points)"
+  }
+}
