@@ -1,8 +1,6 @@
 Before we can learn how to design large-scale distributed system, we need to understand how computer works, atleast at high level.
 
-![[01-light.svg]]
-
-![[01-dark.svg]]
+![[01_computer-architecture.excalidraw]]
 # Components
 
 ## Disk
@@ -35,6 +33,4 @@ Increasing Disk, RAM, Cache doesn't help. Biggest problem is CPU, for how much w
 
 # Moore's Law
 - Founders of Intel
-![[02-light.svg]]
-
-![[02-dark.svg]]
+![[02_moores-law.excalidraw]]
