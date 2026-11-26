@@ -26,3 +26,10 @@
 2026-11-26T16:46Z · R-01 · T-00.01 · done
 2026-11-26T16:46Z · R-01 · T-00.02 · done
 2026-11-26T16:50Z · R-01 · end · calibration: 'easy, I could do more' → budget 8 → 13; R-02..R-15 regrouped (15 rounds total; order, deps, phases kept); references updated in START-HERE, AGENTS, roadmap, conflicts, readiness; .gitignore: zip + .obsidian plugin code excluded (user's choice)
+2026-11-26T16:51Z · R-02 · start · read packets T-00.03, T-00.04 directly (packer not built yet)
+2026-11-26T16:54Z · R-02 · T-00.03 · steps 1-4 · interface + 9 tests (TOOL-01.AC1-4 tagged) failing first, then passing; astro check 0 errors; real packs: R-02 ~13.2k, R-03 ~13.4k, R-05 ~13.1k, T-01.14 ~6.8k tokens, no missing sections; lint still waits for T-00.05
+2026-11-26T16:57Z · R-02 · T-00.04 · steps 1-4 · fixture plan + interface + 12 tests (TOOL-03.AC1-6 tagged) failing first, then passing; real plan: check passed (49 tasks, 15 rounds; 165 known IDs = 114 REQ ACs + 13 NFR + 38 TOOL ACs; 46 active reqs served; 13 real tags; fixture tags excluded); trace wrote specs/trace.md (165 rows, none without a task); full suite 33/33; astro check clean; lint waits for T-00.05
+2026-11-26T17:03Z · R-02 · T-00.03 · steps 5-6 · reviews pass; applied: note missing module entries, no duplicate file blocks (R-03 pack 13.4k → 11.3k tokens), keep combining marks in anchors, --out resolves against INIT_CWD; deferred: shared list()/REQ-heading helpers belong in plan.ts (T-00.02's file) — for a later refactor
+2026-11-26T17:03Z · R-02 · T-00.04 · steps 5-6 · reviews pass after must-fix: care compared case-insensitively + unknown care values reported; also: finished rounds exempt from later budgets, only test files count as @req evidence (fixture tag file moved to .site/tests/), Status: Open case-insensitive, missing specs/features named, tests for >1 Careful task; 39/39 tests, check passes
+2026-11-26T17:03Z · R-02 · T-00.03 · done
+2026-11-26T17:03Z · R-02 · T-00.04 · done
