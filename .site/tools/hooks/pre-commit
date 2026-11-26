@@ -8,6 +8,10 @@
 # local copy), then PATH. Without it the commit goes through with a warning; CI still scans every push.
 root=$(git rev-parse --show-toplevel) || exit 1
 gl="${GITLEAKS:-}"
+if [ -n "$gl" ] && ! [ -x "$gl" ] && ! command -v "$gl" >/dev/null 2>&1; then
+  echo "pre-commit: GITLEAKS is set to '$gl', which isn't an executable; falling back to the usual places." >&2
+  gl=""
+fi
 if [ -z "$gl" ]; then
   for candidate in "$root/.site/.tools/gitleaks/gitleaks.exe" "$root/.site/.tools/gitleaks/gitleaks"; do
     if [ -x "$candidate" ]; then gl="$candidate"; break; fi

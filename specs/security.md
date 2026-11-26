@@ -35,7 +35,7 @@ The site has no roles. Repository and pipeline permissions:
 | Author (owner) | write | admin | — | — | — |
 | Anyone else | read (public), pull requests only | none | — | — | — |
 | CI check jobs | — | — | read | none | none |
-| CI deploy job | — | — | read | write | write |
+| CI deploy job | — | — | none (job-level permissions replace the default) | write | write |
 
 ## Security checklist for this project
 - [ ] No secrets in the repository (gitleaks clean).
