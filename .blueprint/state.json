@@ -54,5 +54,8 @@
     "rounds": 15,
     "points": 140,
     "first_round": "R-01 (5 points)"
+  },
+  "phase_gates": {
+    "G6-phase-0": "approved 2026-11-26"
   }
 }
