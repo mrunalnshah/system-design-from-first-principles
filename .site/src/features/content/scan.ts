@@ -54,9 +54,11 @@ export type VaultScan = {
 export function scanVault(root: string): VaultScan {
   const issues: BuildIssue[] = [];
   const top = entries(root);
+  const troubled = new Set<string>(); // files with a frontmatter issue already: no second message about the same thing
   const read = <K extends keyof FrontmatterOf>(sourcePath: string, slug: string, kind: K) => {
     const entry = readEntry(root, sourcePath, slug, kind);
     issues.push(...entry.issues);
+    if (entry.issues.length) troubled.add(sourcePath);
     return entry.entry;
   };
   const allChapters: ScannedChapter[] = [];
@@ -94,7 +96,7 @@ export function scanVault(root: string): VaultScan {
   }
   // Newest first; undated last (REQ-CNT-003.AC3). Dates are yyyy-mm-dd, so text order is date order.
   articles.sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "") || a.sourcePath.localeCompare(b.sourcePath));
-  for (const a of articles.filter((x) => !x.date)) issues.push(undated(a));
+  for (const a of articles.filter((x) => !x.date && !troubled.has(x.sourcePath))) issues.push(undated(a));
 
   const pages: ScannedPage[] = [];
   if (top.some((e) => e.isFile() && e.name === "about.md")) {
@@ -102,6 +104,7 @@ export function scanVault(root: string): VaultScan {
     if (!about.frontmatter.draft) pages.push({ ...about, kind: "page" });
   }
 
+  allChapters.sort((a, b) => a.part.number - b.part.number || a.part.slug.localeCompare(b.part.slug) || byNumber(a, b));
   issues.push(...duplicateNumbers(allChapters), ...slugClashes(chapters, "chapter"), ...slugClashes(articles, "article"));
   return { parts: parts.filter((p) => p.chapters.length), chapters, articles, pages, issues };
 }

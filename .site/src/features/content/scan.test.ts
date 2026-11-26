@@ -83,6 +83,8 @@ describe("vault scan", () => {
       "templates/chapter.md": "Template.",
       "book.md": "---\ntitle: X\n---\n",
       "articles/drafts/old.md": "Nested, not an article.",
+      "part-1_foundations/chapter-2_x.excalidraw.md": "A drawing saved beside the chapters.",
+      "articles/sketch.excalidraw.md": "A drawing saved among the articles.",
     });
     const scan = scanVault(root);
     const published = [...scan.chapters, ...scan.articles, ...scan.pages].map((e) => e.sourcePath);

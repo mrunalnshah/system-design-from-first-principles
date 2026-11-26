@@ -34,7 +34,7 @@ const common = {
 
 export const chapterSchema = z
   .looseObject({ ...common, epigraph: z.string().trim().max(400).optional(), epigraph_source: z.string().trim().max(120).optional() })
-  .refine((c) => c.epigraph_source === undefined || c.epigraph !== undefined, { path: ["epigraph"], message: "needed by epigraph_source" });
+  .refine((c) => c.epigraph_source === undefined || c.epigraph !== undefined, { path: ["epigraph_source"], message: "needs an epigraph", params: { between: true } });
 export const articleSchema = z.looseObject({ ...common, date: calendarDate.optional() });
 export const pageSchema = z.looseObject(common);
 export const bookSchema = z.looseObject({
@@ -70,6 +70,9 @@ const EXPECTED: Record<string, { what: string; example: string }> = {
   hero_image: { what: "the file name of a diagram image ending in .svg", example: "hero_image: 01_computer-architecture-light.svg" },
 };
 
+/** book.md's title is the book's, not a chapter's. */
+const BOOK_TITLE = { what: "the book's title", example: 'title: "System Design from First Principles"' };
+
 /**
  * Reads and checks the frontmatter of one file. `file` is vault-relative, for messages.
  * Returns the checked values (defaults filled in; a field that fails its rule is left out so the build can go on
@@ -85,19 +88,23 @@ export function readFrontmatter<K extends Kind>(text: string, file: string, kind
     raw = parsed.frontmatter as Record<string, unknown>;
     body = parsed.content;
   } catch (e) {
-    const yamlLine = (e as { linePos?: { line: number }[] }).linePos?.[0]?.line;
-    const issue: BuildIssue = {
-      severity: "error",
-      code: "E-FRONTMATTER-YAML",
-      file,
-      message: "The frontmatter isn't valid YAML.",
+    const error = e as { code?: string; linePos?: { line: number }[] };
+    const yamlLine = error.linePos?.[0]?.line;
+    return brokenYaml(source, file, kind, {
+      line: yamlLine ? yamlLine + (frontmatterSpan(source)?.open ?? 0) : undefined,
+      message: error.code === "DUPLICATE_KEY" ? "The frontmatter has the same field twice." : "The frontmatter isn't valid YAML.",
+      fix: error.code === "DUPLICATE_KEY" ? "Check for a missing colon or quote on this line, or keep only one of the two fields." : "Check for a missing colon or quote on this line.",
+    });
+  }
+  const span = frontmatterSpan(source);
+  const content = span ? lines(source, span).findIndex((l) => l.trim() !== "" && !l.trim().startsWith("#")) : -1; // first non-comment line
+  if (span && content >= 0 && (Array.isArray(raw) || !Object.keys(raw).length)) {
+    // A list or a lone value where `field: value` lines belong.
+    return brokenYaml(source, file, kind, {
+      line: span.open + 2 + content,
+      message: "The frontmatter isn't a set of fields (each line should be field: value).",
       fix: "Check for a missing colon or quote on this line.",
-    };
-    if (yamlLine) issue.line = yamlLine + linesBeforeFrontmatter(source);
-    // Go on with defaults, so a chapter with broken frontmatter still has its place (the error stops the publish).
-    const fallback = schemas[kind].safeParse({});
-    body = source.replace(/^﻿?(\s*\n)?---\n[\s\S]*?\n---/, (m) => m.replace(/[^\n]/g, ""));
-    return { data: fallback.success ? (fallback.data as Output<K>) : undefined, body, issues: [issue] };
+    });
   }
 
   // A date YAML read as a timestamp is checked as written (see calendarDate).
@@ -111,29 +118,62 @@ export function readFrontmatter<K extends Kind>(text: string, file: string, kind
       const field = String(problem.path[0] ?? "");
       if (!field || bad.has(field)) continue;
       bad.add(field);
-      const expected = EXPECTED[field] ?? { what: "a valid value", example: `${field}: …` };
+      const expected = (kind === "book" && field === "title" ? BOOK_TITLE : EXPECTED[field]) ?? { what: "a valid value", example: `${field}: …` };
       const missing = raw[field] === undefined;
+      // A rule between fields (epigraph_source needs an epigraph), marked by its `params`.
+      const custom = problem.code === "custom" && (problem as { params?: { between?: boolean } }).params?.between === true;
       const issue: BuildIssue = {
         severity: "error",
         code: "E-FRONTMATTER-FIELD",
         file,
-        message: missing ? `${field} is missing; it must be ${expected.what}.` : `${field} must be ${expected.what}.`,
-        fix: `Change ${field} to ${expected.what}, e.g. ${expected.example}`,
+        message: custom ? `${field} ${problem.message}.` : missing ? `${field} is missing; it must be ${expected.what}.` : `${field} must be ${expected.what}.`,
+        fix: custom
+          ? `Change ${field} to nothing (remove it), or add the quote it belongs to, e.g. ${EXPECTED.epigraph!.example}`
+          : `Change ${field} to ${expected.what}, e.g. ${expected.example}`,
       };
       const line = fieldLine(source, field);
       if (line) issue.line = line;
       issues.push(issue);
     }
     result = schemas[kind].safeParse(Object.fromEntries(Object.entries(raw).filter(([k]) => !bad.has(k))));
+    // Entries have no required fields, so they always get values (defaults at worst); only book.md can have none.
+    if (!result.success && kind !== "book") result = schemas[kind].safeParse({});
     issues.sort((a, b) => (a.line ?? Infinity) - (b.line ?? Infinity)); // in the order the author reads them
   }
   return { data: result.success ? (result.data as Output<K>) : undefined, body, issues };
 }
 
-/** Lines before the YAML text inside the `---` fences, so a YAML line number becomes a file line number. */
-function linesBeforeFrontmatter(source: string): number {
-  const open = /^﻿?(\s*\n)?---/.exec(source);
-  return open ? open[0].split("\n").length - 1 : 0;
+/** The 0-based lines of the opening and closing `---` (or `+++`) fences, by Astro's own rule; undefined without frontmatter. */
+export function frontmatterSpan(source: string): { open: number; close: number } | undefined {
+  const all = source.replace(/^\ufeff/, "").split("\n");
+  let open = 0;
+  while (open < all.length && all[open]!.trim() === "") open++;
+  const fence = /^(---|\+\+\+)/.exec(all[open] ?? "")?.[1];
+  if (!fence) return undefined;
+  for (let close = open + 1; close < all.length; close++) if (all[close]!.startsWith(fence)) return { open, close };
+  return undefined;
+}
+
+/** The frontmatter's own lines, between the fences. */
+function lines(source: string, span: { open: number; close: number }): string[] {
+  return source.replace(/^\ufeff/, "").split("\n").slice(span.open + 1, span.close);
+}
+
+/** The result for frontmatter that can't be read: one E-FRONTMATTER-YAML, defaults, and the frontmatter's lines blanked. */
+function brokenYaml<K extends Kind>(source: string, file: string, kind: K, what: { line: number | undefined; message: string; fix: string }) {
+  const issue: BuildIssue = { severity: "error", code: "E-FRONTMATTER-YAML", file, message: what.message, fix: what.fix };
+  if (what.line) issue.line = what.line;
+  // Go on with defaults, so a chapter with broken frontmatter still has its place (the error stops the publish).
+  const fallback = schemas[kind].safeParse({});
+  return { data: fallback.success ? (fallback.data as Output<K>) : undefined, body: blankFrontmatter(source), issues: [issue] };
+}
+
+/** The text with the frontmatter's lines (fences included) left empty, so line numbers still match the file. */
+export function blankFrontmatter(source: string): string {
+  const span = frontmatterSpan(source);
+  if (!span) return source;
+  const all = source.replace(/^\ufeff/, "").split("\n");
+  return all.map((l, i) => (i <= span.close ? "" : l)).join("\n");
 }
 
 /** The text written after `field:` in the frontmatter, without quotes or a trailing comment. */
@@ -150,10 +190,8 @@ function writtenValue(source: string, field: string): string | undefined {
 
 /** The 1-based line where `field:` is written in the frontmatter, if it is. */
 function fieldLine(source: string, field: string): number | undefined {
-  const lines = source.split("\n");
-  const start = lines.findIndex((l) => l.trim() === "---");
-  for (let i = start + 1; start >= 0 && i < lines.length && lines[i]!.trim() !== "---"; i++) {
-    if (lines[i]!.startsWith(`${field}:`)) return i + 1;
-  }
-  return undefined;
+  const span = frontmatterSpan(source);
+  if (!span) return undefined;
+  const i = lines(source, span).findIndex((l) => new RegExp(`^\\s*${field}\\s*:`).test(l));
+  return i < 0 ? undefined : span.open + 2 + i;
 }

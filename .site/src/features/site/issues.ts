@@ -48,5 +48,11 @@ export function createIssueCollector(): IssueCollector {
   };
 }
 
-/** The one collector every module adds to during a build. */
-export const buildIssues: IssueCollector = createIssueCollector();
+/**
+ * The one collector every module adds to during a build. It lives on `globalThis` because Astro loads
+ * astro.config.ts (which holds the report) in a separate, throwaway module graph: a plain module-level value
+ * would give the report and the content loader two different collectors, and the report would see nothing.
+ */
+const KEY = Symbol.for("sdfp.buildIssues");
+const shared = globalThis as typeof globalThis & { [KEY]?: IssueCollector };
+export const buildIssues: IssueCollector = (shared[KEY] ??= createIssueCollector());

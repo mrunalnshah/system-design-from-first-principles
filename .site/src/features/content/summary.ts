@@ -1,3 +1,5 @@
+import { blankFrontmatter } from "./schemas.ts";
+
 /**
  * Summaries and reading time (REQ-CNT-008, REQ-CNT-009), so every card and meta description has a summary and
  * every entry a reading time with no effort from the author. Both work on the Markdown body (frontmatter, if
@@ -22,7 +24,8 @@ export function summaryOf(markdown: string, description?: string): string {
   if (text.length <= SUMMARY_MAX) return text;
   const room = text.slice(0, SUMMARY_MAX - 1); // one character is kept for "…"
   const cut = /\s\S*$/.test(room) && !/\s/.test(text[SUMMARY_MAX - 1] ?? "") ? room.replace(/\s+\S*$/, "") : room;
-  return `${cut.replace(/[\s,;:.–—-]+$/, "")}…`;
+  // A cut inside an emoji (a surrogate pair) would leave half a character.
+  return `${cut.replace(/[\ud800-\udbff]$/, "").replace(/[\s,;:.–—-]+$/, "")}…`;
 }
 
 /** Whole minutes to read the entry: words / 230, rounded up, at least 1. */
@@ -35,7 +38,7 @@ export function readingMinutes(markdown: string): number {
 // ---------- internals ----------
 
 function stripFrontmatter(markdown: string): string {
-  return markdown.replace(/\r\n?/g, "\n").replace(/^﻿?(\s*\n)?---\n[\s\S]*?\n---(\n|$)/, "");
+  return blankFrontmatter(markdown.replace(/\r\n?/g, "\n"));
 }
 
 /** Blocks separated by blank lines, after removing comments and fenced code/math (which never hold the summary). */
@@ -45,6 +48,7 @@ function blocks(markdown: string): string[] {
     .replace(/^(```|~~~)[^\n]*\n[\s\S]*?^\1[^\n]*$/gm, "")
     .replace(/^\$\$[\s\S]*?\$\$\s*$/gm, "")
     .split(/\n\s*\n/)
+    .filter((b) => !b.split("\n").every((l) => /^( {4}|\t)/.test(l) || !l.trim())) // indented code (or only nested items)
     .map((b) => b.trim())
     .filter(Boolean);
 }
@@ -52,6 +56,7 @@ function blocks(markdown: string): string[] {
 /** A paragraph of prose: not a heading, embed, list, quote, table, HTML block or rule. */
 function isParagraph(block: string): boolean {
   if (/^(#{1,6}\s|[-*+]\s|\d+[.)]\s|>|\||<|(?:[-*_]\s*){3,}$)/.test(block)) return false;
+  if (/^(#[\p{L}\p{N}_/-]+\s*)+$/u.test(block)) return false; // a line of Obsidian #tags
   return plain(block).length > 0;
 }
 

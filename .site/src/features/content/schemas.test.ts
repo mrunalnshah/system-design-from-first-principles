@@ -82,7 +82,46 @@ describe("frontmatter rules", () => {
     expect(readFrontmatter("---\ndate: 2026-11-01\ntags: [a]\n---\n", "a.md", "article").data).toMatchObject({ date: "2026-11-01", tags: ["a"] });
     expect(readFrontmatter('---\ndate: "2026-02-29"\n---\n', "a.md", "article").issues.map((i) => i.code)).toEqual(["E-FRONTMATTER-FIELD"]);
     const lone = readFrontmatter('---\nepigraph_source: "Anonymous"\n---\n', "c.md", "chapter");
-    expect(lone.issues.map((i) => i.message)).toEqual(["epigraph is missing; it must be the quote itself (up to 400 characters)."]);
+    expect(lone.issues.map((i) => [i.line, i.message])).toEqual([[2, "epigraph_source needs an epigraph."]]);
+    expect(lone.issues[0]!.fix).toMatch(/^Change epigraph_source to nothing \(remove it\), or add the quote/);
+  });
+
+  it("reports epigraph_source without an epigraph through the scan, instead of stopping with a crash", () => {
+    const root = vault({ [CHAPTER]: '---\nepigraph_source: "Anonymous"\n---\nText.\n' });
+    const v = readVault(root);
+    expect(v.issues.map((i) => [i.code, i.file, i.line])).toEqual([["E-FRONTMATTER-FIELD", CHAPTER, 2]]);
+    expect(v.chapters.map((c) => c.title)).toEqual(["Computer Architecture"]);
+  });
+
+  it("gives one message per problem: an article with a broken date isn't also called undated", () => {
+    const root = vault({ "articles/a.md": "---\ndate: someday\n---\nA.\n", "articles/b.md": "---\ndate: [\n---\nB.\n" });
+    expect(readVault(root).issues.map((i) => [i.code, i.file])).toEqual([
+      ["E-FRONTMATTER-FIELD", "articles/a.md"],
+      ["E-FRONTMATTER-YAML", "articles/b.md"],
+    ]);
+  });
+
+  it("finds fields only inside the frontmatter, never in a --- rule further down the body", () => {
+    const { issues } = readFrontmatter("Intro text.\n\n---\ntitle: T\n---\n", "book.md", "book");
+    expect(issues.map((i) => [i.message, i.line])).toEqual([
+      ["title is missing; it must be the book's title.", undefined],
+      ["author is missing; it must be your name as readers should see it.", undefined],
+      ["author_url is missing; it must be an https:// address.", undefined],
+    ]);
+  });
+
+  it("says when frontmatter is a list or a lone value, or has a field twice; a comment-only block is fine", () => {
+    expect(readFrontmatter("---\n- a\n- b\n---\n", "c.md", "chapter").issues.map((i) => [i.code, i.line, i.message])).toEqual([
+      ["E-FRONTMATTER-YAML", 2, "The frontmatter isn't a set of fields (each line should be field: value)."],
+    ]);
+    expect(readFrontmatter("---\njust words\n---\n", "c.md", "chapter").issues.map((i) => i.line)).toEqual([2]);
+    expect(readFrontmatter("---\ntitle: a\ntitle: b\n---\n", "c.md", "chapter").issues.map((i) => i.message)).toEqual(["The frontmatter has the same field twice."]);
+    expect(readFrontmatter("---\n# just a note\n---\nText.\n", "c.md", "chapter").issues).toEqual([]);
+  });
+
+  it("counts lines from the real fence when the file starts with a BOM or blank lines, or uses CRLF", () => {
+    const { issues } = readFrontmatter("\ufeff\r\n\r\n---\r\ntitle: a\r\nfoo bar\r\n---\r\n", "c.md", "chapter");
+    expect(issues.map((i) => i.line)).toEqual([5]);
   });
 
   it("keeps the frontmatter's lines blank even when the YAML is invalid, so later line numbers still match", () => {

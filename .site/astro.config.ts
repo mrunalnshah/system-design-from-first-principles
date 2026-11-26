@@ -19,5 +19,6 @@ export default defineConfig({
   base: "/system-design-from-first-principles/",
   trailingSlash: "always",
   output: "static",
+  // Keep buildReport() last: when there's an error it ends the build, so hooks after it wouldn't run.
   integrations: [buildReport()],
 });

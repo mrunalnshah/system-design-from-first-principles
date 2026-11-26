@@ -2,6 +2,10 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { readVault } from "../src/features/content/index.ts";
+// The report's own files, not ../src/features/site/index.ts: that index also exports an .astro component, which
+// Vitest (plain Vite, without Astro's plugin) can't load.
+import { buildReport } from "../src/features/site/build-report.ts";
+import { createIssueCollector } from "../src/features/site/issues.ts";
 
 /**
  * TOOL-15 Build-message harness (plan/tools.md, NFR-013, specs/contracts/build-messages.md).
@@ -96,6 +100,17 @@ describe("build-message harness (TOOL-15)", () => {
       expect({ severity: issue!.severity, file: issue!.file, line: issue!.line }, `fixture ${code}`).toEqual({ severity: row.severity, file: expected.file, line: expected.line });
       expect(issue!.fix.startsWith(row.fixStart), `fixture ${code}: fix "${issue!.fix}" should start "${row.fixStart}"`).toBe(true);
       expect(issue!.message.length, `fixture ${code} explains what's wrong`).toBeGreaterThan(10);
+    }
+  });
+
+  it("fails the build for an error fixture and not for a warning fixture", async () => {
+    for (const code of fixtures()) {
+      const collector = createIssueCollector();
+      readVault(join(brokenDir, code)).issues.forEach((i) => collector.add(i));
+      const exits: number[] = [];
+      const hook = buildReport({ issues: collector, write: async () => {}, exit: (c) => void exits.push(c) }).hooks["astro:build:done"] as unknown as () => Promise<void>;
+      await hook();
+      expect(exits, `fixture ${code}`).toEqual(code.startsWith("E-") ? [1] : []);
     }
   });
 

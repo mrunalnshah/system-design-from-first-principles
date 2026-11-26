@@ -20,12 +20,12 @@ export function parsePartFolder(name: string): { number: number; slug: string } 
 
 /** `chapter-<n>_<slug>.md` → its number and slug; undefined for any other file name. */
 export function parseChapterFile(name: string): { number: number; slug: string } | undefined {
-  return numbered(/^chapter-(\d+)_(.+)\.md$/.exec(name));
+  return isDrawing(name) ? undefined : numbered(/^chapter-(\d+)_(.+)\.md$/.exec(name));
 }
 
 /** `<slug>.md` in `articles/` → its slug; undefined for a non-Markdown file or a name with no letters or digits. */
 export function parseArticleFile(name: string): { slug: string } | undefined {
-  const m = /^(.+)\.md$/.exec(name);
+  const m = isDrawing(name) ? null : /^(.+)\.md$/.exec(name);
   const slug = m ? slugify(m[1]!) : "";
   return slug ? { slug } : undefined;
 }
@@ -34,7 +34,7 @@ export function parseArticleFile(name: string): { slug: string } | undefined {
 export function slugify(text: string): string {
   return text
     .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
@@ -49,6 +49,11 @@ export function titleFromSlug(slug: string): string {
   return words
     .map((w, i) => (i > 0 && i < words.length - 1 && MINOR.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
     .join(" ");
+}
+
+/** An Excalidraw drawing source: never published, wherever it's saved (REQ-DIAG-006). */
+function isDrawing(name: string): boolean {
+  return /\.excalidraw(\.md)?$/i.test(name);
 }
 
 function numbered(m: RegExpExecArray | null): { number: number; slug: string } | undefined {

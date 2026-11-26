@@ -53,6 +53,15 @@ describe("summaries", () => {
     expect(summaryOf(md)).toBe("See Chapter 2 and bold, italic, marked, code, a link and \\mu s.");
   });
 
+  it("never ends in half an emoji", () => {
+    const summary = summaryOf(`${"a".repeat(198)}😀😀 more words`);
+    expect(summary).toBe(`${"a".repeat(198)}…`);
+  });
+
+  it("skips a line of #tags and an indented code block", () => {
+    expect(summaryOf("#systems #design\n\n    const x = 1;\n\nThe real start.")).toBe("The real start.");
+  });
+
   it("is empty when there's no paragraph, and keeps a short one whole", () => {
     expect(summaryOf("# Only a heading\n\n![[x.svg]]")).toBe("");
     expect(summaryOf("Short.")).toBe("Short.");

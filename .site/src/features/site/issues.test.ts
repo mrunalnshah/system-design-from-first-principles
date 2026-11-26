@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import config from "../../../astro.config.ts";
 import { buildReport, formatReport } from "./build-report.ts";
 import { createIssueCollector, type BuildIssue } from "./issues.ts";
@@ -73,6 +73,13 @@ describe("build issues and build report", () => {
   it("refuses an issue whose code doesn't match its severity (a programmer error)", () => {
     expect(() => createIssueCollector().add({ ...error, severity: "warning" })).toThrow(/E-EMBED-MISSING must have severity error/);
     expect(() => createIssueCollector().add({ ...error, code: "embed-missing" })).toThrow(/isn't of the form/);
+  });
+
+  it("shares one collector across separately loaded copies of the module (Astro loads its config apart)", async () => {
+    const first = (await import("./issues.ts")).buildIssues;
+    vi.resetModules();
+    const second = (await import("./issues.ts")).buildIssues;
+    expect(second).toBe(first);
   });
 
   it("is registered in astro.config.ts", () => {
