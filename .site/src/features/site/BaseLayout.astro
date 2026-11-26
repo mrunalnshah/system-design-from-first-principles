@@ -1,0 +1,37 @@
+---
+/**
+ * The page skeleton every page uses (MOD-site): language, title, description, canonical address,
+ * a skip link and one <main>. The site header, footer, theme and full metadata arrive in T-01.15.
+ *
+ * Props: `title` (the page's own title; the book name is added), `description` (one sentence for
+ * search results and link previews) and `route` (this page's address, for the canonical link).
+ */
+import { absoluteUrl, type Route } from "./url.ts";
+
+interface Props {
+  title: string;
+  description: string;
+  route: Route;
+}
+
+const { title, description, route } = Astro.props;
+const BOOK = "System Design from First Principles";
+const fullTitle = title === BOOK ? BOOK : `${title} · ${BOOK}`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={absoluteUrl(route)} />
+  </head>
+  <body>
+    <a href="#main">Skip to content</a>
+    <main id="main">
+      <slot />
+    </main>
+  </body>
+</html>

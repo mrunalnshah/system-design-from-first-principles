@@ -1,14 +1,15 @@
 ---
-// Placeholder homepage so the project builds (T-00.01). Replaced by the real homepage in T-02.05.
+// Placeholder homepage (thin slice, T-00.08), built through BaseLayout and url(). The real homepage
+// arrives in T-02.05.
+import { BaseLayout, url } from "../features/site/index.ts";
 ---
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>System Design from First Principles</title>
-  </head>
-  <body>
-    <p>System Design from First Principles: the website is being built.</p>
-  </body>
-</html>
+
+<BaseLayout
+  title="System Design from First Principles"
+  description="A book that builds system design up from how a computer really works. Chapters are on their way."
+  route={{ kind: "home" }}
+>
+  <h1>System Design from First Principles</h1>
+  <p>The website is being built. The first chapter, <em>Computer Architecture</em>, is coming soon.</p>
+  <p><a href={url({ kind: "home" })}>Home</a></p>
+</BaseLayout>

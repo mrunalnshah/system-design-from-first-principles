@@ -1,0 +1,10 @@
+---
+// Not-found page (thin slice, T-00.08): checks that GitHub Pages serves our 404 for unknown
+// addresses under the base path (CNF-005). The designed version arrives in T-03.04.
+import { BaseLayout, url } from "../features/site/index.ts";
+---
+
+<BaseLayout title="Page not found" description="This page doesn't exist." route={{ kind: "home" }}>
+  <h1>Page not found</h1>
+  <p>This page may have moved. <a href={url({ kind: "home" })}>Go to the homepage</a>.</p>
+</BaseLayout>
