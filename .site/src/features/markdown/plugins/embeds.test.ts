@@ -89,6 +89,26 @@ describe("embeds", () => {
     ]);
   });
 
+  it("reports embeds a figure can't replace (in bold, a heading, a table cell) instead of passing them silently", async () => {
+    const { ctx, drawn } = chapter(["part-1_foundations/diagram/01-light.svg"]);
+    const { html, issues } = await renderObsidian("**![[missing.svg]]**\n\n# A ![[01-light.svg]] heading\n\n| a |\n|---|\n| ![[01-light.svg\\|cap]] |", ctx);
+    expect(issues.map((i) => [i.code, i.line])).toEqual([["E-EMBED-MISSING", 1], ["W-SYNTAX-UNKNOWN", 3], ["W-SYNTAX-UNKNOWN", 7]]);
+    expect(html).not.toContain("![[");
+    expect(drawn).toEqual([]);
+  });
+
+  it("treats ![[note#Heading]] as a note embed (a warning), not a missing file", async () => {
+    const { ctx } = chapter(["notes/idea.md"]);
+    const { issues } = await renderObsidian("![[idea#Some heading]]\n\n![[idea#^block1]]", ctx);
+    expect(issues.map((i) => i.code)).toEqual(["W-SYNTAX-UNKNOWN", "W-SYNTAX-UNKNOWN"]);
+  });
+
+  it("takes a drawing's images only from a diagram/ folder", async () => {
+    const { ctx } = chapter(["part-1_foundations/excalidraw/03_cache-light.svg", "part-1_foundations/excalidraw/03_cache-dark.svg"]);
+    const { issues } = await renderObsidian("![[03_cache.excalidraw]]", ctx);
+    expect(issues.map((i) => i.code)).toEqual(["E-DRAWING-NOT-EXPORTED"]);
+  });
+
   it("splits a paragraph around an embed, ignores a |300 width, and shows other embeds as text with a warning", async () => {
     const { ctx, drawn } = chapter(["part-1_foundations/diagram/01-light.svg", "notes/idea.md"]);
     const { html, issues } = await renderObsidian("- Founders of Intel\n![[01-light.svg|300]]\n\nSee ![[idea]].", ctx);

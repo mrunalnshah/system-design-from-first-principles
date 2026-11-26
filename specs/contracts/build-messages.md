@@ -24,6 +24,7 @@ Every problem the build finds is a `BuildIssue` with a code, a file, a line wher
 | W-DIAGRAM-NO-CAPTION | warning | a diagram has no alias, so alt text came from the SVG's own text (or is generic) | "Add a caption: ![[file.svg\|Caption]]." |
 | W-DIAGRAM-LARGE | warning | an SVG is over 250 KB | "Large diagrams load slowly on phones; consider simplifying." |
 | W-ABOUT-MISSING | warning | no `about.md` | "Create about.md to get an About page." |
+| W-COMMENT-UNCLOSED | warning | a `%%` comment is never closed, so the rest of the entry is hidden (as in Obsidian) | "Close it with %% where the private note ends." (R-07 review) |
 | W-SYNTAX-UNKNOWN | warning | Obsidian syntax the site doesn't support (shown as text) | "This shows as plain text on the website." |
 | W-DIAGRAM-UNPAIRED | warning | a `-light`/`.light` SVG has no dark partner (or the reverse) | "Turn on 'Export both light and dark' in the Excalidraw plugin and save the drawing again." |
 | W-EMPTY-BOOK | warning | no published chapters | "Publish a chapter by removing draft: true." |

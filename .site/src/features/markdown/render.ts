@@ -1,8 +1,8 @@
 /**
  * `renderObsidian` (ADR-0004): one Obsidian Markdown document → accessible HTML, built on Astro's own Markdown
  * processor (CommonMark, GFM, Shiki) plus this module's plugins, in this order:
- *   comments removed (before parsing) → remark-math → embeds → links/highlights → callouts → headings → collect
- *   → math typeset → HTML (Shiki highlights code at build time).
+ *   remark-math → math guard (Obsidian's `$` rule) → comments removed → embeds → links/highlights → callouts
+ *   → headings → collect → math typeset → HTML (Shiki highlights code at build time).
  * The order is hidden here; callers only pass a `RenderContext`.
  *
  * A fresh processor per document keeps each render's state apart (renders may run in parallel); Astro caches
@@ -13,9 +13,10 @@ import remarkMath from "remark-math";
 import { remarkCallouts } from "./plugins/callouts.ts";
 import { remarkEmbeds } from "./plugins/embeds.ts";
 import { plainText, remarkHeadings } from "./plugins/headings.ts";
-import { remarkMathRender } from "./plugins/math.ts";
-import { PLUGIN_BLOCKS, remarkObsidianInline, stripComments } from "./plugins/obsidian-inline.ts";
-import { walk, type MdNode, type RenderContext, type RenderResult, type RenderState } from "./types.ts";
+import { remarkMathGuard, remarkMathRender } from "./plugins/math.ts";
+import { PLUGIN_BLOCKS, remarkComments, remarkObsidianInline } from "./plugins/obsidian-inline.ts";
+import { walk } from "./tree.ts";
+import type { MdNode, RenderContext, RenderResult, RenderState } from "./types.ts";
 
 /**
  * Renders one Obsidian-flavoured Markdown document to accessible HTML.
@@ -33,9 +34,11 @@ export async function renderObsidian(source: string, ctx: RenderContext): Promis
     shikiConfig: { themes: { light: "github-light", dark: "github-dark" }, defaultColor: false },
     remarkPlugins: [
       remarkMath,
+      withState(remarkMathGuard, state),
+      withState(remarkComments, state),
       withState(remarkEmbeds, state),
       withState(remarkObsidianInline, state),
-      remarkCallouts as unknown as RemarkPlugin,
+      withState(remarkCallouts, state),
       withState(remarkHeadings, state),
       withState(remarkCollect, state),
       withState(remarkMathRender, state),
@@ -57,7 +60,7 @@ function withState(plugin: (state: RenderState) => (tree: MdNode) => void, state
   return [plugin as unknown as RemarkPlugin, state];
 }
 
-/** Frontmatter and comments blanked, keeping every line where it was. Broken frontmatter is the vault's to report. */
+/** Frontmatter blanked, keeping every line where it was. Broken frontmatter is the vault's to report. */
 function prepare(source: string): string {
   const text = source.replace(/\r\n?/g, "\n");
   let body = text;
@@ -66,7 +69,7 @@ function prepare(source: string): string {
   } catch {
     // Invalid YAML: MOD-vault reports E-FRONTMATTER-YAML; render the rest as it stands.
   }
-  return stripComments(body);
+  return body;
 }
 
 /** Counts footnotes and gathers the plain text, before math is typeset (so formulas count as written). */
@@ -87,6 +90,7 @@ const LINES = new Set(["paragraph", "heading", "tableCell", "calloutTitle"]);
 /** The text a reader sees: no section numbers or raw HTML (figures), code and math as written. */
 function readable(node: MdNode): string {
   if (node.type === "sectionNumber" || node.type === "html") return "";
+  if (node.type === "break") return "\n";
   if (node.type === "code") return `${node.value ?? ""}\n`;
   if (!node.children) return plainText(node);
   const inner = node.children.map(readable);

@@ -39,8 +39,10 @@ describe("Obsidian Markdown core", () => {
   it("matches the golden HTML for Chapter 1 and for every supported Obsidian syntax", async () => {
     const chapter = await golden("chapter-1", context({ filePath: "part-1_foundations/chapter-1_computer-architecture.md", headingNumbers: { prefix: "1" } }));
     expect(chapter.html).toBe(chapter.expected);
+    expect(chapter.codes).toEqual([]);
     const syntax = await golden("obsidian", context());
     expect(syntax.html).toBe(syntax.expected);
+    expect(syntax.codes).toEqual(["W-SYNTAX-UNKNOWN"]); // the mermaid block, shown as its text
   });
 
   it("turns an unresolved [[link]] into plain text with W-LINK-UNRESOLVED at its line and column", async () => {
@@ -69,11 +71,56 @@ describe("Obsidian Markdown core", () => {
     expect(html).toBe("<p>A <mark>lit <strong>bold</strong> text</mark> and a === b. Ref</p>");
   });
 
+  it("never treats %% inside code as a comment: in a callout's fence, under a tab-indented item, after an escaped backtick", async () => {
+    const md = "> [!example]\n> ```python\n> print('100%%')\n> ```\n\n- item\n\t```\n\t'%d%%'\n\t```\n\nAn \\` escaped tick %%secret%% here.\n\n# Next";
+    const { html, issues, sections } = await renderObsidian(md, context());
+    const text = html.replace(/<[^>]+>/g, "");
+    expect(text).toContain("print('100%%')");
+    expect(text).toContain("'%d%%'");
+    expect(html).toContain("escaped tick here.");
+    expect(html).not.toContain("secret");
+    expect(sections.map((s) => s.text)).toEqual(["Next"]);
+    expect(issues).toEqual([]);
+  });
+
+  it("hides everything after a %% that's never closed, as Obsidian does, and warns W-COMMENT-UNCLOSED", async () => {
+    const { html, issues } = await renderObsidian("Shown.\n\nAlso shown %% private\n\n# Hidden\n\nHidden too.", context());
+    expect(html).toBe("<p>Shown.</p>\n<p>Also shown</p>");
+    expect(issues.map((i) => [i.code, i.line, i.column])).toEqual([["W-COMMENT-UNCLOSED", 3, 12]]);
+  });
+
+  it("drops what a comment hides before anything else reads it: no link warning or math error from inside it", async () => {
+    const { html, issues } = await renderObsidian("Text %% [[nowhere]] $\\micro$ ![[missing.svg]] %% end.", context());
+    expect(html).toBe("<p>Text end.</p>");
+    expect(issues).toEqual([]);
+  });
+
+  it("reports columns in the original source, after entities, quote markers and comments", async () => {
+    const at = async (md: string) => (await renderObsidian(md, context())).issues.map((i) => [i.line, i.column]);
+    expect(await at("&amp;&amp; [[nope]]")).toEqual([[1, 12]]);
+    expect(await at("> a\n> b [[nope]]")).toEqual([[2, 5]]);
+    expect(await at("a %%xxxxxxxx%% [[nope]]")).toEqual([[1, 16]]);
+    expect(await at("[[nope]] and [[nope]]")).toEqual([[1, 1], [1, 14]]);
+  });
+
+  it("warns when a link has formatting inside its brackets, and links [[note#a#b]] to the last heading", async () => {
+    const r = await renderObsidian("See [[chapter-1_computer-architecture|*Ch*]] and [[chapter-1_computer-architecture#Parts#Disk]].", context());
+    expect(r.issues.map((i) => [i.code, i.column])).toEqual([["W-SYNTAX-UNKNOWN", 5]]);
+    expect(r.html).toContain(`<a href="${CHAPTER_1.href}#disk">Computer Architecture > Disk</a>`);
+  });
+
+  it("keeps the spaces between a callout title's parts, and leaves an escaped \\[!note] as a quote", async () => {
+    const { html } = await renderObsidian("> [!note] **A** *B*\n> Body.\n\n> \\[!note] Just a quote.", context());
+    expect(html).toContain('<p class="callout-title"><strong>A</strong> <em>B</em></p>');
+    expect(html).toContain("<blockquote>\n<p>[!note] Just a quote.</p>\n</blockquote>");
+  });
+
   it("returns the plain text, section list and counts", async () => {
     const r = await renderObsidian("# One\nText with $x$.[^1]\n\n[^1]: A note.", context({ headingNumbers: { prefix: "2" } }));
     expect(r.plainText).toBe("One\nText with x.\nA note.");
     expect(r.sections).toEqual([{ depth: 2, text: "One", anchor: "one", number: "2.1" }]);
     expect(r.footnoteCount).toBe(1);
     expect(r.figureCount).toBe(0);
+    expect((await renderObsidian("Title\\\nbody", context())).plainText).toBe("Title\nbody");
   });
 });

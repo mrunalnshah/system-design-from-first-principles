@@ -15,7 +15,7 @@ export const CHAPTER_1 = { href: "/system-design-from-first-principles/book/comp
 export function context(over: Partial<RenderContext> = {}): RenderContext {
   return {
     filePath: "articles/why-caches.md",
-    resolveFile: createFileResolver(["part-1_foundations/diagram/01-light.svg", "part-1_foundations/diagram/01-dark.svg"]),
+    resolveFile: createFileResolver(["01-light", "01-dark", "02-light", "02-dark"].map((n) => `part-1_foundations/diagram/${n}.svg`)),
     resolveNote: (t) => (t === "chapter-1_computer-architecture" ? CHAPTER_1 : undefined),
     headingNumbers: false,
     figure: ({ files, alias }) => ({ html: `<figure data-files="${files.join(" ")}">${alias ?? ""}</figure>`, issues: [] }),
@@ -24,9 +24,9 @@ export function context(over: Partial<RenderContext> = {}): RenderContext {
 }
 
 /** Golden test: `<name>.html` next to `<name>.md`. Run with UPDATE_GOLDEN=1 to rewrite it, then review the diff. */
-export async function golden(name: string, ctx: RenderContext): Promise<{ html: string; expected: string }> {
-  const { html } = await renderObsidian(readFileSync(join(fixtures, `${name}.md`), "utf8"), ctx);
+export async function golden(name: string, ctx: RenderContext): Promise<{ html: string; expected: string; codes: string[] }> {
+  const { html, issues } = await renderObsidian(readFileSync(join(fixtures, `${name}.md`), "utf8"), ctx);
   const file = join(fixtures, `${name}.html`);
   if (process.env.UPDATE_GOLDEN || !existsSync(file)) writeFileSync(file, html);
-  return { html, expected: readFileSync(file, "utf8").replace(/\r\n/g, "\n") };
+  return { html, expected: readFileSync(file, "utf8").replace(/\r\n/g, "\n"), codes: issues.map((i) => i.code) };
 }

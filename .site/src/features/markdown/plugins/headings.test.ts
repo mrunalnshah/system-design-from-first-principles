@@ -41,6 +41,12 @@ describe("headings", () => {
     expect(early.sections.map((s) => s.number)).toEqual([undefined, "1.1", "1.1.1"]);
   });
 
+  it("counts only top-level headings as sections; one inside a callout or list is demoted and anchored, not numbered", async () => {
+    const { html, sections } = await renderObsidian("# One\n\n> [!note]\n> # Inside\n\n- # In a list\n\n# Two", numbered);
+    expect(sections.map((s) => `${s.number} ${s.text}`)).toEqual(["1.1 One", "1.2 Two"]);
+    expect(html).toContain('<h2 id="inside">Inside</h2>');
+  });
+
   it("slugs by GitHub's rule", () => {
     expect(slugify("RAM (Random Access Memory)")).toBe("ram-random-access-memory");
     expect(slugify("CPU & Cache: 101")).toBe("cpu--cache-101");

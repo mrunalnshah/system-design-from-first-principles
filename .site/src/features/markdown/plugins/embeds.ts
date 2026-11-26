@@ -3,13 +3,17 @@
  * - An SVG is found with `ctx.resolveFile` (closest to the note first). Consecutive light/dark embeds
  *   (`01-light.svg` then `01-dark.svg`, or `.light`/`.dark`) become one figure.
  * - A drawing, `![[01_computer-architecture.excalidraw|Caption]]`, becomes its exported images,
- *   `01_computer-architecture-light.svg` and `-dark.svg`, found the same way. The drawing itself is never read.
+ *   `diagram/01_computer-architecture-light.svg` and `-dark.svg` (a `diagram/` folder, closest first).
+ *   The drawing itself is never looked up or read.
  * - Each figure is drawn by `ctx.figure` (MOD-diagrams), so this module knows nothing about figure markup.
  * - Problems: a missing file is E-EMBED-MISSING; a drawing with no images is E-DRAWING-NOT-EXPORTED; any other
  *   embed (a note, a PNG) shows as text with W-SYNTAX-UNKNOWN.
- * A size such as `|300` is Obsidian's width, not a caption, and is ignored.
+ * A size such as `|300` is Obsidian's width, not a caption, and is ignored. Embeds are figures, so they're read
+ * where a paragraph can be split around them; one inside bold, a heading, a table cell or a link shows as text
+ * with W-SYNTAX-UNKNOWN (or stops the build with E-EMBED-MISSING when the file doesn't exist).
  */
-import { positionIn, walk, type MdNode, type RenderState } from "../types.ts";
+import { locate, walk } from "../tree.ts";
+import type { MdNode, RenderState } from "../types.ts";
 
 const EMBED = /!\[\[([^[\]|]+?)(?:\|([^[\]]*))?\]\]/g;
 
@@ -24,7 +28,43 @@ export function remarkEmbeds(state: RenderState) {
       const split = parent.children.flatMap((c) => (c.type === "paragraph" && hasEmbed(c) ? splitParagraph(c, state) : [c]));
       parent.children = pairUp(split).map((n) => (n.type === "pendingFigure" ? draw(n as unknown as Pending, state) : n));
     });
+    // Embeds anywhere else (inside bold, a heading, a table cell, a link) can't become figures.
+    walk(tree, (parent) => {
+      if (!parent.children) return;
+      parent.children = parent.children.flatMap((node) => (node.type === "text" && (node.value ?? "").includes("![[") ? inlineEmbeds(node, state) : [node]));
+    });
   };
+}
+
+/** Text for each embed that can't be a figure here, with an issue saying so. */
+function inlineEmbeds(node: MdNode, state: RenderState): MdNode[] {
+  const value = node.value ?? "";
+  const out: MdNode[] = [];
+  let last = 0;
+  for (const m of value.matchAll(EMBED)) {
+    if (m.index > last) out.push({ type: "text", value: value.slice(last, m.index) });
+    last = m.index + m[0].length;
+    const at = locate(state, node, m.index, m[0]);
+    const name = m[1]!.trim();
+    const alias = m[2]?.trim();
+    const isDrawing = /\.excalidraw(\.md)?$/i.test(name);
+    if (!isDrawing && !state.ctx.resolveFile(name.split("#")[0]!, state.ctx.filePath)) {
+      state.issues.push({ severity: "error", code: "E-EMBED-MISSING", file: state.ctx.filePath, line: at.line, column: at.column, message: `The file "${name}" can't be found in the vault.`, fix: "Check the spelling, or add the file." });
+    } else {
+      state.issues.push({
+        severity: "warning",
+        code: "W-SYNTAX-UNKNOWN",
+        file: state.ctx.filePath,
+        line: at.line,
+        column: at.column,
+        message: `The embed "${name}" is inside bold, a heading, a table or a link, where a figure can't go; put it on a line of its own.`,
+        fix: "This shows as plain text on the website.",
+      });
+    }
+    out.push({ type: "text", value: alias && !/^\d+(x\d+)?$/.test(alias) ? alias : name });
+  }
+  if (last < value.length) out.push({ type: "text", value: value.slice(last) });
+  return out;
 }
 
 function hasEmbed(paragraph: MdNode): boolean {
@@ -47,7 +87,7 @@ function splitParagraph(paragraph: MdNode, state: RenderState): MdNode[] {
     for (const m of value.matchAll(EMBED)) {
       if (m.index > last) inline.push({ type: "text", value: value.slice(last, m.index) });
       last = m.index + m[0].length;
-      const at = positionIn(child, m.index);
+      const at = locate(state, child, m.index, m[0]);
       const embed = resolveEmbed(m[1]!.trim(), m[2]?.trim(), at, state);
       if (embed.type === "text") { inline.push(embed); continue; }
       flush();
@@ -70,12 +110,14 @@ function resolveEmbed(name: string, rawAlias: string | undefined, at: { line: nu
   const drawing = /^(.*?)\.excalidraw(\.md)?$/i.exec(name);
   if (drawing) {
     const base = drawing[1]!.split("/").pop()!;
-    const files = ["light", "dark"].map((t) => ctx.resolveFile(`${base}-${t}.svg`, ctx.filePath)).filter((f): f is string => !!f);
+    // Only images in a diagram/ folder count (where sync puts them); `diagram/<name>` matches any such folder.
+    const files = ["light", "dark"].map((t) => ctx.resolveFile(`diagram/${base}-${t}.svg`, ctx.filePath)).filter((f): f is string => !!f);
     if (files.length) return figure(files);
     issue("error", "E-DRAWING-NOT-EXPORTED", `The drawing "${name}" has no images in a diagram/ folder (looked for ${base}-light.svg and ${base}-dark.svg).`, "Open the drawing in Obsidian, save it (Ctrl+S), then run sync so its images are collected.");
     return { type: "text", value: "" };
   }
-  const file = ctx.resolveFile(name, ctx.filePath);
+  // `![[note#Heading]]` and `![[note#^block]]` embed part of a note: look the note up by its name.
+  const file = ctx.resolveFile(name.split("#")[0]!.trim(), ctx.filePath);
   if (!file) {
     issue("error", "E-EMBED-MISSING", `The file "${name}" can't be found in the vault.`, "Check the spelling, or add the file.");
     return { type: "text", value: "" };

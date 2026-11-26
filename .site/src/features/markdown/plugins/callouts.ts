@@ -4,24 +4,27 @@
  * JavaScript. The type is kept as written (lowercase) in `data-callout`, for styling; without a title the
  * type, capitalised, is the title ("Note").
  */
-import { walk, type MdNode } from "../types.ts";
+import { walk } from "../tree.ts";
+import type { MdNode, RenderState } from "../types.ts";
 
 const MARKER = /^\[!([A-Za-z][\w-]*)\]([+-]?)[ \t]*/;
 
-/** The remark plugin. */
-export function remarkCallouts() {
+/** The remark plugin. Its options are the render's state (to tell `[!note]` from an escaped `\[!note]`). */
+export function remarkCallouts(state: RenderState) {
   return (tree: MdNode) => {
     walk(tree, (node) => {
-      if (node.type === "blockquote") callout(node);
+      if (node.type === "blockquote") callout(node, state);
     });
   };
 }
 
-function callout(quote: MdNode): void {
+function callout(quote: MdNode, state: RenderState): void {
   const first = quote.children?.[0];
   const lead = first?.type === "paragraph" ? first.children?.[0] : undefined;
   const m = lead?.type === "text" ? MARKER.exec(lead.value ?? "") : null;
   if (!first || !lead || !m) return;
+  const at = lead.position?.start.offset;
+  if (at !== undefined && state.source[at] === "\\") return; // `> \[!note]` is written to stay a plain quote
   const type = m[1]!.toLowerCase();
   const fold = m[2];
 
@@ -39,7 +42,12 @@ function callout(quote: MdNode): void {
     rest = [{ ...n, value: n.value!.slice(nl + 1) }, ...inline.slice(i + 1)];
     break;
   }
-  const titleNodes = title.filter((n) => n.type !== "text" || (n.value ?? "").trim());
+  // Trim only the ends: spaces between the title's parts (`**A** *B*`) are kept.
+  const titleNodes = title.map((n) => ({ ...n }));
+  if (titleNodes[0]?.type === "text") titleNodes[0].value = (titleNodes[0].value ?? "").replace(/^\s+/, "");
+  if (titleNodes.at(-1)?.type === "text") titleNodes.at(-1)!.value = (titleNodes.at(-1)!.value ?? "").replace(/\s+$/, "");
+  while (titleNodes.length && titleNodes[0]!.type === "text" && !titleNodes[0]!.value) titleNodes.shift();
+  while (titleNodes.length && titleNodes.at(-1)!.type === "text" && !titleNodes.at(-1)!.value) titleNodes.pop();
   const heading: MdNode = {
     type: "calloutTitle",
     data: { hName: fold ? "summary" : "p", hProperties: { className: ["callout-title"] } },

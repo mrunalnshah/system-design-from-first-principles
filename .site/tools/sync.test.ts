@@ -52,7 +52,8 @@ function drawing(root: string, name: string, drawn: Date, exported?: { light?: D
 const remoteLog = (origin: string) => execFileSync("git", ["--git-dir", origin, "log", "--format=%s", "main"], { encoding: "utf8" }).trim().split("\n");
 const remoteFiles = (origin: string) => execFileSync("git", ["--git-dir", origin, "ls-tree", "-r", "--name-only", "main"], { encoding: "utf8" }).trim().split("\n");
 
-describe("sync", () => {
+// Each test runs real git commands against temp repositories, which can take more than Vitest's 5 s on a slow disk.
+describe("sync", { timeout: 30_000 }, () => {
   // @req REQ-AUTH-001.AC1
   it("commits a new chapter with its diagram images under the author's message, and pushes it", async () => {
     const { root, origin } = vault();

@@ -29,7 +29,10 @@ export type Section = {
   number?: string;
 };
 
-/** Renders one diagram figure from 1 or 2 consecutive SVG embeds (a light/dark pair). Supplied by MOD-diagrams. */
+/**
+ * Renders one diagram figure from 1 or 2 consecutive SVG embeds (a light/dark pair). Supplied by MOD-diagrams.
+ * `alias` is the author's caption exactly as written: the renderer must escape it before putting it in HTML.
+ */
 export type FigureRenderer = (embed: { files: string[]; alias?: string; fromPath: string; line: number }) => { html: string; issues: BuildIssue[] };
 
 /** Everything the renderer needs to know about the document's surroundings; book rules arrive only through here. */
@@ -81,17 +84,3 @@ export type MdNode = {
   [key: string]: unknown;
 };
 export type Point = { line: number; column: number; offset?: number };
-
-/** Calls `visit` on every node, parents before children; `visit` may replace a node's `children` before they're walked. */
-export function walk(node: MdNode, visit: (node: MdNode, parent: MdNode | undefined) => void, parent?: MdNode): void {
-  visit(node, parent);
-  for (const child of node.children ?? []) walk(child, visit, node);
-}
-
-/** The line and column `offset` characters into a text node's value, counting its newlines. */
-export function positionIn(node: MdNode, offset: number): { line: number; column: number } {
-  const start = node.position?.start ?? { line: 1, column: 1 };
-  const before = (node.value ?? "").slice(0, offset);
-  const lines = before.split("\n");
-  return lines.length === 1 ? { line: start.line, column: start.column + offset } : { line: start.line + lines.length - 1, column: lines.at(-1)!.length + 1 };
-}

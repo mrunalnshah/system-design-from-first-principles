@@ -186,6 +186,7 @@ The build's messages (🔜 from R-09) always name the file and line. **Errors (E
 | W-DIAGRAM-NO-CAPTION | A diagram has no caption | Add one: `![[name.excalidraw|Caption]]` |
 | W-DIAGRAM-LARGE | A diagram image is over 250 KB | Simplify the drawing if you can |
 | W-ABOUT-MISSING | There's no `about.md` | Optional: copy `templates/about.md` |
+| W-COMMENT-UNCLOSED | A `%%` comment has no closing `%%`, so everything after it is hidden | Add the closing `%%` where your private note ends |
 | W-SYNTAX-UNKNOWN | Obsidian syntax the site doesn't support yet | It shows as plain text on the site |
 | W-DIAGRAM-UNPAIRED | A light image has no dark partner, or the other way round | Save the drawing again in Obsidian |
 | W-EMPTY-BOOK | No chapter is published yet | Set `draft: false` on a chapter |

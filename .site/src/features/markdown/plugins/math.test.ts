@@ -52,6 +52,25 @@ describe("math", () => {
     expect(html).toMatch(/<div class="math-display"><span class="katex-display">/);
   });
 
+  it("follows Obsidian's $ rule on the source as written: spaces inside, or a digit after, mean text", async () => {
+    const text = async (md: string) => (await renderObsidian(md, context())).html;
+    expect(await text("$ x $ and costs $ 5 and 10 $")).toBe("<p>$ x $ and costs $ 5 and 10 $</p>");
+    expect(await text("$5 per [[chapter-1_computer-architecture|ch]] and $10 total")).toContain('$5 per <a href="');
+    expect(await text("from $x$ to $y$")).toContain('<span class="katex">');
+  });
+
+  it("reports commands that would add links, images or HTML, which are refused", async () => {
+    const { issues } = await renderObsidian("$\\href{https://x.y}{x}$ and $\\includegraphics{a.png}$", context());
+    expect(issues.map((i) => [i.code, i.column])).toEqual([["E-MATH", 2], ["E-MATH", 30]]); // each formula's first character
+    expect(issues[0]!.message).toContain("\\href");
+  });
+
+  it("shows a failed display formula as a code block until it's fixed", async () => {
+    const { html } = await renderObsidian("$$\n\\nope\n$$", context());
+    expect(html).toMatch(/^<pre class="astro-code/);
+    expect(html).toContain("<span>\\nope</span>");
+  });
+
   it("points at the right line inside display math", async () => {
     const { issues } = await renderObsidian("Intro.\n\n$$\na + b\n\\nope{c}\n$$", context());
     expect(issues.map((i) => [i.code, i.line, i.column])).toEqual([["E-MATH", 5, 1]]);
