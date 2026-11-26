@@ -50,3 +50,4 @@
 2026-11-26T17:36Z · R-04 · T-00.08 · done
 2026-11-26T17:41Z · R-04 · T-00.09 · steps 1-4 · .dependency-cruiser.cjs (index-only imports, direction table from modules.md, no cycles), lint:boundaries script, CI step, tests/boundaries.test.ts (TOOL-06.AC1-2 tagged + allowed-import, cycle, real-code cases); real code: 17 modules, 41 deps, 0 violations; note: config written before its tests (seeded-violation tests prove the rules fire); limitation: .astro files aren't parsed, so page imports are reviewed by hand; 55/55 tests
 2026-11-26T17:41Z · R-04 · T-00.09 · done
+2026-11-26T17:42Z · R-04 · T-00.09 · fix · I pushed e055629 with a lint error (no-require-imports in .dependency-cruiser.cjs): my check chain counted errors without stopping on them. Fixed by moving tsConfig to the CLI (--ts-config); verify chains now stop on the first failure (set -e). CI blocked the deploy for e055629 as designed

@@ -5,7 +5,8 @@
 // 2. Modules depend only in the directions specs/modules.md allows (no cycles).
 // Limitation: dependency-cruiser doesn't parse `.astro` files, so imports inside Astro pages and
 // components aren't checked here; pages are kept thin and import only `index.ts` (reviewed by hand).
-const fs = require("node:fs");
+// The TypeScript config is passed on the command line (`--ts-config tsconfig.json` in package.json),
+// so this file needs no imports and the tests can reuse it in projects without a tsconfig.
 
 /** Which modules each feature folder may import (from specs/modules.md). */
 const ALLOWED = {
@@ -54,7 +55,6 @@ module.exports = {
     doNotFollow: { path: "node_modules" },
     exclude: { path: "(^|/)(node_modules|dist|\\.astro|tests/fixtures)/" },
     tsPreCompilationDeps: true,
-    ...(fs.existsSync("tsconfig.json") ? { tsConfig: { fileName: "tsconfig.json" } } : {}),
     enhancedResolveOptions: { extensions: [".ts", ".js", ".mjs", ".astro"] },
   },
 };

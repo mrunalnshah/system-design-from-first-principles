@@ -70,7 +70,7 @@ describe("boundary rules (TOOL-06)", () => {
   });
 
   it("passes on the real code", () => {
-    const { status, report } = cruise(site, ["src", "tools"]);
+    const { status, report } = cruise(site, ["src", "tools", "--ts-config", "tsconfig.json"]);
     expect(status, report).toBe(0);
   });
 });
