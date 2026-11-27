@@ -1,0 +1,37 @@
+---
+/**
+ * The end of an article (REQ-READ-009, design/screens/article.md): "All articles →" to the archive and
+ * "Read the book →" to the contents page, so a reader who came for one essay finds the rest. No props.
+ */
+import { url } from "../site/index.ts";
+---
+
+<nav class="article-end" aria-label="After the article">
+  <a href={url({ kind: "articles" })}>All articles →</a>
+  <a href={url({ kind: "contents" })}>Read the book →</a>
+</nav>
+
+<style>
+  .article-end {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-6);
+    margin-block-start: var(--space-12);
+    padding-block-start: var(--space-4);
+    border-block-start: 1px solid var(--color-divider);
+    font-family: var(--font-sans);
+  }
+
+  /* A comfortable target on a phone (WCAG 2.5.8): the line box alone is under 24 px. */
+  .article-end a {
+    display: inline-block;
+    padding-block: var(--space-2);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+
+  .article-end a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+</style>

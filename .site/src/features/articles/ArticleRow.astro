@@ -9,18 +9,14 @@
  */
 import type { ArticleData } from "../content/index.ts";
 import { url } from "../site/index.ts";
+import { formatDate } from "./date.ts";
 
 interface Props {
   article: ArticleData;
 }
 const { article } = Astro.props;
 const id = `article-${article.slug}`;
-// Dates are calendar days (YYYY-MM-DD): read and shown in UTC so the build's time zone can't move them a day.
-const shownDate =
-  article.date &&
-  new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(
-    new Date(`${article.date}T00:00:00Z`),
-  );
+const shownDate = article.date && formatDate(article.date);
 const describedBy = [article.featured && `${id}-tag`, `${id}-meta`, `${id}-summary`].filter(Boolean).join(" ");
 ---
 

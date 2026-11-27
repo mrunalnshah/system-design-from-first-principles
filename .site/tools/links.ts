@@ -20,11 +20,6 @@ import { htmlFiles, pageName } from "./dist.ts";
 
 /** Articles and About: linked from every page before they're built (CR-0008, routes.md); Contents is built (T-02.03). */
 export const NOT_YET_BUILT = ["articles/", "about/"];
-/**
- * A published article's own address (`articles/<slug>/`): the homepage's latest articles link to it before T-03.01
- * builds article pages (CR-0010). T-03.01 removes this.
- */
-export const NOT_YET_BUILT_ARTICLE = /^articles\/[a-z0-9]+(?:-[a-z0-9]+)*\/$/;
 
 export type LinkProblem = { page: string; address: string; problem: string };
 
@@ -97,7 +92,7 @@ export async function brokenLinks(
       if (link.state !== LinkState.BROKEN) continue;
       const path = new URL(link.url).pathname;
       const inSite = path.startsWith(base) ? path.slice(base.length) : path;
-      const aheadOfPlan = NOT_YET_BUILT.includes(inSite) || NOT_YET_BUILT_ARTICLE.test(inSite);
+      const aheadOfPlan = NOT_YET_BUILT.includes(inSite);
       if (aheadOfPlan && !existsSync(join(dist, inSite, "index.html"))) {
         allowed.add(inSite);
         continue;
