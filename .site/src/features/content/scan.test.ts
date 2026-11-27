@@ -110,11 +110,20 @@ describe("vault scan", () => {
     expect(issues[0]!.fix).toBe("Rename one file. Files: part-1_a/chapter-1_caching.md, part-2_b/chapter-2_caching.md.");
   });
 
-  it("leaves out a part with no chapters, and an empty vault is just empty, apart from the missing About page", () => {
+  it("leaves out a part with no chapters, and an empty vault is just empty, apart from its two warnings", () => {
     expect(scanVault(vault({ "part-1_a/notes.md": "x" })).parts).toEqual([]);
     const empty = scanVault(vault({}));
     expect({ ...empty, issues: [] }).toEqual({ parts: [], chapters: [], articles: [], pages: [], issues: [] });
-    expect(empty.issues.map((i) => i.code)).toEqual(["W-ABOUT-MISSING"]);
+    // No About page, and no published chapter (W-EMPTY-BOOK, CR-0011), which names book.md when there's no chapter file.
+    expect(empty.issues.map((i) => [i.code, i.file])).toEqual([["W-ABOUT-MISSING", "about.md"], ["W-EMPTY-BOOK", "book.md"]]);
+  });
+
+  it("names the draft: line in the frontmatter for W-EMPTY-BOOK, and stays quiet while a chapter has a frontmatter error", () => {
+    const drafts = scanVault(vault({ "part-1_a/chapter-1_x.md": "---\ntitle: X\ndraft : true\n---\ndraft: in the body\n", ...ABOUT }));
+    expect(drafts.issues.map((i) => [i.code, i.file, i.line])).toEqual([["W-EMPTY-BOOK", "part-1_a/chapter-1_x.md", 3]]);
+    // That error already stops the publish and is the one to act on (CR-0011).
+    const broken = scanVault(vault({ "part-1_a/chapter-1_x.md": '---\ndraft: true\nepigraph_source: "A"\n---\nX.\n', ...ABOUT }));
+    expect(broken.issues.map((i) => i.code)).toEqual(["E-FRONTMATTER-FIELD"]);
   });
 
   // @req REQ-BOOK-007.AC2
@@ -131,7 +140,7 @@ describe("vault scan", () => {
     expect(rest).toEqual([]);
     expect(issue).toMatchObject({ severity: "warning", code: "W-ABOUT-MISSING", file: "about.md" });
     expect(issue!.fix.startsWith("Create about.md to get an About page.")).toBe(true);
-    const draft = scanVault(vault({ "about.md": "---\ndraft: true\n---\nLater.\n" }));
+    const draft = scanVault(vault({ "part-1_a/chapter-1_x.md": "X", "about.md": "---\ndraft: true\n---\nLater.\n" }));
     expect([draft.pages, draft.issues]).toEqual([[], []]);
   });
 });

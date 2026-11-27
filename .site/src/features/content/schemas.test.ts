@@ -34,15 +34,17 @@ describe("frontmatter rules", () => {
 
   // @req REQ-CNT-004.AC2
   it("keeps a draft article out of every list, so no page is made for it", () => {
-    const root = vault({ "articles/idea.md": "---\ndraft: true\ndate: 2026-11-02\n---\nNot yet.\n", "articles/live.md": "---\ndate: 2026-11-01\n---\nLive.\n" });
+    // A published chapter too, so the vault isn't an empty book (W-EMPTY-BOOK, CR-0011).
+    const root = vault({ [CHAPTER]: "Text.\n", "articles/idea.md": "---\ndraft: true\ndate: 2026-11-02\n---\nNot yet.\n", "articles/live.md": "---\ndate: 2026-11-01\n---\nLive.\n" });
     const v = readVault(root);
-    expect([...v.articles, ...v.chapters, ...v.pages].map((e) => e.sourcePath)).toEqual(["articles/live.md", "about.md"]);
+    expect([...v.articles, ...v.chapters, ...v.pages].map((e) => e.sourcePath)).toEqual(["articles/live.md", CHAPTER, "about.md"]);
     expect(v.issues).toEqual([]);
   });
 
   // @req REQ-CNT-003.AC3
   it("publishes an undated article after the dated ones, with no date and a warning naming the file", () => {
     const root = vault({
+      [CHAPTER]: "Text.\n", // not an empty book (CR-0011)
       "articles/undated.md": "No date.\n",
       "articles/older.md": "---\ndate: 2026-10-01\n---\nOlder.\n",
       "articles/newer.md": "---\ndate: '2026-11-01'\n---\nNewer.\n",
@@ -94,7 +96,7 @@ describe("frontmatter rules", () => {
   });
 
   it("gives one message per problem: an article with a broken date isn't also called undated", () => {
-    const root = vault({ "articles/a.md": "---\ndate: someday\n---\nA.\n", "articles/b.md": "---\ndate: [\n---\nB.\n" });
+    const root = vault({ [CHAPTER]: "Text.\n", "articles/a.md": "---\ndate: someday\n---\nA.\n", "articles/b.md": "---\ndate: [\n---\nB.\n" });
     expect(readVault(root).issues.map((i) => [i.code, i.file])).toEqual([
       ["E-FRONTMATTER-FIELD", "articles/a.md"],
       ["E-FRONTMATTER-YAML", "articles/b.md"],

@@ -21,8 +21,11 @@ const root = join(import.meta.dirname, "../..");
 const brokenDir = join(import.meta.dirname, "fixtures/broken");
 const read = (rel: string) => readFileSync(join(root, rel), "utf8").replace(/\r\n/g, "\n");
 
-/** Codes the plan gives no task yet; each needs a packet before the phase ends (AGENTS.md, phase end). */
-const UNOWNED = new Set(["W-EMPTY-BOOK"]);
+/**
+ * Codes the plan gives no task yet; each needs a packet before the phase ends (AGENTS.md, phase end). Empty since
+ * CR-0011 gave W-EMPTY-BOOK to T-04.03, and NFR-013's test below keeps it empty.
+ */
+const UNOWNED = new Set<string>();
 
 type ContractRow = { code: string; severity: "error" | "warning"; fixStart: string };
 
@@ -80,6 +83,16 @@ async function issuesOf(vaultDir: string) {
   return [...vault.issues, ...rendered.flatMap((r) => r.issues)];
 }
 
+/** The exit codes the build report gives for fixture `code`'s issues: [1] when it stops the publish, [] when it doesn't. */
+async function exitsOf(code: string): Promise<number[]> {
+  const collector = createIssueCollector();
+  (await issuesOf(join(brokenDir, code))).forEach((i) => collector.add(i));
+  const exits: number[] = [];
+  const hook = buildReport({ issues: collector, write: async () => {}, exit: (c) => void exits.push(c) }).hooks["astro:build:done"] as unknown as () => Promise<void>;
+  await hook();
+  return exits;
+}
+
 /** Vault-relative paths of every file under `dir`. */
 function allFiles(dir: string, prefix = ""): string[] {
   return readdirSync(join(dir, prefix), { withFileTypes: true }).flatMap((e) =>
@@ -121,6 +134,7 @@ describe("build-message harness (TOOL-15)", () => {
     for (const code of UNOWNED) expect(waitingFor(code), `${code} now has a task: remove it from UNOWNED`).toBe("no task yet");
   });
 
+  // @req NFR-013
   it("gets exactly its own message from each fixture, with the contract's severity and fix text", async () => {
     expect(fixtures().length).toBeGreaterThan(0);
     for (const code of fixtures()) {
@@ -136,17 +150,20 @@ describe("build-message harness (TOOL-15)", () => {
   });
 
   it("fails the build for an error fixture and not for a warning fixture", async () => {
-    for (const code of fixtures()) {
-      const collector = createIssueCollector();
-      (await issuesOf(join(brokenDir, code))).forEach((i) => collector.add(i));
-      const exits: number[] = [];
-      const hook = buildReport({ issues: collector, write: async () => {}, exit: (c) => void exits.push(c) }).hooks["astro:build:done"] as unknown as () => Promise<void>;
-      await hook();
-      expect(exits, `fixture ${code}`).toEqual(code.startsWith("E-") ? [1] : []);
-    }
+    for (const code of fixtures()) expect(await exitsOf(code), `fixture ${code}`).toEqual(code.startsWith("E-") ? [1] : []);
   });
 
   it("names only contract codes as fixtures", () => {
     for (const f of fixtures()) expect(rows.map((r) => r.code), `fixture ${f}`).toContain(f);
+  });
+
+  // @req NFR-013
+  it("seeds every code in the contract, with none left waiting: a broken embed stops the publish, a missing optional field only warns", async () => {
+    // Every code, whether or not its task is done: the hardening phase closes the list (T-04.03). Each fixture's
+    // message names its file and, for a problem on a line, that line (the per-fixture test above checks both).
+    expect(fixtureProblems(rows.map((r) => r.code), brokenDir, () => undefined)).toEqual([]);
+    expect([...UNOWNED]).toEqual([]);
+    expect(await exitsOf("E-EMBED-MISSING"), "a broken diagram embed blocks the publish").toEqual([1]);
+    expect(await exitsOf("W-ARTICLE-UNDATED"), "an article with no date (optional) only warns").toEqual([]);
   });
 });

@@ -12,13 +12,13 @@
  * drafts too, so publishing one later can't clash. Articles are sorted newest first, then undated ones.
  *
  * Problems come back as `issues` (E-CHAPTER-DUPLICATE, E-SLUG-CLASH, the frontmatter rules' E-FRONTMATTER-YAML
- * and E-FRONTMATTER-FIELD, W-ARTICLE-UNDATED), never as exceptions.
+ * and E-FRONTMATTER-FIELD, W-ARTICLE-UNDATED, W-ABOUT-MISSING, W-EMPTY-BOOK, E-REDIRECT-CLASH), never as exceptions.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { redirectClashes, type BuildIssue } from "../site/index.ts";
 import { parseArticleFile, parseChapterFile, parsePartFolder, RESERVED_SLUGS, titleFromSlug } from "./naming.ts";
-import { readFrontmatter, type ArticleFrontmatter, type ChapterFrontmatter, type PageFrontmatter } from "./schemas.ts";
+import { frontmatterSpan, readFrontmatter, type ArticleFrontmatter, type ChapterFrontmatter, type PageFrontmatter } from "./schemas.ts";
 
 /** What every entry carries from its file. */
 type EntryFile<F> = {
@@ -109,7 +109,37 @@ export function scanVault(root: string): VaultScan {
   // Old addresses of published entries (REQ-BOOK-007): MOD-site owns the rule, the scan reports it before any page is built.
   const moved = [...chapters, ...articles].map((e) => ({ kind: e.kind, slug: e.slug, movedFrom: e.frontmatter.moved_from, sourcePath: e.sourcePath }));
   issues.push(...redirectClashes(moved));
+  if (!chapters.length && !allChapters.some((c) => troubled.has(c.sourcePath))) issues.push(emptyBook(root, allChapters));
   return { parts: parts.filter((p) => p.chapters.length), chapters, articles, pages, issues };
+}
+
+/**
+ * W-EMPTY-BOOK (CR-0011, design/screens/contents.md): no chapter is published, so the contents page shows its empty
+ * state. It points at the first draft's `draft:` line, where the fix is made, or at book.md when there's no chapter
+ * file at all. Not raised when a chapter file already has a frontmatter issue: that error already stops the publish,
+ * and it's the one message to act on; this warning shows once it's fixed, if every chapter is still a draft.
+ */
+function emptyBook(root: string, allChapters: ScannedChapter[]): BuildIssue {
+  const draft = allChapters[0];
+  const source = draft ? readFileSync(join(root, draft.sourcePath), "utf8").replace(/\r\n/g, "\n") : "";
+  // The `draft:` key inside the frontmatter only, never a body line that happens to start the same way.
+  const span = frontmatterSpan(source);
+  const at = span ? source.split("\n").slice(span.open + 1, span.close).findIndex((l) => /^\s*draft\s*:/.test(l)) : -1;
+  const line = span && at >= 0 ? span.open + 2 + at : undefined;
+  return {
+    severity: "warning",
+    code: "W-EMPTY-BOOK",
+    file: draft?.sourcePath ?? "book.md",
+    ...(line ? { line } : {}),
+    message: draft
+      ? "No chapter is published yet: every chapter is a draft, so the contents page says the first chapter is on its way."
+      : "No chapter is published yet: there's no chapter-<n>_<name>.md in a part-<n>_<name> folder, so the contents page says the first chapter is on its way.",
+    fix: !draft
+      ? "Publish a chapter by removing draft: true. With no chapter yet, add one as part-1_<name>/chapter-1_<name>.md."
+      : line
+        ? "Publish a chapter by removing draft: true. This is the line, in the book's first chapter."
+        : "Publish a chapter by removing draft: true from one of them, starting with this one, the book's first chapter.",
+  };
 }
 
 /** W-ARTICLE-UNDATED: the article still publishes, listed after the dated ones and showing no date. */
