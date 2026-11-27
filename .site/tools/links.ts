@@ -5,9 +5,9 @@
  *    styles) that starts with "/" must start with the base path, or it breaks on GitHub Pages; each one is named with
  *    its page (TOOL-12.AC1). Only `url()` in `style` attributes and `<style>` counts, not text that shows one.
  * 2. Every internal link and asset resolves: linkinator crawls the site from the homepage over `astro preview`,
- *    under the real base path, following links within the site and the files the pages and stylesheets use; any
- *    address that doesn't answer 200 fails, named with the page it's on (TOOL-12.AC2). Nothing on another host is
- *    requested (NFR-008, and the check never depends on the network).
+ *    under the base path the site was built with, following links within the site and the files the pages and
+ *    stylesheets use; any address that doesn't answer 200 fails, named with the page it's on (TOOL-12.AC2). Nothing
+ *    on another host is requested (NFR-008, and the check never depends on the network).
  * CR-0008: the header and footer link to Contents, Articles and About before their pages exist (R-11, R-13), so
  * exactly those three addresses may be missing, and only while the build has no page for them.
  */
@@ -78,7 +78,7 @@ export async function brokenLinks(
 ): Promise<{ problems: LinkProblem[]; checked: number; allowed: string[] }> {
   const { check, LinkState } = await import("linkinator");
   const port = await freePort();
-  const server = await startPreview(siteRoot, dist, port);
+  const server = await startPreview(siteRoot, dist, base, port);
   const origin = `http://localhost:${port}`;
   try {
     const result = await check({
@@ -131,11 +131,17 @@ export async function checkLinks(
 
 /**
  * `astro preview` of `dist` on `port`, as its own process (it behaves the same under Node and under Vitest's Vite);
- * resolves once it answers, with a way to stop it.
+ * resolves once it answers, with a way to stop it. It serves under `base`, the one `dist` was built with, which isn't
+ * always the configured one (a root build for a custom domain, REQ-SITE-013.AC2).
  */
-async function startPreview(siteRoot: string, dist: string, port: number): Promise<{ stop(): Promise<void> }> {
+async function startPreview(
+  siteRoot: string,
+  dist: string,
+  base: string,
+  port: number,
+): Promise<{ stop(): Promise<void> }> {
   const astro = join(siteRoot, "node_modules/astro/bin/astro.mjs");
-  const args = [astro, "preview", "--port", String(port), "--host", "localhost", "--outDir", dist];
+  const args = [astro, "preview", "--port", String(port), "--host", "localhost", "--outDir", dist, "--base", base];
   const child = spawn(process.execPath, args, { cwd: siteRoot, stdio: ["ignore", "pipe", "pipe"] });
   let output = "";
   child.stdout.on("data", (d: Buffer) => void (output += d));

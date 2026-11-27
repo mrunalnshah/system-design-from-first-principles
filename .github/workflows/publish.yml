@@ -135,7 +135,31 @@ jobs:
           cache: npm
           cache-dependency-path: .site/package-lock.json
       - run: npm ci
-      - run: npm run build
+      # A build error (a broken embed, say) fails this step, so nothing is uploaded and the live site stays as it
+      # was (REQ-SITE-007.AC2). The log is kept for the next step; an explicit `shell: bash` runs with
+      # `-eo pipefail`, so the build's own exit code still fails the step through tee.
+      - name: Build
+        id: build
+        shell: bash
+        run: npm run build 2>&1 | tee build.log
+      - name: Build errors on the run page (REQ-SITE-007.AC2, REQ-CNT-007)
+        if: failure() && steps.build.outcome == 'failure'
+        # The build report (specs/contracts/build-messages.md) from its first issue to its summary line, into the
+        # job summary that GitHub shows on the run page; the whole log stays in the Build step. A build that stopped
+        # without a report (Astro itself failed) shows the end of its log instead. A ~~~~ fence, so no file name can
+        # close it.
+        run: |
+          {
+            echo "### The build stopped, so nothing was published"
+            echo
+            echo '~~~~'
+            if grep -q '^✖ ERROR ' build.log; then
+              sed -n '/^✖ ERROR \|^⚠ WARNING /,/^The build found /p' build.log
+            else
+              tail -n 40 build.log
+            fi
+            echo '~~~~'
+          } >> "$GITHUB_STEP_SUMMARY"
       # The guards on what gets published; any of them failing stops the deploy (T-01.20).
       - name: Build size (TOOL-11, NFR-002)
         run: npm run tools -- size
