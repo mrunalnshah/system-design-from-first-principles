@@ -162,3 +162,4 @@
 2026-11-27T01:19Z · R-11 · T-02.03 · done
 2026-11-27T01:19Z · R-11 · T-02.04 · done
 2026-11-27T01:19Z · R-11 · T-02.05 · done
+2026-11-27T01:28Z · R-11 · deploy · 796ba9e pushed (author approved); publish run 45922186267 green in 298 s: checks 74 s, secrets 21 s, screen tests 216 s, build + size + links + Lighthouse 58 s, deploy 15 s. Live: home 200 with the hero title as h1, hero diagram loaded, 0 scripts; Read from the start → book/computer-architecture/ (the one published chapter, so ← Start / Contents and The end, for now / Back to contents); book/ 200 with I. Foundations and Components, Limitations, Moore's Law
