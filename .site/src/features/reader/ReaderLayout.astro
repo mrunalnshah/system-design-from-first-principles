@@ -6,6 +6,9 @@
  * Nothing overlays the text unless the reader asks, and nothing animates for readers who ask for less motion.
  * Props: `kind`, "chapter", "article" or "page"; `diagrams`, whether the page gets the full-screen diagram viewer.
  * Slots: `menu` (chapter menu, T-01.17), the default slot (title and text), and `end` (previous/next, links).
+ * Classes it styles for what goes in those slots (reader.css), part of its interface: `.reader-head` with
+ * `.reader-eyebrow`, `h1` and `.reader-meta` (an article's or page's title, at the chapter title's scale), `.prose`
+ * (the rendered text), and `.reader-end` (a row of links at the end, as ArticleEnd and the About page use).
  * Its script turns margin-note markers into toggles on narrow screens (client/margin-notes.ts, T-01.18) and binds
  * the arrow keys to a chapter's rel=prev/next (client/keyboard-nav.ts, T-02.04).
  */

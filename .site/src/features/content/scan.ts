@@ -102,7 +102,7 @@ export function scanVault(root: string): VaultScan {
   if (top.some((e) => e.isFile() && e.name === "about.md")) {
     const about = read("about.md", "about", "page");
     if (!about.frontmatter.draft) pages.push({ ...about, kind: "page" });
-  }
+  } else issues.push(aboutMissing());
 
   allChapters.sort((a, b) => a.part.number - b.part.number || a.part.slug.localeCompare(b.part.slug) || byNumber(a, b));
   issues.push(...duplicateNumbers(allChapters), ...slugClashes(chapters, "chapter"), ...slugClashes(articles, "article"));
@@ -117,6 +117,20 @@ function undated(a: ScannedArticle): BuildIssue {
     file: a.sourcePath,
     message: "This article has no date, so it's listed after the dated ones and shows no date.",
     fix: "Add date: yyyy-mm-dd to sort it. For example: date: 2026-11-01",
+  };
+}
+
+/**
+ * W-ABOUT-MISSING (REQ-SITE-003.AC2): with no about.md there's no About page, and the header's name links to the
+ * portfolio instead. Only for a missing file: a draft about.md is the author's choice, and its fix isn't "create".
+ */
+function aboutMissing(): BuildIssue {
+  return {
+    severity: "warning",
+    code: "W-ABOUT-MISSING",
+    file: "about.md",
+    message: "There's no about.md at the vault's top level, so the site has no About page; the header's name links to your portfolio instead.",
+    fix: "Create about.md to get an About page. A title and a few paragraphs about you and the book are enough.",
   };
 }
 

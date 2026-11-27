@@ -18,8 +18,12 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { htmlFiles, pageName } from "./dist.ts";
 
-/** Articles and About: linked from every page before they're built (CR-0008, routes.md); Contents is built (T-02.03). */
-export const NOT_YET_BUILT = ["articles/", "about/"];
+/**
+ * Addresses the plan links to before their page is built, allowed only while it isn't (CR-0008). None left: Contents
+ * (T-02.03), article pages (T-03.01, CR-0010), Articles (T-03.02) and About (T-03.03, linked only when about.md
+ * exists) are all built. A later page linked ahead of its task goes here, with the change request that says so.
+ */
+export const NOT_YET_BUILT: readonly string[] = [];
 
 export type LinkProblem = { page: string; address: string; problem: string };
 

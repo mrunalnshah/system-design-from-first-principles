@@ -33,6 +33,8 @@ export function buildFixtureSite(outDir: string, base?: string, vault?: string):
   env.SDFP_VAULT = vault ?? join(siteRoot, "tests/fixtures/vault");
   return withLock(() =>
     execFileSync(process.execPath, ["--input-type=module", "-e", script, siteRoot, outDir, ...(base ? [base] : [])], {
+      // Astro is found from the site's folder, whatever folder the tests were started from.
+      cwd: siteRoot,
       stdio: "pipe",
       env,
       encoding: "utf8",

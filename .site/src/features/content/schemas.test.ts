@@ -7,11 +7,11 @@ import { readFrontmatter } from "./schemas.ts";
 
 const made: string[] = [];
 const BOOK = '---\ntitle: "Fixture Book"\nauthor: "A. Writer"\nauthor_url: "https://example.com/"\n---\nPitch.\n';
-/** A throwaway vault with a valid book.md plus the given files (path → text). */
+/** A throwaway vault with a valid book.md and an about.md (so no W-ABOUT-MISSING) plus the given files (path → text). */
 function vault(files: Record<string, string>): string {
   const root = mkdtempSync(join(tmpdir(), "sdfp-vault-"));
   made.push(root);
-  for (const [path, text] of Object.entries({ "book.md": BOOK, ...files })) {
+  for (const [path, text] of Object.entries({ "book.md": BOOK, "about.md": "About me.\n", ...files })) {
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), text);
   }
@@ -36,7 +36,7 @@ describe("frontmatter rules", () => {
   it("keeps a draft article out of every list, so no page is made for it", () => {
     const root = vault({ "articles/idea.md": "---\ndraft: true\ndate: 2026-11-02\n---\nNot yet.\n", "articles/live.md": "---\ndate: 2026-11-01\n---\nLive.\n" });
     const v = readVault(root);
-    expect([...v.articles, ...v.chapters, ...v.pages].map((e) => e.sourcePath)).toEqual(["articles/live.md"]);
+    expect([...v.articles, ...v.chapters, ...v.pages].map((e) => e.sourcePath)).toEqual(["articles/live.md", "about.md"]);
     expect(v.issues).toEqual([]);
   });
 

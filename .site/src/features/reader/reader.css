@@ -125,6 +125,30 @@
   font-size: var(--font-size-sm);
 }
 
+/* Links at the end of an article or page ("All articles →", "Start reading the book →"). */
+.reader-end {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  margin-block-start: var(--space-12);
+  padding-block-start: var(--space-4);
+  border-block-start: 1px solid var(--color-divider);
+  font-family: var(--font-sans);
+}
+
+/* A comfortable target on a phone (WCAG 2.5.8): the line box alone is under 24 px. */
+.reader-end a {
+  display: inline-block;
+  padding-block: var(--space-2);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.reader-end a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 @media (min-width: 1100px) {
   .chapter-number {
     font-size: var(--font-size-chapter-number);

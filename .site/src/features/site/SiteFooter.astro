@@ -1,12 +1,13 @@
 ---
 /**
- * The site footer (REQ-SITE-008): "© <year> <author>", with links to the About page and the portfolio. The year is
+ * The site footer (REQ-SITE-008): "© <year> <author>", with links to the About page (when there is one,
+ * REQ-SITE-003.AC2) and the portfolio. The year is
  * the build's, in UTC (data-model.md), so a page built on 31 December reads the same everywhere.
  */
 import { url } from "./url.ts";
 
 interface Props {
-  book: { author: string; authorUrl: string };
+  book: { author: string; authorUrl: string; hasAbout: boolean };
 }
 const { book } = Astro.props;
 const year = new Date().getUTCFullYear();
@@ -16,7 +17,7 @@ const year = new Date().getUTCFullYear();
   <div class="site-wrap footer-row">
     <p class="copyright">© {year} {book.author}</p>
     <nav aria-label="Footer">
-      <a href={url({ kind: "about" })}>About</a>
+      {book.hasAbout && <a href={url({ kind: "about" })}>About</a>}
       <a class="external" href={book.authorUrl}>Portfolio<span class="visually-hidden"> (external site)</span></a>
     </nav>
   </div>

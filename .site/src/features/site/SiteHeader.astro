@@ -3,15 +3,17 @@
  * The site header (REQ-SITE-001, design/components.md SiteHeader): the book's title (home), "by <author>", and links
  * to Contents, Articles, About and the author's portfolio. Wide screens show the links in a row; under 768 px they
  * sit behind a "Menu" disclosure, which opens without JavaScript. The portfolio link opens in the same tab and is
- * announced as an external site.
- * Props: `book` (title, author and portfolio address from book.md), `current` (the link that is this page:
+ * announced as an external site. "by <author>" links to the About page, or, when the vault has no about.md, to the
+ * portfolio, and the About link is left out (REQ-SITE-003.AC2).
+ * Props: `book` (title, author and portfolio address from book.md, and whether there's an About page), `current` (the link that is this page:
  * `aria-current="page"`) and `section` (the link whose section this page is in, such as Contents for a chapter:
  * `aria-current="true"`).
  */
+import AuthorLink from "./AuthorLink.astro";
 import { url } from "./url.ts";
 
 interface Props {
-  book: { title: string; author: string; authorUrl: string };
+  book: { title: string; author: string; authorUrl: string; hasAbout: boolean };
   current?: "contents" | "articles" | "about";
   section?: "contents" | "articles" | "about";
 }
@@ -20,7 +22,7 @@ const mark = (key: string) => (current === key ? "page" : section === key ? "tru
 const links = [
   { key: "contents", label: "Contents", href: url({ kind: "contents" }) },
   { key: "articles", label: "Articles", href: url({ kind: "articles" }) },
-  { key: "about", label: "About", href: url({ kind: "about" }) },
+  ...(book.hasAbout ? [{ key: "about", label: "About", href: url({ kind: "about" }) }] : []),
 ] as const;
 ---
 
@@ -28,7 +30,7 @@ const links = [
   <div class="site-wrap header-row">
     <p class="brand">
       <a class="brand-title" href={url({ kind: "home" })}>{book.title}</a>
-      <span class="byline">by <a href={url({ kind: "about" })}>{book.author}</a></span>
+      <span class="byline">by <AuthorLink book={book} /></span>
     </p>
     <nav class="nav-inline" aria-label="Site">
       {links.map((l) => <a href={l.href} aria-current={mark(l.key)}>{l.label}</a>)}

@@ -30,14 +30,20 @@ test.describe("article page", () => {
     await expect(date).toHaveAttribute("datetime", "2026-11-01");
     await expect(page.locator(".reader-meta")).toHaveText(/^1 November 2026 · \d+ min read$/);
     const end = page.getByRole("navigation", { name: "After the article" });
-    await expect(end.getByRole("link", { name: "All articles →" })).toHaveAttribute("href", "/system-design-from-first-principles/articles/");
-    await expect(end.getByRole("link", { name: "Read the book →" })).toHaveAttribute("href", "/system-design-from-first-principles/book/");
+    await expect(end.getByRole("link", { name: "All articles →" })).toHaveAttribute(
+      "href",
+      "/system-design-from-first-principles/articles/",
+    );
+    await expect(end.getByRole("link", { name: "Read the book →" })).toHaveAttribute(
+      "href",
+      "/system-design-from-first-principles/book/",
+    );
   });
 
   test("keeps the end links comfortable targets on a phone", async ({ page, viewport }) => {
     test.skip(viewport?.width !== 320, "320 px only");
     await page.goto(ARTICLE);
-    for (const link of await page.locator(".article-end a").all())
+    for (const link of await page.locator(".reader-end a").all())
       expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(24);
   });
 });

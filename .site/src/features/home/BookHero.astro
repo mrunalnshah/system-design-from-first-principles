@@ -1,7 +1,7 @@
 ---
 /**
  * The book hero at the top of the homepage (REQ-HOME-001, design/components.md BookHero, design/screens/home.md):
- * the title as the page's only `h1`, the subtitle, "by <author>" (to About), the pitch (the body of book.md, rendered
+ * the title as the page's only `h1`, the subtitle, "by <author>" (to About, or to the portfolio when there's no about.md), the pitch (the body of book.md, rendered
  * by the vault loader), "N chapters · M min read", the primary "Read from the start" (the first published chapter)
  * and "Contents →". Beside it at 1100 px and wider, below the title on a phone: the hero diagram from book.md's
  * `hero_image` (MOD-diagrams' figure, light or dark by the system theme with no JavaScript, loaded first since it's
@@ -11,7 +11,7 @@
 import { firstChapter } from "../book/index.ts";
 import type { Book } from "../content/index.ts";
 import { DiagramFigure } from "../diagrams/index.ts";
-import { url } from "../site/index.ts";
+import { AuthorLink, url } from "../site/index.ts";
 
 interface Props {
   book: Book;
@@ -27,7 +27,7 @@ const count = book.chapters.length;
     <h1 id="book-title">{settings.title}</h1>
     {settings.subtitle && <p class="hero-subtitle">{settings.subtitle}</p>}
     <p class="hero-author">
-      by <a href={url({ kind: "about" })}>{settings.author}</a>
+      by <AuthorLink book={settings} />
     </p>
     {settings.heroImage && (
       <div class="hero-art">
@@ -85,9 +85,11 @@ const count = book.chapters.length;
     font-size: 0.9375rem;
   }
 
-  .hero-author a {
+  /* The link is AuthorLink's (MOD-site), so it's reached with :global. A 24 px target (WCAG 2.5.8). */
+  .hero-author :global(a) {
     display: inline-flex;
     align-items: center;
+    column-gap: 0.25em; /* the ↗ of a portfolio link is a flex item of its own */
     min-block-size: 24px;
   }
 

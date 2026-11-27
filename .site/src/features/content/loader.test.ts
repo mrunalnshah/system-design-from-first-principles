@@ -54,6 +54,18 @@ describe("vault loader", () => {
     expect(tcp.hasFootnotes).toBe(true);
     expect(vault.articles.map((a) => a.slug)).toEqual(["why-caches"]);
     expect(vault.pages.map((p) => p.slug)).toEqual(["about"]);
+    expect(vault.book!.hasAbout).toBe(true);
+  });
+
+  // @req REQ-SITE-003.AC2
+  it("tells the pages there's no About page when the vault has no about.md", async () => {
+    const copy = mkdtempSync(join(tmpdir(), "sdfp-loader-no-about-"));
+    made.push(copy);
+    cpSync(fixture, copy, { recursive: true });
+    rmSync(join(copy, "about.md"));
+    const vault = await buildVault(options(copy));
+    expect([vault.pages, vault.book!.hasAbout]).toEqual([[], false]);
+    expect(vault.issues.map((i) => i.code)).toContain("W-ABOUT-MISSING");
   });
 
   it("writes part numbers as Roman numerals", () => {

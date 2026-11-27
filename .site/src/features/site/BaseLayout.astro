@@ -6,7 +6,7 @@
  *
  * Props: `title` (the page's own title; the book's is added), `description` (one sentence for search results and link
  * previews), `route` (this page's address, for the canonical link; leave it out for the 404 and redirect pages, which
- * get `noindex`), `ogImage` (an asset path for link previews), `book` (title, author and portfolio from book.md:
+ * get `noindex`), `ogImage` (an asset path for link previews), `book` (title, author and portfolio from book.md, and whether there's an About page:
  * this module can't read the vault, so pages hand it over), `current` / `section` (the header link that is this page,
  * or whose section it's in), and `type`. Slot `head`: extra head elements a page needs (a chapter's rel=prev/next links).
  */
@@ -25,7 +25,7 @@ interface Props {
   description: string;
   route?: Route;
   ogImage?: string;
-  book: { title: string; author: string; authorUrl: string };
+  book: { title: string; author: string; authorUrl: string; hasAbout: boolean };
   current?: "contents" | "articles" | "about";
   section?: "contents" | "articles" | "about";
   type?: PageHead["type"];

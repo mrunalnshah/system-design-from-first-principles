@@ -7,6 +7,8 @@ import { scanVault } from "./scan.ts";
 const fixture = join(import.meta.dirname, "../../../tests/fixtures/vault");
 
 const made: string[] = [];
+/** An About page, for vaults whose test is about something else (with none, the scan warns: W-ABOUT-MISSING). */
+const ABOUT = { "about.md": "About me.\n" };
 /** A throwaway vault with the given files (path → text). */
 function vault(files: Record<string, string>): string {
   const root = mkdtempSync(join(tmpdir(), "sdfp-vault-"));
@@ -42,7 +44,7 @@ describe("vault scan", () => {
 
   // @req REQ-CNT-001.AC3
   it("stops with an error naming both files when two chapters share a number anywhere in the book", () => {
-    const root = vault({ "part-1_a/chapter-3_x.md": "X", "part-2_b/chapter-3_y.md": "Y" });
+    const root = vault({ "part-1_a/chapter-3_x.md": "X", "part-2_b/chapter-3_y.md": "Y", ...ABOUT });
     const [issue, ...rest] = scanVault(root).issues;
     expect(rest).toEqual([]);
     expect(issue).toMatchObject({ severity: "error", code: "E-CHAPTER-DUPLICATE", file: "part-1_a/chapter-3_x.md" });
@@ -99,7 +101,7 @@ describe("vault scan", () => {
   });
 
   it("reports two chapters that would share an address, and a reserved slug", () => {
-    const root = vault({ "part-1_a/chapter-1_caching.md": "X", "part-2_b/chapter-2_caching.md": "Y", "articles/404.md": "---\ndate: 2026-11-01\n---\nZ" });
+    const root = vault({ "part-1_a/chapter-1_caching.md": "X", "part-2_b/chapter-2_caching.md": "Y", "articles/404.md": "---\ndate: 2026-11-01\n---\nZ", ...ABOUT });
     const issues = scanVault(root).issues;
     expect(issues.map((i) => [i.code, i.file])).toEqual([
       ["E-SLUG-CLASH", "part-1_a/chapter-1_caching.md"],
@@ -108,8 +110,20 @@ describe("vault scan", () => {
     expect(issues[0]!.fix).toBe("Rename one file. Files: part-1_a/chapter-1_caching.md, part-2_b/chapter-2_caching.md.");
   });
 
-  it("leaves out a part with no chapters, and an empty vault is just empty", () => {
+  it("leaves out a part with no chapters, and an empty vault is just empty, apart from the missing About page", () => {
     expect(scanVault(vault({ "part-1_a/notes.md": "x" })).parts).toEqual([]);
-    expect(scanVault(vault({}))).toEqual({ parts: [], chapters: [], articles: [], pages: [], issues: [] });
+    const empty = scanVault(vault({}));
+    expect({ ...empty, issues: [] }).toEqual({ parts: [], chapters: [], articles: [], pages: [], issues: [] });
+    expect(empty.issues.map((i) => i.code)).toEqual(["W-ABOUT-MISSING"]);
+  });
+
+  // @req REQ-SITE-003.AC2
+  it("warns with W-ABOUT-MISSING when there's no about.md, and not for a draft one", () => {
+    const [issue, ...rest] = scanVault(vault({ "part-1_a/chapter-1_x.md": "X" })).issues;
+    expect(rest).toEqual([]);
+    expect(issue).toMatchObject({ severity: "warning", code: "W-ABOUT-MISSING", file: "about.md" });
+    expect(issue!.fix.startsWith("Create about.md to get an About page.")).toBe(true);
+    const draft = scanVault(vault({ "about.md": "---\ndraft: true\n---\nLater.\n" }));
+    expect([draft.pages, draft.issues]).toEqual([[], []]);
   });
 });

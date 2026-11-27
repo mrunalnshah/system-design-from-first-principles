@@ -125,6 +125,11 @@ a:hover {
   min-block-size: 24px;
 }
 
+/* In an inline-flex link the ↗ is a flex item of its own, so its leading space collapses: keep the gap. */
+.byline a.external {
+  column-gap: 0.25em;
+}
+
 .byline {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);

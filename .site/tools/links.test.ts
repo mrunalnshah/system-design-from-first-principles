@@ -34,11 +34,12 @@ describe("the link check", () => {
       "book/x/index.html": `<!doctype html><title>X</title><a href="${BASE}book/gone/">gone</a><a href="${BASE}">home</a><a href="${BASE}about/">about</a><a href="${BASE}about/x/">not allowed</a><a href="${BASE}articles/why-caches/">article</a><a href="${BASE}articles/x/y/">not an article</a>`,
     });
     const { problems, allowed } = await brokenLinks(siteRootOf(), dist, BASE);
-    // about/ is allowed while it isn't built (CR-0008); an article's own address isn't any more, since T-03.01 builds
-    // article pages (CR-0010), and about/x/ and articles/x/y/ were never addresses the plan links to ahead of time.
-    expect([...allowed].sort()).toEqual(["about/"]);
+    // Nothing is allowed any more (CR-0008, CR-0010): every page the plan linked to ahead of time is built, so an
+    // unbuilt about/ or article is as broken as any other address.
+    expect([...allowed]).toEqual([]);
     // Sorted: linkinator checks links concurrently, so the order it reports them in can change from run to run.
     expect(problems.map((p) => [p.page, p.address]).sort()).toEqual([
+      ["book/x/", `${BASE}about/`],
       ["book/x/", `${BASE}about/x/`],
       ["book/x/", `${BASE}articles/why-caches/`],
       ["book/x/", `${BASE}articles/x/y/`],
@@ -56,14 +57,13 @@ describe("the built site", () => {
   }, 120_000);
 
   // @req TOOL-12.AC2
-  it("resolves every internal link, with only the not-yet-built pages allowed (CR-0008, CR-0010)", async () => {
+  it("resolves every internal link, with no page allowed to be missing (CR-0008, CR-0010)", async () => {
     const result = await checkLinks(siteRootOf(), dist);
     expect(result.problems).toEqual([]);
     expect(result.checked).toBeGreaterThan(20);
-    // Exactly Articles and About may be missing, and only while they are (Contents is built since T-02.03).
-    expect(NOT_YET_BUILT).toEqual(["articles/", "about/"]);
-    // The fixture builds the archive (T-03.02) and its one article (T-03.01, CR-0010), so neither needs an
-    // allowance; only About is still allowed until it's built; nothing else.
-    expect([...result.allowed].sort()).toEqual(["about/"]);
+    // The fixture builds Contents, the archive, its one article and About (T-02.03, T-03.01 to T-03.03), so no
+    // address needs an allowance, and none is allowed.
+    expect(NOT_YET_BUILT).toEqual([]);
+    expect(result.allowed).toEqual([]);
   }, 120_000);
 });

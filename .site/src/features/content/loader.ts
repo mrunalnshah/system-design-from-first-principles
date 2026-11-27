@@ -45,11 +45,12 @@ export type ChapterData = EntryData & {
 export type ArticleData = EntryData & { kind: "article"; date?: string };
 export type PageData = EntryData & { kind: "page" };
 /**
+ * `hasAbout`: a published about.md exists, so pages may link to `about/`.
  * `heroImagePath`: book.md's `hero_image` found as an embed would be (a file name or path, any case, closest to
  * book.md), for the homepage's figure; undefined without a `hero_image`. When nothing matches it keeps the name as
  * written, and the build stops with E-EMBED-MISSING from drawing it.
  */
-export type BookData = BookSettings & { pitchHtml: string; heroImagePath?: string };
+export type BookData = BookSettings & { pitchHtml: string; heroImagePath?: string; hasAbout: boolean };
 
 /** The whole published vault, rendered. `book` is undefined when book.md is missing or wrong (an error is reported). */
 export type RenderedVault = { book?: BookData; chapters: ChapterData[]; articles: ArticleData[]; pages: PageData[]; issues: BuildIssue[] };
@@ -107,7 +108,8 @@ export async function buildVault(options: LoaderOptions): Promise<RenderedVault>
 
   let book: BookData | undefined;
   if (vault.book) {
-    book = { ...vault.book, pitchHtml: (await render("book.md", vault.book.pitchMarkdown, false)).html };
+    // hasAbout: whether there's an About page to link to (REQ-SITE-003.AC2); the header and footer can't read the vault.
+    book = { ...vault.book, pitchHtml: (await render("book.md", vault.book.pitchMarkdown, false)).html, hasAbout: pages.some((p) => p.slug === "about") };
     if (vault.book.heroImage) {
       // Drawn here like every figure, during content sync, so the diagram route publishes it (CR-0007). The homepage
       // draws it again, eagerly; its problems are the same and reported once. A hero needs no caption.

@@ -1,0 +1,25 @@
+---
+/**
+ * The author's name as a link (REQ-SITE-001, REQ-SITE-003.AC2): to the About page when the vault has about.md, else
+ * to the portfolio, announced as an external site and marked ↗ like the header's Portfolio link. One place for that
+ * choice, so the header's byline and the homepage hero's "by <author>" always agree.
+ * Props: `book` (the author, the portfolio address and whether there's an About page, from book.md and the vault).
+ */
+import { url } from "./url.ts";
+
+interface Props {
+  book: { author: string; authorUrl: string; hasAbout: boolean };
+}
+const { book } = Astro.props;
+---
+
+{
+  book.hasAbout ? (
+    <a href={url({ kind: "about" })}>{book.author}</a>
+  ) : (
+    <a class="external" href={book.authorUrl}>
+      {book.author}
+      <span class="visually-hidden"> (external site)</span>
+    </a>
+  )
+}

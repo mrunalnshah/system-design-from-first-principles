@@ -1,0 +1,47 @@
+---
+/**
+ * The About page at `about/` (REQ-SITE-003, routes.md, design/screens/about.md): "About", the author's name as the
+ * title, the rendered about.md in the reading view (headings unnumbered), then the portfolio and "Start reading the
+ * book →". Only when the vault has a published about.md: with none, getStaticPaths gives no path, so there's no
+ * About page at all (REQ-SITE-003.AC2); the scan warns W-ABOUT-MISSING and the header's name links to the portfolio.
+ * A dynamic route for that reason: a plain `about.astro` would always be built. `about` is its only page.
+ */
+import type { GetStaticPaths } from "astro";
+import { firstChapter } from "../features/book/index.ts";
+import { getBook, getPage, type BookData, type PageData } from "../features/content/index.ts";
+import { ReaderLayout } from "../features/reader/index.ts";
+import { BaseLayout, url } from "../features/site/index.ts";
+
+export const getStaticPaths = (async () => {
+  const [about, book] = await Promise.all([getPage("about"), getBook()]);
+  if (!about) return [];
+  const first = firstChapter(book);
+  const start = first ? url({ kind: "chapter", slug: first.slug }) : url({ kind: "contents" });
+  return [{ params: { page: "about" }, props: { about, book: book.settings, start } }];
+}) satisfies GetStaticPaths;
+
+interface Props {
+  about: PageData;
+  /** book.md's settings: the author's name and portfolio, and the header and footer. */
+  book: BookData;
+  /** Chapter 1's address, or the contents page while no chapter is published. */
+  start: string;
+}
+const { about, book, start } = Astro.props;
+// "mrunalnshah.github.io" from "https://mrunalnshah.github.io/": the address as a reader would type it.
+const portfolio = book.authorUrl.replace(/^https:\/\//, "").replace(/\/$/, "");
+---
+
+<BaseLayout title="About" description={about.summary} route={{ kind: "about" }} book={book} current="about">
+  <ReaderLayout kind="page" diagrams={about.hasDiagrams}>
+    <header class="reader-head">
+      <p class="reader-eyebrow">About</p>
+      <h1>{book.author}</h1>
+    </header>
+    <div class="prose"><Fragment set:html={about.html} /></div>
+    <nav slot="end" class="reader-end" aria-label="After the page">
+      <a href={book.authorUrl}>Portfolio: {portfolio}<span class="visually-hidden"> (external site)</span> →</a>
+      <a href={start}>Start reading the book →</a>
+    </nav>
+  </ReaderLayout>
+</BaseLayout>

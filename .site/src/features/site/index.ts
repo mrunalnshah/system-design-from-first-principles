@@ -10,3 +10,4 @@ export { buildReport, stopOnErrors } from "./build-report.ts";
 export { vaultRoot } from "./vault-root.ts";
 export { buildRun, type BuildRun } from "./build-run.ts";
 export { default as BaseLayout } from "./BaseLayout.astro";
+export { default as AuthorLink } from "./AuthorLink.astro";
