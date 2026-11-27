@@ -80,3 +80,14 @@ Passes run at intake, after the specification, during the stack choice and after
   1. Spike S-02 (2 minutes, with the author): turn both settings on, save one drawing, and record the file names; the pair rule already accepts `-light`/`-dark` and `.light`/`.dark`.
 - Status: resolved
 - Decision: S-02 (T-00.11, 2026-11-26), with the author: with "Auto-export SVG" and "Export both dark- and light-themed image" on (PNG off), saving a drawing writes `<drawing>.excalidraw.light.svg` and `<drawing>.excalidraw.dark.svg` next to it, in the same folder as the source (seen: `part-1_foundations/excalidraw/01_computer-architecture.excalidraw.light.svg` and `.dark.svg`). That's the `.light`/`.dark` style REQ-DIAG-001.AC6 already covers, so the pair rule needs no change. The `.excalidraw.md` source stays gitignored; only the SVGs are committed.
+
+### CNF-009 The homepage links to article pages before they're built
+- Between: REQ-HOME-003 and design/components.md ArticleRow (each row opens its article; T-02.06, R-12), TOOL-12.AC2 and CR-0008 (the link check allows exactly the not-yet-built `articles/` and `about/`), and the plan's order (article pages at `/articles/<slug>/` arrive in T-03.01, R-13)
+- Type: false assumption (found 2026-11-27 in T-02.06's Verify)
+- Why: CR-0008 assumed only the header and footer link to pages that don't exist yet. The homepage's latest articles now link to each published article. The fixture vault publishes one (`articles/why-caches.md`), so `tools/links.test.ts` (TOOL-12.AC2) finds `articles/why-caches/` broken. The author's vault has no `articles/` folder, so the live build's link check still passes; only the test, and so the publish workflow's checks job, fails.
+- Options:
+  1. Change request: the link check also allows `articles/<slug>/` for a published article while no article page is built, and T-03.01 removes that allowance (its acceptance gains "no allowance for article pages"). Cost: one line in tools/links.ts and its test; nothing for readers.
+  2. Build the article page (T-03.01, 2 points) in this round. Cost: moves a task out of R-13 (a scope and round change).
+  3. Show the rows without links until T-03.01. Cost: breaks ArticleRow ("one link per row") for a round; the e2e and unit tests would need a temporary exception.
+- Status: resolved
+- Decision: option 1 (author, 2026-11-27), as CR-0010.

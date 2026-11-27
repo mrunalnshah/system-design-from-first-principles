@@ -106,3 +106,58 @@ test.describe("homepage hero", () => {
     }
   });
 });
+
+/** T-02.06: the fixture vault features no chapter, so the section is "Start here"; it has one article, why-caches. */
+test.describe("homepage sections", () => {
+  // @req REQ-HOME-002.AC2
+  test('shows "Start here" with the published chapters as cards, Chapter 1 first, and opens one', async ({ page }) => {
+    await page.goto(HOME);
+    const section = page.locator("section", { has: page.getByRole("heading", { level: 2, name: "Start here" }) });
+    await expect(section).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Featured chapters" })).toHaveCount(0);
+    // Chapter 3 is a draft: only the two published chapters show.
+    const cards = section.getByRole("link").filter({ hasNot: page.getByText("All chapters") });
+    await expect(cards).toHaveCount(2);
+    await expect(cards.first()).toHaveAccessibleName("Chapter 1: Computer Architecture");
+    await expect(cards.first()).toHaveAccessibleDescription(/^Part I · Foundations .+ \d+ min read$/);
+    await expect(cards.nth(1)).toHaveAccessibleName("Chapter 2: Tcp");
+    await expect(cards.nth(1)).toHaveAccessibleDescription(/How TCP turns lost packets into a reliable stream\./);
+    await expect(section.getByRole("link", { name: "All chapters →" })).toHaveAttribute("href", /\/book\/$/);
+    // Anywhere on the card opens it, not only the title.
+    // (Near its bottom, over the reading time: the title's link covers the whole card.)
+    const card = section.locator(".card").first();
+    const box = (await card.boundingBox())!;
+    await card.click({ position: { x: box.width / 2, y: box.height - 12 } });
+    await expect(page).toHaveURL(/\/book\/computer-architecture\/$/);
+  });
+
+  test("lists the latest article with its date and reading time, and an All articles link", async ({ page }) => {
+    await page.goto(HOME);
+    const section = page.locator("section", { has: page.getByRole("heading", { level: 2, name: "Latest articles" }) });
+    const link = section.getByRole("link", { name: "Why Caches" });
+    await expect(link).toHaveAttribute("href", /\/articles\/why-caches\/$/);
+    await expect(link).toHaveAccessibleDescription(/^1 November 2026 · \d+ min read A disk read feels slow because it is\.$/);
+    const row = section.locator(".row").filter({ has: page.getByRole("link", { name: "Why Caches" }) });
+    await expect(row.locator("time")).toHaveAttribute("datetime", "2026-11-01");
+    await expect(row.locator("time")).toHaveText("1 November 2026");
+    await expect(row).toContainText(/\d+ min read/);
+    await expect(row).toContainText("A disk read feels slow because it is.");
+    await expect(section.getByRole("link", { name: "All articles →" })).toHaveAttribute("href", /\/articles\/$/);
+    await expect(row.getByText("Featured")).toHaveCount(0);
+  });
+
+  test("lays cards out 3 across at 1280 px, 2 at 768 px and 1 on a phone, every tap target at least 44 px tall", async ({
+    page,
+    viewport,
+  }) => {
+    await page.goto(HOME);
+    const columns = await page.locator(".cards").evaluate((g) => getComputedStyle(g).gridTemplateColumns.split(" ").length);
+    expect(columns).toBe(viewport!.width >= 1100 ? 3 : viewport!.width >= 768 ? 2 : 1);
+    // A card or row is its link's target (the title's link is stretched over it).
+    for (const link of await page.locator(".card, .row, .section-head a").all()) {
+      expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    }
+    await expectNoA11yViolations(page);
+    await expectNoHorizontalScroll(page);
+  });
+});

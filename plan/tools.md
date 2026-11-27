@@ -133,7 +133,7 @@ All tools live in `.site/tools/`, are reached through `.site/tools/cli.ts`, and 
 ### TOOL-12 Link check
 - Trigger: REQ-SITE-013 (base path), contracts/routes.md
 - Commands: `<tools> links`
-- Does: runs linkinator over `astro preview` under the real base path; fails on any broken internal link or asset, and on any internal `href`/`src` that doesn't start with the base path.
+- Does: runs linkinator over `astro preview` under the real base path; fails on any broken internal link or asset, and on any internal `href`/`src` that doesn't start with the base path. While a page the plan links to ahead of time isn't built, its address is allowed, and nothing else: Articles and About (CR-0008), and a published article's `articles/<slug>/` until T-03.01 builds article pages (CR-0010).
 - Builds on: linkinator 8.1.0
 - Runs: CI
 - Built in: T-01.20

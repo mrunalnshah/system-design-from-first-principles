@@ -1,20 +1,122 @@
 ---
 /**
- * The homepage (MOD-home, REQ-HOME-001…004, design/screens/home.md): the book hero now; featured chapters and the
- * latest articles join it in T-02.06. No JavaScript of its own, by construction: nothing here has a script, and
- * the hero's figure is a plain link (REQ-HOME-004).
- * Props: `book` (the published book), `articles` (published articles, for the latest-articles section, T-02.06).
+ * The homepage (MOD-home, REQ-HOME-001…004, design/screens/home.md): the book hero, then the featured chapters as
+ * cards (3 across from 1100 px, 2 from 768 px, 1 on a phone; "Start here" when none is featured), then the latest
+ * articles as rows at reading width, left out with their link when there are none. No JavaScript of its own, by
+ * construction: nothing here has a script, and the hero's figure is a plain link (REQ-HOME-004).
+ * Props: `book` (the published book), `articles` (the published articles, in any order).
  */
+import { ArticleRow } from "../articles/index.ts";
 import type { ArticleData, Book } from "../content/index.ts";
+import { url } from "../site/index.ts";
 import BookHero from "./BookHero.astro";
+import ChapterCard from "./ChapterCard.astro";
+import { selectFeaturedChapters, selectLatestArticles } from "./select.ts";
 
 interface Props {
   book: Book;
   articles: ArticleData[];
 }
-const { book } = Astro.props;
+const { book, articles } = Astro.props;
+const featured = selectFeaturedChapters(book);
+const latest = selectLatestArticles(articles);
 ---
 
 <div class="home site-wrap">
   <BookHero book={book} />
+  {featured.chapters.length > 0 && (
+    <section class="home-section" aria-labelledby="featured-heading">
+      <div class="section-head">
+        <h2 id="featured-heading">{featured.heading}</h2>
+        <a href={url({ kind: "contents" })}>All chapters →</a>
+      </div>
+      <ul class="cards" role="list">
+        {featured.chapters.map((chapter) => (
+          <li>
+            <ChapterCard chapter={chapter} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+  {latest.length > 0 && (
+    <section class="home-section" aria-labelledby="latest-heading">
+      <div class="section-head">
+        <h2 id="latest-heading">Latest articles</h2>
+        <a href={url({ kind: "articles" })}>All articles →</a>
+      </div>
+      <ul class="rows" role="list">
+        {latest.map((article) => (
+          <li>
+            <ArticleRow article={article} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
 </div>
+
+<style>
+  .home {
+    padding-block-end: var(--space-12);
+  }
+
+  .home-section {
+    padding-block-start: var(--space-12);
+  }
+
+  /* SectionHeading (design/components.md): the h2, and its "All …" link at the other end. */
+  .section-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0 var(--space-3);
+    margin-block-end: var(--space-4);
+  }
+
+  .section-head h2 {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    letter-spacing: -0.01em;
+  }
+
+  .section-head a {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 44px;
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+
+  .cards,
+  .rows {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  /* Rows at reading width; their heading's link stays at the far end, as for the cards. */
+  .rows {
+    max-inline-size: 44rem;
+    border-block-start: 1px solid var(--color-divider);
+  }
+
+  @media (min-width: 768px) {
+    .cards {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1100px) {
+    .cards {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+</style>

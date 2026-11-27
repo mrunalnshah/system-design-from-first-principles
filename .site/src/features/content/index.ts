@@ -6,6 +6,6 @@
  */
 export { readVault, type Vault } from "./vault.ts";
 export { buildVault, vaultLoader, type ArticleData, type BookData, type ChapterData, type Collection, type LoaderOptions, type PageData, type RenderedVault } from "./loader.ts";
-export { bookOf, getArticles, getBook, getPage, type Book, type Part } from "./queries.ts";
+export { bookOf, byFeaturedThenNewest, getArticles, getBook, getPage, type Book, type Part } from "./queries.ts";
 export type { BookSettings } from "./book-settings.ts";
 export type { ScannedArticle, ScannedChapter, ScannedPage, ScannedPart } from "./scan.ts";

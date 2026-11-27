@@ -39,11 +39,17 @@ export function bookOf(settings: BookData, published: ChapterData[]): Book {
   return { settings, parts, chapters, totalReadingMinutes: chapters.reduce((n, c) => n + c.readingMinutes, 0) };
 }
 
+/**
+ * The order articles are listed in: featured first, then newest first, then undated ones, then by slug (so it never
+ * depends on the file system). ISO dates sort as text; an undated article ("" here) goes after every dated one.
+ */
+export function byFeaturedThenNewest(a: ArticleData, b: ArticleData): number {
+  return Number(b.featured) - Number(a.featured) || (b.date ?? "").localeCompare(a.date ?? "") || a.slug.localeCompare(b.slug);
+}
+
 /** Published articles: featured first, then newest first, then undated. */
 export async function getArticles(): Promise<ArticleData[]> {
-  return (await entries<ArticleData>("articles")).sort(
-    (a, b) => Number(b.featured) - Number(a.featured) || (b.date ?? "").localeCompare(a.date ?? "") || a.slug.localeCompare(b.slug),
-  );
+  return (await entries<ArticleData>("articles")).sort(byFeaturedThenNewest);
 }
 
 export async function getPage(slug: "about"): Promise<PageData | undefined> {

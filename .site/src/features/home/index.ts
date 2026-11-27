@@ -3,3 +3,4 @@
  * Pages import only from here (TOOL-06).
  */
 export { default as HomePage } from "./HomePage.astro";
+export { selectFeaturedChapters, selectLatestArticles, type FeaturedChapters } from "./select.ts";

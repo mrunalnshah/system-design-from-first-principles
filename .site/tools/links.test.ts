@@ -31,14 +31,16 @@ describe("the link check", () => {
   it("finds an internal link that doesn't resolve, naming the page it's on", async () => {
     const dist = site({
       "index.html": `<!doctype html><title>Home</title><a href="${BASE}book/x/">x</a>`,
-      "book/x/index.html": `<!doctype html><title>X</title><a href="${BASE}book/gone/">gone</a><a href="${BASE}">home</a><a href="${BASE}about/">about</a><a href="${BASE}about/x/">not allowed</a>`,
+      "book/x/index.html": `<!doctype html><title>X</title><a href="${BASE}book/gone/">gone</a><a href="${BASE}">home</a><a href="${BASE}about/">about</a><a href="${BASE}about/x/">not allowed</a><a href="${BASE}articles/why-caches/">article</a><a href="${BASE}articles/x/y/">not an article</a>`,
     });
     const { problems, allowed } = await brokenLinks(siteRootOf(), dist, BASE);
-    // about/ is allowed while it isn't built (CR-0008); about/x/ isn't one of the three addresses.
-    expect(allowed).toEqual(["about/"]);
+    // about/ is allowed while it isn't built (CR-0008), and so is an article's own address (CR-0010); about/x/ and
+    // articles/x/y/ aren't addresses the plan links to ahead of time.
+    expect([...allowed].sort()).toEqual(["about/", "articles/why-caches/"]);
     expect(problems.map((p) => [p.page, p.address])).toEqual([
       ["book/x/", `${BASE}book/gone/`],
       ["book/x/", `${BASE}about/x/`],
+      ["book/x/", `${BASE}articles/x/y/`],
     ]);
     expect(problems[0]!.problem).toMatch(/doesn't resolve \(404\)/);
   }, 60_000);
@@ -52,13 +54,14 @@ describe("the built site", () => {
   }, 120_000);
 
   // @req TOOL-12.AC2
-  it("resolves every internal link, with only the not-yet-built pages allowed (CR-0008)", async () => {
+  it("resolves every internal link, with only the not-yet-built pages allowed (CR-0008, CR-0010)", async () => {
     const result = await checkLinks(siteRootOf(), dist);
     expect(result.problems).toEqual([]);
     expect(result.checked).toBeGreaterThan(20);
     // Exactly Articles and About may be missing, and only while they are (Contents is built since T-02.03).
     expect(NOT_YET_BUILT).toEqual(["articles/", "about/"]);
-    // The fixture builds neither yet, so both are allowed, and nothing else.
-    expect([...result.allowed].sort()).toEqual(["about/", "articles/"]);
+    // The fixture builds neither yet, so both are allowed, and the homepage's link to its one published article
+    // until T-03.01 builds article pages (CR-0010); nothing else.
+    expect([...result.allowed].sort()).toEqual(["about/", "articles/", "articles/why-caches/"]);
   }, 120_000);
 });

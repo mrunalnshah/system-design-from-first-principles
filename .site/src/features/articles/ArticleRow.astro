@@ -1,0 +1,112 @@
+---
+/**
+ * One article in a list (design/components.md ArticleRow; the homepage's latest articles, REQ-HOME-003, and the
+ * archive, T-03.02): the title, a "Featured" tag when the article is featured, the date ("1 November 2026" in a
+ * `<time datetime>`, left out when undated), the reading time and the summary (2 lines at most). One link per row:
+ * the title, stretched over the row so the row is what you click; the tag, date, time and summary describe it.
+ * Only the title is the link's name, so its name holds all its visible text (WCAG 2.5.3).
+ * Props: `article` (a published article). The parent puts each row in a list item.
+ */
+import type { ArticleData } from "../content/index.ts";
+import { url } from "../site/index.ts";
+
+interface Props {
+  article: ArticleData;
+}
+const { article } = Astro.props;
+const id = `article-${article.slug}`;
+// Dates are calendar days (YYYY-MM-DD): read and shown in UTC so the build's time zone can't move them a day.
+const shownDate =
+  article.date &&
+  new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(
+    new Date(`${article.date}T00:00:00Z`),
+  );
+const describedBy = [article.featured && `${id}-tag`, `${id}-meta`, `${id}-summary`].filter(Boolean).join(" ");
+---
+
+<div class="row">
+  <h3 class="row-title">
+    <a href={url({ kind: "article", slug: article.slug })} aria-describedby={describedBy}>{article.title}</a>
+    {article.featured && <span class="tag" id={`${id}-tag`}>Featured</span>}
+  </h3>
+  <p class="row-meta" id={`${id}-meta`}>
+    {shownDate && <><time datetime={article.date}>{shownDate}</time> · </>}{article.readingMinutes} min read
+  </p>
+  <p class="row-summary" id={`${id}-summary`}>{article.summary}</p>
+</div>
+
+<style>
+  .row {
+    position: relative;
+    padding-block: var(--space-4);
+    border-block-end: 1px solid var(--color-divider);
+  }
+
+  /* The whole row is the link's target; the ring goes round the row, not the title. */
+  .row a::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+
+  .row a:focus-visible {
+    outline: none;
+  }
+
+  .row:has(a:focus-visible) {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  .row-title {
+    margin: 0 0 var(--space-1);
+    font-size: 1.15rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .row-title a {
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .row:hover .row-title a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .tag {
+    display: inline-block;
+    margin-inline-start: var(--space-2);
+    padding: 3px 5px;
+    color: var(--color-accent);
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    font-size: 0.6875rem;
+    font-weight: var(--font-weight-semibold);
+    line-height: 1;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    vertical-align: 1px;
+  }
+
+  .row-meta {
+    margin: 0 0 var(--space-1);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+  }
+
+  /* Long summaries stop at 2 lines (design/screens/home.md, "Long text"). */
+  .row-summary {
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-size: 0.9375rem;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+</style>
