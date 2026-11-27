@@ -42,7 +42,7 @@ const count = book.chapters.length;
     </p>
     <div class="hero-actions">
       {first && (
-        <a class="button" href={url({ kind: "chapter", slug: first.slug })}>
+        <a class="primary-button" href={url({ kind: "chapter", slug: first.slug })}>
           Read from the start
         </a>
       )}
@@ -126,25 +126,7 @@ const count = book.chapters.length;
     gap: var(--space-3) var(--space-6);
   }
 
-  /* PrimaryButton (design/components.md): a link styled as a button, at least 44 px tall. */
-  .button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-block-size: 48px;
-    padding-inline: var(--space-6);
-    color: var(--color-on-accent);
-    background: var(--color-accent);
-    border-radius: var(--radius-md);
-    font-weight: var(--font-weight-semibold);
-    text-decoration: none;
-  }
-
-  .button:hover {
-    color: var(--color-on-accent);
-    background: var(--color-accent-hover);
-  }
-
+  /* "Contents →" beside the shared .primary-button (MOD-site): at least 44 px tall. */
   .hero-contents {
     display: inline-flex;
     align-items: center;
@@ -154,7 +136,8 @@ const count = book.chapters.length;
   }
 
   @media (max-width: 767.98px) {
-    .button {
+    /* The shared .primary-button (MOD-site), full width on a phone. */
+    .primary-button {
       inline-size: 100%;
     }
   }

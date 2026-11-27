@@ -4,36 +4,66 @@
  * without `.md`. The calm reader with no chapter menu and no big number; "Article", the title, then the date (left
  * out when undated, REQ-CNT-003.AC3) and reading time, the text (its headings unnumbered: the loader renders articles
  * without numbers), and the end links (REQ-READ-009). The HTML was rendered by the vault loader (ADR-0003).
+ * Each old slug in an article's `moved_from` gets a page here too, `articles/<old-slug>/`, that sends the reader
+ * on (REQ-BOOK-007.AC4, MOD-site's redirects).
  */
 import type { GetStaticPaths } from "astro";
 import { ArticleEnd, formatDate } from "../../features/articles/index.ts";
 import { getArticles, getBook, type ArticleData, type BookData } from "../../features/content/index.ts";
 import { ReaderLayout } from "../../features/reader/index.ts";
-import { BaseLayout } from "../../features/site/index.ts";
+import { BaseLayout, RedirectPage, redirectsFor, type Redirect } from "../../features/site/index.ts";
 
 export const getStaticPaths = (async () => {
   const [articles, book] = await Promise.all([getArticles(), getBook()]);
-  return articles.map((article) => ({ params: { slug: article.slug }, props: { article, book: book.settings } }));
+  const pages = articles.map((article) => ({
+    params: { slug: article.slug },
+    props: { article, book: book.settings },
+  }));
+  const moved = redirectsFor(articles).map((redirect) => {
+    const target = articles.find((a) => a.slug === redirect.to.slug);
+    if (!target)
+      throw new Error(
+        `Redirect target "${redirect.to.slug}" must be a published article (redirectsFor only redirects to one)`,
+      );
+    return { params: { slug: redirect.from.slug }, props: { redirect, title: target.title, book: book.settings } };
+  });
+  return [...pages, ...moved];
 }) satisfies GetStaticPaths;
 
-interface Props {
-  article: ArticleData;
-  /** book.md's settings, for the header and footer. */
-  book: BookData;
-}
-const { article, book } = Astro.props;
+/** `book`: book.md's settings, for the header and footer. */
+type Props = { article: ArticleData; book: BookData } | { redirect: Redirect; title: string; book: BookData };
+const props = Astro.props;
+const { book } = props;
+const article = "article" in props ? props.article : undefined;
 ---
 
-<BaseLayout title={article.title} description={article.summary} route={{ kind: "article", slug: article.slug }} book={book} section="articles" type="article">
-  <ReaderLayout kind="article" diagrams={article.hasDiagrams}>
-    <header class="reader-head">
-      <p class="reader-eyebrow">Article</p>
-      <h1>{article.title}</h1>
-      <p class="reader-meta">
-        {article.date && <><time datetime={article.date}>{formatDate(article.date)}</time> · </>}{article.readingMinutes} min read
-      </p>
-    </header>
-    <div class="prose"><Fragment set:html={article.html} /></div>
-    <ArticleEnd slot="end" />
-  </ReaderLayout>
-</BaseLayout>
+{"redirect" in props && <RedirectPage redirect={props.redirect} title={props.title} book={book} />}
+{article && (
+  <BaseLayout
+    title={article.title}
+    description={article.summary}
+    route={{ kind: "article", slug: article.slug }}
+    book={book}
+    section="articles"
+    type="article"
+  >
+    <ReaderLayout kind="article" diagrams={article.hasDiagrams}>
+      <header class="reader-head">
+        <p class="reader-eyebrow">Article</p>
+        <h1>{article.title}</h1>
+        <p class="reader-meta">
+          {article.date && (
+            <>
+              <time datetime={article.date}>{formatDate(article.date)}</time> ·{" "}
+            </>
+          )}
+          {article.readingMinutes} min read
+        </p>
+      </header>
+      <div class="prose">
+        <Fragment set:html={article.html} />
+      </div>
+      <ArticleEnd slot="end" />
+    </ReaderLayout>
+  </BaseLayout>
+)}

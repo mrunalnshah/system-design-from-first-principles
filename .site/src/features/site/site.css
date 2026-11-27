@@ -82,6 +82,37 @@ a:hover {
   padding-inline: var(--space-4);
 }
 
+/*
+ * A short centred message (the 404, a redirect from an old address): 34rem of text plus .site-wrap's gutters,
+ * which widen at 768 px. Use with .site-wrap.
+ */
+.centred-column {
+  max-inline-size: calc(34rem + 2 * var(--space-4));
+  padding-block: var(--space-16) var(--space-6);
+  text-align: center;
+}
+
+/* The primary button (design/components.md PrimaryButton): "Read from the start", "Go to …". A 48 px target. */
+.primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 48px;
+  padding-inline: var(--space-6);
+  color: var(--color-on-accent);
+  background: var(--color-accent);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.primary-button:hover {
+  color: var(--color-on-accent);
+  background: var(--color-accent-hover);
+  text-decoration: none;
+}
+
 /* Header */
 .site-header {
   position: sticky;
@@ -202,6 +233,10 @@ a:hover {
 }
 
 @media (min-width: 768px) {
+  .centred-column {
+    max-inline-size: calc(34rem + 2 * var(--space-8));
+  }
+
   .site-wrap {
     padding-inline: var(--space-8);
   }

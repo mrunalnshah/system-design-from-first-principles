@@ -1,0 +1,46 @@
+---
+/**
+ * The page at an old address (REQ-BOOK-007, design/screens/not-found.md "moved" state): it sends the reader to the
+ * current address at once with a meta refresh, which works without JavaScript, and says so in words with a link,
+ * in case a browser doesn't follow it. A canonical link points search engines at the current page, and the page
+ * itself is `noindex` (no `route` for BaseLayout), which also keeps it out of the sitemap (astro.config.ts).
+ * Props: `redirect` (from the old address to the current one), `title` (the current page's title, for the link),
+ * `book` (book.md's settings, for the header and footer).
+ */
+import BaseLayout from "./BaseLayout.astro";
+import type { Redirect } from "./redirects.ts";
+import { absoluteUrl, url } from "./url.ts";
+
+interface Props {
+  redirect: Redirect;
+  title: string;
+  book: { title: string; author: string; authorUrl: string; hasAbout: boolean };
+}
+const { redirect, title, book } = Astro.props;
+const to = url(redirect.to);
+const what = redirect.to.kind === "chapter" ? "chapter" : "article";
+---
+
+<BaseLayout title={`Moved: ${title}`} description={`This ${what} has moved to a new address.`} book={book}>
+  <meta slot="head" http-equiv="refresh" content={`0; url=${to}`} />
+  <link slot="head" rel="canonical" href={absoluteUrl(redirect.to)} />
+  <div class="moved site-wrap centred-column">
+    <h1>This {what} has moved</h1>
+    <p>Taking you to its new address…</p>
+    <a class="primary-button" href={to}>
+      Go to “{title}”
+    </a>
+  </div>
+</BaseLayout>
+
+<style>
+  .moved h1 {
+    margin: 0 0 var(--space-2);
+    font-size: var(--font-size-2xl);
+  }
+
+  .moved p {
+    margin: 0 0 var(--space-6);
+    color: var(--color-text-muted);
+  }
+</style>

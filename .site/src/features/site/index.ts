@@ -11,4 +11,6 @@ export { vaultRoot } from "./vault-root.ts";
 export { buildRun, type BuildRun } from "./build-run.ts";
 export { default as BaseLayout } from "./BaseLayout.astro";
 export { default as NotFound } from "./NotFound.astro";
+export { redirectClashes, redirectsFor, type Redirect, type RedirectSource } from "./redirects.ts";
+export { default as RedirectPage } from "./RedirectPage.astro";
 export { default as AuthorLink } from "./AuthorLink.astro";

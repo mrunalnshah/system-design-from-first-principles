@@ -2,40 +2,62 @@
 /**
  * A chapter at `book/<chapter-slug>/` (REQ-BOOK-002, routes.md): the slug comes from the file name without its number,
  * so renumbering a chapter never changes its address. The HTML was rendered by the vault loader (ADR-0003).
+ * Each old slug in a chapter's `moved_from` gets a page here too, `book/<old-slug>/`, that sends the reader on
+ * (REQ-BOOK-007, MOD-site's redirects; a clash has already stopped the build with E-REDIRECT-CLASH).
  */
 import type { GetStaticPaths } from "astro";
 import { getBook, type Book, type ChapterData } from "../../features/content/index.ts";
 import { neighbours, PrevNext } from "../../features/book/index.ts";
 import { ChapterMenu, ChapterTitle, Epigraph, ReaderLayout } from "../../features/reader/index.ts";
-import { BaseLayout, url } from "../../features/site/index.ts";
+import { BaseLayout, RedirectPage, redirectsFor, url, type Redirect } from "../../features/site/index.ts";
 
 export const getStaticPaths = (async () => {
   const book = await getBook();
-  return book.chapters.map((chapter) => ({ params: { slug: chapter.slug }, props: { chapter, book } }));
+  const pages = book.chapters.map((chapter) => ({ params: { slug: chapter.slug }, props: { chapter, book } }));
+  const moved = redirectsFor(book.chapters).map((redirect) => {
+    const target = book.chapters.find((c) => c.slug === redirect.to.slug);
+    if (!target)
+      throw new Error(
+        `Redirect target "${redirect.to.slug}" must be a published chapter (redirectsFor only redirects to one)`,
+      );
+    return { params: { slug: redirect.from.slug }, props: { redirect, title: target.title, book } };
+  });
+  return [...pages, ...moved];
 }) satisfies GetStaticPaths;
 
-interface Props {
-  chapter: ChapterData;
-  book: Book;
-}
-const { chapter, book } = Astro.props;
+type Props = { chapter: ChapterData; book: Book } | { redirect: Redirect; title: string; book: Book };
+const props = Astro.props;
+const { book } = props;
 const settings = book.settings;
+const chapter = "chapter" in props ? props.chapter : undefined;
 // The chapters on either side, for the browser and for the arrow keys (T-02.04): rel=prev/next in the head.
 // <PrevNext> asks `neighbours` too (a component can't fill the head slot), so both always agree.
-const { previous, next } = neighbours(book, chapter.slug);
+const { previous, next } = chapter ? neighbours(book, chapter.slug) : {};
 ---
 
-<BaseLayout title={chapter.title} description={chapter.summary} route={{ kind: "chapter", slug: chapter.slug }} book={settings} section="contents" type="article">
-  {previous && <link slot="head" rel="prev" href={url({ kind: "chapter", slug: previous.slug })} />}
-  {next && <link slot="head" rel="next" href={url({ kind: "chapter", slug: next.slug })} />}
-  <ReaderLayout kind="chapter" diagrams={chapter.hasDiagrams}>
-    <ChapterMenu slot="menu" chapter={chapter} bookTitle={settings.title} />
-    <header class="chapter-head">
-      <ChapterTitle chapter={chapter} />
-      {chapter.epigraph && <Epigraph text={chapter.epigraph.text} source={chapter.epigraph.source} />}
-      <ChapterMenu variant="plain" chapter={chapter} bookTitle={settings.title} />
-    </header>
-    <div class="prose"><Fragment set:html={chapter.html} /></div>
-    <PrevNext slot="end" book={book} slug={chapter.slug} />
-  </ReaderLayout>
-</BaseLayout>
+{"redirect" in props && <RedirectPage redirect={props.redirect} title={props.title} book={settings} />}
+{chapter && (
+  <BaseLayout
+    title={chapter.title}
+    description={chapter.summary}
+    route={{ kind: "chapter", slug: chapter.slug }}
+    book={settings}
+    section="contents"
+    type="article"
+  >
+    {previous && <link slot="head" rel="prev" href={url({ kind: "chapter", slug: previous.slug })} />}
+    {next && <link slot="head" rel="next" href={url({ kind: "chapter", slug: next.slug })} />}
+    <ReaderLayout kind="chapter" diagrams={chapter.hasDiagrams}>
+      <ChapterMenu slot="menu" chapter={chapter} bookTitle={settings.title} />
+      <header class="chapter-head">
+        <ChapterTitle chapter={chapter} />
+        {chapter.epigraph && <Epigraph text={chapter.epigraph.text} source={chapter.epigraph.source} />}
+        <ChapterMenu variant="plain" chapter={chapter} bookTitle={settings.title} />
+      </header>
+      <div class="prose">
+        <Fragment set:html={chapter.html} />
+      </div>
+      <PrevNext slot="end" book={book} slug={chapter.slug} />
+    </ReaderLayout>
+  </BaseLayout>
+)}

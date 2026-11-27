@@ -1,4 +1,5 @@
 ---
+moved_from: [transmission-control]
 description: "How TCP turns lost packets into a reliable stream."
 epigraph: "Everything is a trade-off."
 epigraph_source: "Anonymous"

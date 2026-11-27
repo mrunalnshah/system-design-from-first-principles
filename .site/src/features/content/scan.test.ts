@@ -117,6 +117,14 @@ describe("vault scan", () => {
     expect(empty.issues.map((i) => i.code)).toEqual(["W-ABOUT-MISSING"]);
   });
 
+  // @req REQ-BOOK-007.AC2
+  it("stops the build with E-REDIRECT-CLASH when a moved_from slug is also a live chapter's slug", () => {
+    const root = vault({ "part-1_a/chapter-1_caching.md": "X.\n", "part-1_a/chapter-2_memory.md": "---\nmoved_from: [caching]\n---\nY.\n", ...ABOUT });
+    const issues = scanVault(root).issues;
+    expect(issues.map((i) => [i.severity, i.code, i.file])).toEqual([["error", "E-REDIRECT-CLASH", "part-1_a/chapter-2_memory.md"]]);
+    expect(issues[0]!.fix).toBe("Remove it from moved_from in one of: part-1_a/chapter-2_memory.md, part-1_a/chapter-1_caching.md.");
+  });
+
   // @req REQ-SITE-003.AC2
   it("warns with W-ABOUT-MISSING when there's no about.md, and not for a draft one", () => {
     const [issue, ...rest] = scanVault(vault({ "part-1_a/chapter-1_x.md": "X" })).issues;

@@ -16,7 +16,7 @@
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { BuildIssue } from "../site/index.ts";
+import { redirectClashes, type BuildIssue } from "../site/index.ts";
 import { parseArticleFile, parseChapterFile, parsePartFolder, RESERVED_SLUGS, titleFromSlug } from "./naming.ts";
 import { readFrontmatter, type ArticleFrontmatter, type ChapterFrontmatter, type PageFrontmatter } from "./schemas.ts";
 
@@ -106,6 +106,9 @@ export function scanVault(root: string): VaultScan {
 
   allChapters.sort((a, b) => a.part.number - b.part.number || a.part.slug.localeCompare(b.part.slug) || byNumber(a, b));
   issues.push(...duplicateNumbers(allChapters), ...slugClashes(chapters, "chapter"), ...slugClashes(articles, "article"));
+  // Old addresses of published entries (REQ-BOOK-007): MOD-site owns the rule, the scan reports it before any page is built.
+  const moved = [...chapters, ...articles].map((e) => ({ kind: e.kind, slug: e.slug, movedFrom: e.frontmatter.moved_from, sourcePath: e.sourcePath }));
+  issues.push(...redirectClashes(moved));
   return { parts: parts.filter((p) => p.chapters.length), chapters, articles, pages, issues };
 }
 

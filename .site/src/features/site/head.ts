@@ -1,7 +1,8 @@
 /**
  * Every page's `<head>` metadata (REQ-SITE-005, security.md B4): the title ("<Page> · <Book>"), the description,
  * the canonical address, Open Graph tags for link previews, and the Content-Security-Policy meta tag. Pages with no
- * address of their own (404, redirects) get `noindex` instead of a canonical address.
+ * address of their own (404, redirects) get `noindex` instead; a redirect page adds its own canonical link to the
+ * new address (RedirectPage.astro).
  */
 import { absoluteUrl, type Route } from "./url.ts";
 
