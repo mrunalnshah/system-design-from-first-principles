@@ -1,8 +1,9 @@
 # Publish the website (specs/operations.md#deploy, specs/security.md).
 #
 # Every push to main is checked, built and, only if all of that passed, deployed to GitHub Pages.
-# Pull requests are checked and built but never deployed. There are no path filters: a push that
-# only touches Obsidian settings still builds and deploys (REQ-SITE-007.AC3).
+# Pull requests from this repository are checked and built but never deployed; pull requests from forks don't
+# run at all (security.md B2). There are no path filters: a push that only touches Obsidian settings still
+# builds and deploys (REQ-SITE-007.AC3).
 #
 # Supply chain: every Action is pinned to a full commit SHA (tag in the comment, verified on
 # 2026-11-26), and each job gets only the permissions it needs.
@@ -28,8 +29,11 @@ defaults:
     working-directory: .site
 
 jobs:
+  # The first three jobs skip pull requests from forks (security.md B2: only pushes and same-repository pull
+  # requests run), and the build and deploy need them, so a fork's code never runs here at all.
   checks:
     name: Lint, types, tests, plan, audit
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -67,6 +71,7 @@ jobs:
 
   secrets:
     name: Secret scan (gitleaks)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
@@ -103,6 +108,7 @@ jobs:
 
   e2e:
     name: Screen tests (TOOL-09)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

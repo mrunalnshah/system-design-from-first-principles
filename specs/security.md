@@ -38,8 +38,24 @@ The site has no roles. Repository and pipeline permissions:
 | CI deploy job | — | — | none (job-level permissions replace the default) | write | write |
 
 ## Security checklist for this project
-- [ ] No secrets in the repository (gitleaks clean).
-- [ ] Every internal link goes through `url()`, and no external script, style or font is referenced.
-- [ ] The CSP meta tag is present on every page, and Playwright sees no CSP violations.
-- [ ] Dependencies are added only with an ADR, a stack.md row and a verified version past the cooldown.
-- [ ] Actions are pinned by SHA, and job permissions are least-privilege.
+- [x] No secrets in the repository (gitleaks clean).
+- [x] Every internal link goes through `url()`, and no external script, style or font is referenced.
+- [x] The CSP meta tag is present on every page, and Playwright sees no CSP violations.
+- [x] Dependencies are added only with an ADR, a stack.md row and a verified version past the cooldown.
+- [x] Actions are pinned by SHA, and job permissions are least-privilege.
+
+## Review results (T-04.01, 2026-11-27)
+Walked every row of the threat model and the checklist above. Re-run before launch and after any change to the workflow, the `<head>` or the dependencies.
+
+| Check | Result | Evidence |
+|---|---|---|
+| No third-party requests, no cookies, no browser storage (NFR-008, B4) | Pass | `tests/e2e/security.spec.ts` on every page of the fixture build (home, contents, two chapters, archive, article, About, 404, both redirect pages), light and dark, JavaScript on and off, 320/768/1280 px, after reading each page to the end: every request is same-origin, no cookie, `localStorage`, `sessionStorage` and `document.cookie` empty. The per-page list of requests and cookies is attached to the test report |
+| CSP meta on every page, no violations (B4) | Pass | The same spec: one CSP meta with exactly the policy above on every page, before any script, link or style; no CSP violation while opening the sections sheet, the diagram viewer (with zoom) and a margin note. The real build: all 5 pages carry it |
+| No inline scripts or handlers (B4) | Pass | The same spec: no `<script>` without `src`, no script from outside the base path, no `on…=` attribute, no `javascript:` link, on any page. The real build: its 3 script tags (all on Chapter 1) are `type="module"` files under the base path |
+| Internal links under the base path | Pass | The ESLint rule that sends internal links through `url()` (`.site/eslint.config.js`, ADR-0007), and `tools links`: 96 internal addresses resolve, all under the base path |
+| Secrets (B1) | Pass | gitleaks 8.30.1 over the whole history (78 commits): no leaks; CI scans every push |
+| Dependencies (B2) | Pass | `npm audit --audit-level=high`: nothing high or critical; `tools audit` passed; every direct dependency has a stack.md row. Accepted, all below the CI threshold: glob and minimatch (moderate) inside linkinator, a dev-only link checker that reads only our own `dist/`; KaTeX 0.16.47 (low, prototype pollution bypassing `trust`) nested under micromark-extension-math, used only by its HTML renderer, which the site doesn't call (the site renders math with KaTeX 0.19.1 from its own math step, `plugins/math.ts`, ADR-0008) |
+| Actions pinned, least privilege (B2) | Pass | Every `uses:` is a 40-character SHA; top-level `contents: read`; only `deploy` gets `pages: write` and `id-token: write`; every checkout sets `persist-credentials: false` (pins and permissions: `tests/workflow.test.ts`; checkouts: `tests/e2e/security.spec.ts`) |
+| Only the repository's own code runs: pushes, same-repository pull requests, manual runs and the Monday audit (B2) | **Fixed** | The workflow ran any pull request, forks included (read-only token and no secrets, so low risk). `checks`, `secrets` and `e2e` now skip pull requests from forks, and `build` and `deploy` need them; `workflow_dispatch` needs write access and `schedule` runs `main`; no `pull_request_target` or `workflow_run` (guarded in `tests/e2e/security.spec.ts`). Side effect: GitHub reports a skipped job as a success, even as a required check, so a fork's pull request shows green with nothing run. Check one by pushing its branch to this repository before merging; a bad merge still fails on the push to `main`, which blocks the deploy |
+| Failed or partial build deployed (B3) | Pass | `deploy` needs `build`, which needs every check job; the Pages artifact is uploaded only after size, links and Lighthouse pass (R-14's failed Lighthouse run kept the old site live) |
+| Account takeover (B1), HTTPS (B4) | Author | 2FA, branch protection and Enforce HTTPS are settings only the author can check: they go in `plan/launch-checklist.md` (T-04.05), Enforce HTTPS included |
