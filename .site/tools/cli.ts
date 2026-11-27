@@ -4,10 +4,10 @@
  *
  * Commands: `status`, `next`, `done <task>`, `pack <task-or-round> [--out FILE]`, `check`, `trace`,
  * `audit [--base <git-ref>] [--sbom FILE]`, `sync`, `tokens`, `contrast`, `size [--dist DIR]`, `links [--dist DIR]`,
- * `lighthouse`, `map [path] [--budget N]`, `impact <paths…>`.
+ * `lighthouse`, `map [path] [--budget N]`, `impact <paths…>`, `gen-vault <dir> --chapters N --articles M`.
  * Returns the process exit code; never calls process.exit, so tests can call `main()` directly.
  */
-import { join, relative, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -24,6 +24,7 @@ import { checkLinks, sitePath } from "./links.ts";
 import { runLighthouse } from "./lighthouse.ts";
 import { codeMap } from "./map.ts";
 import { formatImpact, impact } from "./impact.ts";
+import { generateVault } from "./gen-vault.ts";
 
 /** Where output goes; `console` in real use, a collector in tests. */
 export type Io = { log(text: string): void; error(text: string): void };
@@ -31,7 +32,7 @@ export type Io = { log(text: string): void; error(text: string): void };
 /** The repository root: two folders up from `.site/tools/`. */
 export const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
 
-const USAGE = "Usage: tools <command>\n  status         phase, gates, task counts, open conflicts, next tasks, recent progress\n  next           tasks whose dependencies are done, by round\n  done <task>    mark a task done and log it\n  pack <task-or-round> [--out FILE]\n                 bundle what a task or round needs; prints it, or writes FILE\n  check          check the plan's consistency; exits 1 on any problem\n  trace          write specs/trace.md (criterion → task → tagged tests)\n  audit [--base <git-ref>] [--sbom FILE]\n                 vulnerabilities, 7-day cooldown for entries changed since <git-ref>, licences\n  sync           publish: collect diagram images, check, build, commit and push (sync.cmd)\n  tokens         write .site/src/features/site/tokens.css from design/tokens.json\n  contrast       WCAG contrast of every token pair, and no raw colours outside tokens.css\n  size [--dist DIR]\n                 compressed JS and HTML+CSS+fonts per built page against NFR-002\n  links [--dist DIR]\n                 base path on every internal address, and every internal link resolves\n  lighthouse     Lighthouse CI budgets on the built site (npm run test:lighthouse)\n  map [path] [--budget N]\n                 exported signatures (functions, types, component props) under path (default .site/src), cut to N tokens\n  impact <paths…>\n                 features, modules, requirements, tasks and tagged tests a change touches; warns across features";
+const USAGE = "Usage: tools <command>\n  status         phase, gates, task counts, open conflicts, next tasks, recent progress\n  next           tasks whose dependencies are done, by round\n  done <task>    mark a task done and log it\n  pack <task-or-round> [--out FILE]\n                 bundle what a task or round needs; prints it, or writes FILE\n  check          check the plan's consistency; exits 1 on any problem\n  trace          write specs/trace.md (criterion → task → tagged tests)\n  audit [--base <git-ref>] [--sbom FILE]\n                 vulnerabilities, 7-day cooldown for entries changed since <git-ref>, licences\n  sync           publish: collect diagram images, check, build, commit and push (sync.cmd)\n  tokens         write .site/src/features/site/tokens.css from design/tokens.json\n  contrast       WCAG contrast of every token pair, and no raw colours outside tokens.css\n  size [--dist DIR]\n                 compressed JS and HTML+CSS+fonts per built page against NFR-002\n  links [--dist DIR]\n                 base path on every internal address, and every internal link resolves\n  lighthouse     Lighthouse CI budgets on the built site (npm run test:lighthouse)\n  map [path] [--budget N]\n                 exported signatures (functions, types, component props) under path (default .site/src), cut to N tokens\n  impact <paths…>\n                 features, modules, requirements, tasks and tagged tests a change touches; warns across features\n  gen-vault <dir> --chapters N --articles M\n                 write a realistic vault of that size into an empty folder outside the repository, for timing the build (TOOL-16)";
 
 /**
  * Runs one tool command against the plan under `root` and returns its exit code:
@@ -140,6 +141,21 @@ export function main(argv: string[], root: string = repoRoot, io: Io = console):
       case "impact": {
         if (!args.length) throw new Error("impact needs one or more paths, e.g. impact .site/src/features/diagrams/pairs.ts");
         io.log(formatImpact(impact(root, args.map((a) => relative(root, typedPath(a)).replace(/\\/g, "/")))));
+        return 0;
+      }
+      case "gen-vault": {
+        const dir = args[0];
+        if (!dir || dir.startsWith("--")) throw new Error("gen-vault needs a folder, e.g. gen-vault ../../vault-60 --chapters 60 --articles 100");
+        const target = typedPath(dir);
+        // Never inside the repository: the repository root is the author's vault, and sync commits everything in it.
+        const rel = relative(root, target);
+        if (!isAbsolute(rel) && rel !== ".." && !rel.startsWith(`..${sep}`)) throw new Error(`${dir} is inside the repository (the author's vault, which sync commits and pushes). Use a folder outside it, such as your temp folder or $RUNNER_TEMP in CI.`);
+        const count = (flag: string) => {
+          const at = args.indexOf(flag);
+          return at < 0 ? NaN : Number(args[at + 1]);
+        };
+        const made = generateVault(target, { chapters: count("--chapters"), articles: count("--articles") });
+        io.log(`Wrote ${made.chapters} chapters in ${made.parts} part${made.parts === 1 ? "" : "s"} and ${made.articles} articles (${made.files} files) to ${dir}.`);
         return 0;
       }
       case "contrast": {

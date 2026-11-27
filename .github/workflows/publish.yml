@@ -173,6 +173,20 @@ jobs:
         run: npm run tools -- links
       - name: Lighthouse budgets (TOOL-10, NFR-001; the runner's own Chrome, results in the job summary)
         run: npm run test:lighthouse
+      # The same build at the book's planned size: a generated vault of 60 chapters and 100 articles, timed, then
+      # every page of it checked against the size budgets. Built outside .site/, so the upload below is untouched.
+      # It runs warm, after the real build in this job (Vite and npm caches); the margin is wide (about 12 s
+      # locally against 120 s). After Lighthouse, so its failure never hides the Lighthouse table.
+      - name: Build time at full size (TOOL-16, NFR-006, NFR-002)
+        shell: bash
+        run: |
+          npm run tools -- gen-vault "$RUNNER_TEMP/vault-60" --chapters 60 --articles 100
+          start=$(date +%s)
+          SDFP_VAULT="$RUNNER_TEMP/vault-60" npm run build -- --outDir "$RUNNER_TEMP/dist-60"
+          took=$(( $(date +%s) - start ))
+          echo "Full-size build (60 chapters, 100 articles): ${took} s, budget 120 s (NFR-006)." | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$took" -gt 120 ]; then echo "::error::The full-size build took ${took} s, over the 2-minute budget (NFR-006)."; exit 1; fi
+          npm run tools -- size --dist "$RUNNER_TEMP/dist-60"
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: .site/dist
