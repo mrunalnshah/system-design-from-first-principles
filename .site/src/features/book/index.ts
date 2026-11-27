@@ -6,6 +6,7 @@ export {
   contentsOf,
   firstChapter,
   romanNumeral,
+  startAddress,
   type ContentsChapter,
   type ContentsPart,
   type ContentsSection,

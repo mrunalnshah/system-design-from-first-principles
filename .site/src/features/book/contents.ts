@@ -62,6 +62,15 @@ export function firstChapter(book: Book): ChapterData | undefined {
   return book.chapters[0];
 }
 
+/**
+ * Where a "start reading" link goes (the archive's empty state, About, the 404): Chapter 1's address, or the
+ * contents page while no chapter is published, so the link always leads somewhere.
+ */
+export function startAddress(book: Book): string {
+  const first = firstChapter(book);
+  return first ? url({ kind: "chapter", slug: first.slug }) : url({ kind: "contents" });
+}
+
 const NUMERALS: [number, string][] = [
   [1000, "M"],
   [900, "CM"],

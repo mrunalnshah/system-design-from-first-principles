@@ -1,9 +1,9 @@
-import { copyFileSync, renameSync } from "node:fs";
+import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { experimental_AstroContainer as AstroContainer } from "astro/container";
 import { afterAll, describe, expect, it } from "vitest";
 import type { Book } from "../content/index.ts";
-import { Contents, contentsOf, firstChapter, romanNumeral } from "./index.ts";
+import { Contents, contentsOf, firstChapter, romanNumeral, startAddress } from "./index.ts";
 import { bookFrom, cleanUp, fixture, setDraft, vaultCopy } from "./test-vault.ts";
 
 afterAll(cleanUp);
@@ -59,8 +59,10 @@ describe("the book's contents", () => {
   // @req REQ-ART-003.AC1
   it("lists none of three articles on the contents page", async () => {
     const root = vaultCopy((r) => {
-      copyFileSync(join(r, "articles/why-caches.md"), join(r, "articles/second-article.md"));
-      copyFileSync(join(r, "articles/why-caches.md"), join(r, "articles/third-article.md"));
+      // Copies without the original's moved_from, so they don't claim its old address too (E-REDIRECT-CLASH).
+      const text = readFileSync(join(r, "articles/why-caches.md"), "utf8").replace(/^moved_from:.*\n/m, "");
+      writeFileSync(join(r, "articles/second-article.md"), text);
+      writeFileSync(join(r, "articles/third-article.md"), text);
     });
     const html = await render(await bookFrom(root));
     expect(html).not.toMatch(/why-caches|second-article|third-article|Why caches/i);
@@ -71,6 +73,9 @@ describe("the book's contents", () => {
     const book = await bookFrom(fixture);
     expect(firstChapter(book)?.slug).toBe("computer-architecture");
     expect(firstChapter({ ...book, parts: [], chapters: [] })).toBeUndefined();
+    // A "start reading" link always leads somewhere: Chapter 1, else the contents page (the test's base is /).
+    expect(startAddress(book)).toBe("/book/computer-architecture/");
+    expect(startAddress({ ...book, parts: [], chapters: [] })).toBe("/book/");
   });
 });
 

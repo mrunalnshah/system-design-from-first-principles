@@ -1,0 +1,103 @@
+---
+/**
+ * The friendly "Page not found" body (REQ-SITE-004, design/screens/not-found.md): a large faint "404" in the
+ * chapter-number style (hidden from screen readers, which hear the heading), "Page not found", why it may have
+ * happened, then the ways back: "Read from the start" (Chapter 1, as the primary button), Contents and Home.
+ * GitHub Pages serves the page built from it for every unknown address under the base path, with status 404 (CNF-005).
+ * Props: `start`, where "Read from the start" goes (the page decides; this module can't read the book).
+ */
+import { url } from "./url.ts";
+
+interface Props {
+  start: string;
+}
+const { start } = Astro.props;
+---
+
+<div class="not-found site-wrap">
+  <div class="not-found-code" aria-hidden="true"></div>
+  <h1>Page not found</h1>
+  <p class="not-found-why">This page may have moved when a chapter was renamed.</p>
+  <nav class="not-found-actions" aria-label="Ways back">
+    <a class="not-found-start" href={start}>Read from the start</a>
+    <a href={url({ kind: "contents" })}>Contents</a>
+    <a href={url({ kind: "home" })}>Home</a>
+  </nav>
+</div>
+
+<style>
+  /* 34rem of text plus .site-wrap's gutters, which widen at 768 px. */
+  .not-found {
+    max-inline-size: calc(34rem + 2 * var(--space-4));
+    padding-block: var(--space-16) var(--space-6);
+    text-align: center;
+  }
+
+  @media (min-width: 768px) {
+    .not-found {
+      max-inline-size: calc(34rem + 2 * var(--space-8));
+    }
+  }
+
+  /*
+   * The faint "404" is decoration (WCAG 1.4.3 sets no contrast for it; the heading says what happened), so it's
+   * drawn by CSS rather than written as text: neither screen readers nor contrast checks take it for content.
+   */
+  .not-found-code::before {
+    content: "404";
+  }
+
+  .not-found-code {
+    color: var(--color-chapter-number);
+    font: var(--font-weight-bold) var(--font-size-chapter-number) / 0.9 var(--font-sans);
+    letter-spacing: -0.04em;
+  }
+
+  .not-found h1 {
+    margin: var(--space-3) 0 var(--space-2);
+    font-size: var(--font-size-2xl);
+  }
+
+  .not-found-why {
+    margin: 0 0 var(--space-6);
+    color: var(--color-text-muted);
+  }
+
+  .not-found-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3) var(--space-6);
+    font-family: var(--font-sans);
+  }
+
+  .not-found-actions a {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 44px;
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+
+  .not-found-actions a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  /* The primary button, as the homepage's "Read from the start" (design/components.md PrimaryButton). */
+  .not-found-actions .not-found-start {
+    justify-content: center;
+    min-block-size: 48px;
+    padding-inline: var(--space-6);
+    color: var(--color-on-accent);
+    background: var(--color-accent);
+    border-radius: var(--radius-md);
+  }
+
+  .not-found-actions .not-found-start:hover {
+    color: var(--color-on-accent);
+    background: var(--color-accent-hover);
+    text-decoration: none;
+  }
+</style>

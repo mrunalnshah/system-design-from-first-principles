@@ -7,17 +7,15 @@
  * A dynamic route for that reason: a plain `about.astro` would always be built. `about` is its only page.
  */
 import type { GetStaticPaths } from "astro";
-import { firstChapter } from "../features/book/index.ts";
+import { startAddress } from "../features/book/index.ts";
 import { getBook, getPage, type BookData, type PageData } from "../features/content/index.ts";
 import { ReaderLayout } from "../features/reader/index.ts";
-import { BaseLayout, url } from "../features/site/index.ts";
+import { BaseLayout } from "../features/site/index.ts";
 
 export const getStaticPaths = (async () => {
   const [about, book] = await Promise.all([getPage("about"), getBook()]);
   if (!about) return [];
-  const first = firstChapter(book);
-  const start = first ? url({ kind: "chapter", slug: first.slug }) : url({ kind: "contents" });
-  return [{ params: { page: "about" }, props: { about, book: book.settings, start } }];
+  return [{ params: { page: "about" }, props: { about, book: book.settings, start: startAddress(book) } }];
 }) satisfies GetStaticPaths;
 
 interface Props {

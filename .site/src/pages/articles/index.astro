@@ -4,13 +4,11 @@
  * state's "Start with the book" goes to Chapter 1, or to the contents page while no chapter is published.
  */
 import { ArticlesArchive } from "../../features/articles/index.ts";
-import { firstChapter } from "../../features/book/index.ts";
+import { startAddress } from "../../features/book/index.ts";
 import { getArticles, getBook } from "../../features/content/index.ts";
-import { BaseLayout, url } from "../../features/site/index.ts";
+import { BaseLayout } from "../../features/site/index.ts";
 
 const [articles, book] = await Promise.all([getArticles(), getBook()]);
-const first = firstChapter(book);
-const start = first ? url({ kind: "chapter", slug: first.slug }) : url({ kind: "contents" });
 ---
 
 <BaseLayout
@@ -20,5 +18,5 @@ const start = first ? url({ kind: "chapter", slug: first.slug }) : url({ kind: "
   book={book.settings}
   current="articles"
 >
-  <ArticlesArchive articles={articles} start={start} />
+  <ArticlesArchive articles={articles} start={startAddress(book)} />
 </BaseLayout>

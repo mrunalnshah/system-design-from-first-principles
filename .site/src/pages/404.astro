@@ -1,15 +1,16 @@
 ---
-// Not-found page (thin slice, T-00.08): GitHub Pages serves it for unknown addresses under the base path (CNF-005).
-// The designed version arrives in T-03.04.
+/**
+ * The not-found page (REQ-SITE-004, design/screens/not-found.md): GitHub Pages serves `404.html` for every unknown
+ * address under the base path, with status 404 (CNF-005, checked live). No `route`, so it gets `noindex` and no
+ * canonical address. "Read from the start" goes to Chapter 1, or to the contents page while none is published.
+ */
+import { startAddress } from "../features/book/index.ts";
 import { getBook } from "../features/content/index.ts";
-import { BaseLayout, url } from "../features/site/index.ts";
+import { BaseLayout, NotFound } from "../features/site/index.ts";
 
 const book = await getBook();
 ---
 
-<BaseLayout title="Page not found" description="This page doesn't exist." book={book.settings}>
-  <div class="site-wrap">
-    <h1>Page not found</h1>
-    <p>This page may have moved. <a href={url({ kind: "home" })}>Go to the homepage</a>.</p>
-  </div>
+<BaseLayout title="Page not found" description="This page doesn't exist. It may have moved when a chapter was renamed." book={book.settings}>
+  <NotFound start={startAddress(book)} />
 </BaseLayout>
