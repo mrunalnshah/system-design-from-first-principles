@@ -14,8 +14,12 @@ const LOCK = join(tmpdir(), "sdfp-fixture-build.lock");
 /** A lock older than this was left by a build that died; it's taken over. */
 const STALE_MS = 5 * 60_000;
 
-/** Builds the fixture vault's site into `outDir` (with `base` if given, else the configured one). */
-export function buildFixtureSite(outDir: string, base?: string): void {
+/**
+ * Builds the fixture vault's site into `outDir` (with `base` if given, else the configured one). `vault` builds
+ * another vault instead (a copy of the fixture with more or less content, as in the archive's 200-article check).
+ * Returns what the build printed (the build report's warnings, for one).
+ */
+export function buildFixtureSite(outDir: string, base?: string, vault?: string): string {
   const script = `import("astro").then((a) => a.build({ root: process.argv[1], outDir: process.argv[2], ${base ? "base: process.argv[3], " : ""}logLevel: "error" }))`;
   // Leave out what the test process set for itself: Vite's own variables (BASE_URL="/", MODE, DEV, PROD, SSR),
   // NODE_ENV=test, and what loading the Astro config set (SITE, ASSETS_PREFIX, and SDFP_VAULT_ROOT, the real vault,
@@ -26,16 +30,17 @@ export function buildFixtureSite(outDir: string, base?: string): void {
     ),
   );
   // The fixture vault, so these checks don't depend on the author's content being free of errors.
-  env.SDFP_VAULT = join(siteRoot, "tests/fixtures/vault");
-  withLock(() =>
+  env.SDFP_VAULT = vault ?? join(siteRoot, "tests/fixtures/vault");
+  return withLock(() =>
     execFileSync(process.execPath, ["--input-type=module", "-e", script, siteRoot, outDir, ...(base ? [base] : [])], {
       stdio: "pipe",
       env,
+      encoding: "utf8",
     }),
   );
 }
 
-function withLock(run: () => void): void {
+function withLock<T>(run: () => T): T {
   const wait = new Int32Array(new SharedArrayBuffer(4));
   for (;;) {
     try {
@@ -51,7 +56,7 @@ function withLock(run: () => void): void {
     }
   }
   try {
-    run();
+    return run();
   } finally {
     rmSync(LOCK, { recursive: true, force: true });
   }

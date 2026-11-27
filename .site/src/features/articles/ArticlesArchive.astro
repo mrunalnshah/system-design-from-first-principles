@@ -1,0 +1,101 @@
+---
+/**
+ * The all-articles archive's body (REQ-ART-002, design/screens/articles.md): "Articles" and one line about them, then
+ * a group per year, newest first, each an `h2` with its ArticleRows (title, date, reading time and summary), and
+ * "Undated" last. Every article on one page: 200 rows is still a small static page (REQ-ART-002.AC3). With no
+ * article published, the empty state sends the reader to the book instead.
+ * Props: `articles` (the published articles, in any order) and, optionally, `start`: where "Start with the book"
+ * goes. The page passes Chapter 1's address (MOD-book knows which that is; this module doesn't depend on it), else
+ * the contents page while no chapter is published, which is also the default.
+ */
+import type { ArticleData } from "../content/index.ts";
+import { url } from "../site/index.ts";
+import ArticleRow from "./ArticleRow.astro";
+import { groupByYear } from "./group.ts";
+
+interface Props {
+  articles: ArticleData[];
+  start?: string;
+}
+const { articles, start = url({ kind: "contents" }) } = Astro.props;
+const groups = groupByYear(articles);
+---
+
+<div class="archive site-wrap">
+  <header class="archive-head">
+    <h1>Articles</h1>
+    <p class="archive-lede">Standalone essays outside the book.</p>
+  </header>
+  {
+    groups.length === 0 ? (
+      <p class="archive-empty">
+        No articles yet. <a href={start}>Start with the book</a>.
+      </p>
+    ) : (
+      groups.map((group) => (
+        <section class="archive-year" aria-labelledby={`year-${group.label.toLowerCase()}`}>
+          <h2 id={`year-${group.label.toLowerCase()}`}>{group.label}</h2>
+          <ul class="archive-rows" role="list">
+            {group.articles.map((article) => (
+              <li>
+                <ArticleRow article={article} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    )
+  }
+</div>
+
+<style>
+  /* Reading width plus the gutters, at every width (as Contents). */
+  .archive {
+    max-inline-size: calc(var(--size-reading-column) + 2 * var(--space-4));
+  }
+
+  @media (min-width: 768px) {
+    .archive {
+      max-inline-size: calc(var(--size-reading-column) + 2 * var(--space-8));
+    }
+  }
+
+  .archive-head {
+    padding-block: var(--space-12) var(--space-6);
+  }
+
+  .archive-head h1 {
+    margin: var(--space-1) 0 var(--space-2);
+    font-size: clamp(2rem, 1.5rem + 2vw, var(--font-size-3xl));
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+  }
+
+  .archive-lede {
+    margin: 0;
+    color: var(--color-text-muted);
+  }
+
+  .archive-year {
+    margin-block-start: var(--space-8);
+  }
+
+  .archive-year h2 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+  }
+
+  .archive-rows {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .archive-empty {
+    margin: 0;
+    padding: var(--space-6);
+    color: var(--color-text-muted);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-md);
+  }
+</style>

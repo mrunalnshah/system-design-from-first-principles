@@ -1,0 +1,24 @@
+---
+/**
+ * The all-articles archive at `articles/` (REQ-ART-002, routes.md): every published article, by year. The empty
+ * state's "Start with the book" goes to Chapter 1, or to the contents page while no chapter is published.
+ */
+import { ArticlesArchive } from "../../features/articles/index.ts";
+import { firstChapter } from "../../features/book/index.ts";
+import { getArticles, getBook } from "../../features/content/index.ts";
+import { BaseLayout, url } from "../../features/site/index.ts";
+
+const [articles, book] = await Promise.all([getArticles(), getBook()]);
+const first = firstChapter(book);
+const start = first ? url({ kind: "chapter", slug: first.slug }) : url({ kind: "contents" });
+---
+
+<BaseLayout
+  title="Articles"
+  description={`Standalone essays by ${book.settings.author}, outside the book ${book.settings.title}.`}
+  route={{ kind: "articles" }}
+  book={book.settings}
+  current="articles"
+>
+  <ArticlesArchive articles={articles} start={start} />
+</BaseLayout>

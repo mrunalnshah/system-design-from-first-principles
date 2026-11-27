@@ -62,8 +62,8 @@ describe("the built site", () => {
     expect(result.checked).toBeGreaterThan(20);
     // Exactly Articles and About may be missing, and only while they are (Contents is built since T-02.03).
     expect(NOT_YET_BUILT).toEqual(["articles/", "about/"]);
-    // The fixture builds neither yet, so both are allowed; its one published article is built (T-03.01), so the
-    // homepage's link to it needs no allowance (CR-0010); nothing else.
-    expect([...result.allowed].sort()).toEqual(["about/", "articles/"]);
+    // The fixture builds the archive (T-03.02) and its one article (T-03.01, CR-0010), so neither needs an
+    // allowance; only About is still allowed until it's built; nothing else.
+    expect([...result.allowed].sort()).toEqual(["about/"]);
   }, 120_000);
 });
