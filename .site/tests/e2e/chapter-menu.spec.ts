@@ -18,10 +18,32 @@ test.describe("chapter menu", () => {
     await expect(panel.getByRole("link", { name: "System Design from First Principles" })).toBeVisible();
     const current = panel.locator('a[aria-current="location"]');
 
-    // Scroll the way a reader does, with the wheel, until 1.2's heading reaches the top of the text.
-    const heading = page.locator("#limitations");
-    for (let i = 0; i < 40 && (await heading.evaluate((h) => h.getBoundingClientRect().top)) > 90; i++)
-      await page.mouse.wheel(0, 120);
+    // Scroll the way a reader does, with the wheel, until 1.2's heading sits just under the header (above the
+    // reading line, 104 px), and 1.3's below it. How far one wheel tick goes differs by platform (Linux in CI went
+    // past 1.3), so it steps in small ticks, waits for each to land, and steps back if it went too far.
+    await page.evaluate(() => document.fonts.ready);
+    const top = (id: string) => page.locator(`#${id}`).evaluate((h) => h.getBoundingClientRect().top);
+    const settled = () =>
+      page.evaluate(
+        () =>
+          new Promise<void>((done) => {
+            let last = NaN;
+            const tick = () =>
+              scrollY === last ? done() : ((last = scrollY), requestAnimationFrame(() => requestAnimationFrame(tick)));
+            tick();
+          }),
+      );
+    for (let i = 0; i < 200; i++) {
+      const at = await top("limitations");
+      if (at > 100) await page.mouse.wheel(0, 40);
+      else if (at < 70) await page.mouse.wheel(0, -20);
+      else break;
+      await settled();
+    }
+    const limitations = await top("limitations");
+    expect(limitations, "1.2's heading just under the header").toBeGreaterThanOrEqual(70);
+    expect(limitations).toBeLessThanOrEqual(100);
+    expect(await top("moores-law"), "1.3's heading still below the reading line").toBeGreaterThan(104);
     await expect(current).toHaveCount(1);
     await expect(current).toHaveText(/1\.2\s+Limitations/);
 
