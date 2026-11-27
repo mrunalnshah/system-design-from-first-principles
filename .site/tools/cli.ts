@@ -4,7 +4,7 @@
  *
  * Commands: `status`, `next`, `done <task>`, `pack <task-or-round> [--out FILE]`, `check`, `trace`,
  * `audit [--base <git-ref>] [--sbom FILE]`, `sync`, `tokens`, `contrast`, `size [--dist DIR]`, `links [--dist DIR]`,
- * `lighthouse`.
+ * `lighthouse`, `map [path] [--budget N]`, `impact <paths…>`.
  * Returns the process exit code; never calls process.exit, so tests can call `main()` directly.
  */
 import { join, relative, resolve } from "node:path";
@@ -22,6 +22,8 @@ import { trace } from "./trace.ts";
 import { formatSizes, measureSite } from "./size.ts";
 import { checkLinks, sitePath } from "./links.ts";
 import { runLighthouse } from "./lighthouse.ts";
+import { codeMap } from "./map.ts";
+import { formatImpact, impact } from "./impact.ts";
 
 /** Where output goes; `console` in real use, a collector in tests. */
 export type Io = { log(text: string): void; error(text: string): void };
@@ -29,7 +31,7 @@ export type Io = { log(text: string): void; error(text: string): void };
 /** The repository root: two folders up from `.site/tools/`. */
 export const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
 
-const USAGE = "Usage: tools <command>\n  status         phase, gates, task counts, open conflicts, next tasks, recent progress\n  next           tasks whose dependencies are done, by round\n  done <task>    mark a task done and log it\n  pack <task-or-round> [--out FILE]\n                 bundle what a task or round needs; prints it, or writes FILE\n  check          check the plan's consistency; exits 1 on any problem\n  trace          write specs/trace.md (criterion → task → tagged tests)\n  audit [--base <git-ref>] [--sbom FILE]\n                 vulnerabilities, 7-day cooldown for entries changed since <git-ref>, licences\n  sync           publish: collect diagram images, check, build, commit and push (sync.cmd)\n  tokens         write .site/src/features/site/tokens.css from design/tokens.json\n  contrast       WCAG contrast of every token pair, and no raw colours outside tokens.css\n  size [--dist DIR]\n                 compressed JS and HTML+CSS+fonts per built page against NFR-002\n  links [--dist DIR]\n                 base path on every internal address, and every internal link resolves\n  lighthouse     Lighthouse CI budgets on the built site (npm run test:lighthouse)";
+const USAGE = "Usage: tools <command>\n  status         phase, gates, task counts, open conflicts, next tasks, recent progress\n  next           tasks whose dependencies are done, by round\n  done <task>    mark a task done and log it\n  pack <task-or-round> [--out FILE]\n                 bundle what a task or round needs; prints it, or writes FILE\n  check          check the plan's consistency; exits 1 on any problem\n  trace          write specs/trace.md (criterion → task → tagged tests)\n  audit [--base <git-ref>] [--sbom FILE]\n                 vulnerabilities, 7-day cooldown for entries changed since <git-ref>, licences\n  sync           publish: collect diagram images, check, build, commit and push (sync.cmd)\n  tokens         write .site/src/features/site/tokens.css from design/tokens.json\n  contrast       WCAG contrast of every token pair, and no raw colours outside tokens.css\n  size [--dist DIR]\n                 compressed JS and HTML+CSS+fonts per built page against NFR-002\n  links [--dist DIR]\n                 base path on every internal address, and every internal link resolves\n  lighthouse     Lighthouse CI budgets on the built site (npm run test:lighthouse)\n  map [path] [--budget N]\n                 exported signatures (functions, types, component props) under path (default .site/src), cut to N tokens\n  impact <paths…>\n                 features, modules, requirements, tasks and tagged tests a change touches; warns across features";
 
 /**
  * Runs one tool command against the plan under `root` and returns its exit code:
@@ -123,6 +125,23 @@ export function main(argv: string[], root: string = repoRoot, io: Io = console):
       }
       case "lighthouse":
         return runLighthouse(join(root, ".site"), io);
+      case "map": {
+        const at = args.indexOf("--budget");
+        const budgetArg = at >= 0 ? args[at + 1] : undefined;
+        if (at >= 0 && !/^[1-9]\d*$/.test(budgetArg ?? "")) throw new Error("--budget needs a whole number of tokens, e.g. --budget 500");
+        const targets = args.filter((a, i) => !a.startsWith("--") && (at < 0 || i !== at + 1));
+        if (targets.length > 1) throw new Error("map takes one path, e.g. map .site/src/features/book");
+        const target = targets[0];
+        const result = codeMap(target ? typedPath(target) : join(root, ".site/src"), { root, budget: budgetArg ? Number(budgetArg) : undefined });
+        io.log(result.text.trimEnd());
+        io.error(`about ${result.tokens} tokens${result.truncated ? `, cut to the budget of ${budgetArg}` : ""}`);
+        return 0;
+      }
+      case "impact": {
+        if (!args.length) throw new Error("impact needs one or more paths, e.g. impact .site/src/features/diagrams/pairs.ts");
+        io.log(formatImpact(impact(root, args.map((a) => relative(root, typedPath(a)).replace(/\\/g, "/")))));
+        return 0;
+      }
       case "contrast": {
         const result = checkContrast(JSON.parse(readFileSync(join(root, "design/tokens.json"), "utf8")));
         const raw = findRawColours(styleFiles(join(root, ".site")));
@@ -140,6 +159,11 @@ export function main(argv: string[], root: string = repoRoot, io: Io = console):
     io.error(e instanceof Error ? e.message : String(e));
     return 1;
   }
+}
+
+/** A path as the user typed it: `npm --prefix .site` runs inside .site/, and INIT_CWD is the folder they typed it in. */
+function typedPath(path: string): string {
+  return resolve(process.env.INIT_CWD ?? process.cwd(), path);
 }
 
 /** `--dist DIR` (from the folder the command was typed in), else `.site/dist`. */
