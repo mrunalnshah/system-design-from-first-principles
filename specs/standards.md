@@ -36,7 +36,7 @@ Interface comments first, on every exported function and component, before the c
 
 ## Testing
 - Vitest for unit and golden tests: `*.test.ts` next to the code. Golden fixtures live in `tests/fixtures/` as `name.md` → `name.html` pairs.
-- Playwright for end-to-end: `tests/e2e/<screen>.spec.ts`; projects for light/dark × JS on/off; viewports 320, 768 and 1280; `@axe-core/playwright` in every screen test; screenshot baselines are approved at the end of each screen task.
+- Playwright for end-to-end: `tests/e2e/<screen>.spec.ts`; projects for light/dark × JS on/off; viewports 320, 768 and 1280; `@axe-core/playwright` in every screen test; screenshots are attached to the report and looked at against the design preview at the end of each screen task; pixel baselines aren't kept (CR-0012: they differ by platform).
 - Every test that proves a criterion carries `// @req REQ-XXX-NNN.ACn`.
 - Never mock MOD-obsidian-markdown in MOD-vault tests: use the fixture vault. Never hit the network in tests.
 
