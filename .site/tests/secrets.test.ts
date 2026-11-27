@@ -66,5 +66,6 @@ describe.skipIf(!gitleaks)("secret scanner (gitleaks)", () => {
   it("finds nothing in this repository's whole history (what the CI job runs)", () => {
     const result = spawnSync(gitleaks!, ["git", "--redact", "--no-banner", "--log-level", "warn", "--config", join(repoRoot, ".gitleaks.toml"), repoRoot], { encoding: "utf8" });
     expect(result.status, result.stdout + result.stderr).toBe(0);
-  });
+    // The whole history takes seconds, more while other tests build the site, and grows with every commit.
+  }, 60_000);
 });

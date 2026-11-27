@@ -3,7 +3,8 @@
  * Runs on Node's built-in TypeScript support (CR-0001), so this file uses erasable syntax only.
  *
  * Commands: `status`, `next`, `done <task>`, `pack <task-or-round> [--out FILE]`, `check`, `trace`,
- * `audit [--base <git-ref>] [--sbom FILE]`, `sync`, `tokens`, `contrast`.
+ * `audit [--base <git-ref>] [--sbom FILE]`, `sync`, `tokens`, `contrast`, `size [--dist DIR]`, `links [--dist DIR]`,
+ * `lighthouse`.
  * Returns the process exit code; never calls process.exit, so tests can call `main()` directly.
  */
 import { join, relative, resolve } from "node:path";
@@ -18,6 +19,9 @@ import { check } from "./check.ts";
 import { pack } from "./pack.ts";
 import { formatGroup, loadPlan, markDone, nextTasks, statusReport } from "./plan.ts";
 import { trace } from "./trace.ts";
+import { formatSizes, measureSite } from "./size.ts";
+import { checkLinks, sitePath } from "./links.ts";
+import { runLighthouse } from "./lighthouse.ts";
 
 /** Where output goes; `console` in real use, a collector in tests. */
 export type Io = { log(text: string): void; error(text: string): void };
@@ -25,7 +29,7 @@ export type Io = { log(text: string): void; error(text: string): void };
 /** The repository root: two folders up from `.site/tools/`. */
 export const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
 
-const USAGE = "Usage: tools <command>\n  status         phase, gates, task counts, open conflicts, next tasks, recent progress\n  next           tasks whose dependencies are done, by round\n  done <task>    mark a task done and log it\n  pack <task-or-round> [--out FILE]\n                 bundle what a task or round needs; prints it, or writes FILE\n  check          check the plan's consistency; exits 1 on any problem\n  trace          write specs/trace.md (criterion → task → tagged tests)\n  audit [--base <git-ref>] [--sbom FILE]\n                 vulnerabilities, 7-day cooldown for entries changed since <git-ref>, licences\n  sync           publish: collect diagram images, check, build, commit and push (sync.cmd)\n  tokens         write .site/src/features/site/tokens.css from design/tokens.json\n  contrast       WCAG contrast of every token pair, and no raw colours outside tokens.css";
+const USAGE = "Usage: tools <command>\n  status         phase, gates, task counts, open conflicts, next tasks, recent progress\n  next           tasks whose dependencies are done, by round\n  done <task>    mark a task done and log it\n  pack <task-or-round> [--out FILE]\n                 bundle what a task or round needs; prints it, or writes FILE\n  check          check the plan's consistency; exits 1 on any problem\n  trace          write specs/trace.md (criterion → task → tagged tests)\n  audit [--base <git-ref>] [--sbom FILE]\n                 vulnerabilities, 7-day cooldown for entries changed since <git-ref>, licences\n  sync           publish: collect diagram images, check, build, commit and push (sync.cmd)\n  tokens         write .site/src/features/site/tokens.css from design/tokens.json\n  contrast       WCAG contrast of every token pair, and no raw colours outside tokens.css\n  size [--dist DIR]\n                 compressed JS and HTML+CSS+fonts per built page against NFR-002\n  links [--dist DIR]\n                 base path on every internal address, and every internal link resolves\n  lighthouse     Lighthouse CI budgets on the built site (npm run test:lighthouse)";
 
 /**
  * Runs one tool command against the plan under `root` and returns its exit code:
@@ -35,6 +39,7 @@ const USAGE = "Usage: tools <command>\n  status         phase, gates, task count
 export function main(argv: string[], root: string = repoRoot, io: Io = console): number | Promise<number> {
   const [command, ...args] = argv;
   if (command === "sync") return runSync(root, io);
+  if (command === "links") return runLinks(root, args, io);
   try {
     switch (command) {
       case "status":
@@ -105,6 +110,19 @@ export function main(argv: string[], root: string = repoRoot, io: Io = console):
         io.log(`Wrote .site/${TOKENS_CSS}`);
         return 0;
       }
+      case "size": {
+        const report = measureSite(distArg(root, args), sitePath(join(root, ".site")));
+        formatSizes(report).forEach((l) => io.log(l));
+        report.warnings.forEach((w) => io.log(`Warning: ${w}`));
+        if (report.errors.length) {
+          io.error("Build-size check failed:\n" + report.errors.map((e) => `  - ${e}`).join("\n"));
+          return 1;
+        }
+        io.log(`Build-size check passed: ${report.pages.length} pages within NFR-002.`);
+        return 0;
+      }
+      case "lighthouse":
+        return runLighthouse(join(root, ".site"), io);
       case "contrast": {
         const result = checkContrast(JSON.parse(readFileSync(join(root, "design/tokens.json"), "utf8")));
         const raw = findRawColours(styleFiles(join(root, ".site")));
@@ -118,6 +136,32 @@ export function main(argv: string[], root: string = repoRoot, io: Io = console):
         io.error(USAGE);
         return 2;
     }
+  } catch (e) {
+    io.error(e instanceof Error ? e.message : String(e));
+    return 1;
+  }
+}
+
+/** `--dist DIR` (from the folder the command was typed in), else `.site/dist`. */
+function distArg(root: string, args: string[]): string {
+  const at = args.indexOf("--dist");
+  if (at < 0) return join(root, ".site", "dist");
+  const value = args[at + 1];
+  if (!value || value.startsWith("--")) throw new Error("--dist needs a folder");
+  return resolve(process.env.INIT_CWD ?? process.cwd(), value);
+}
+
+/** TOOL-12: both link checks over the built site. */
+async function runLinks(root: string, args: string[], io: Io): Promise<number> {
+  try {
+    const result = await checkLinks(join(root, ".site"), distArg(root, args));
+    if (result.allowed.length) io.log(`Not built yet, allowed until they are (CR-0008): ${result.allowed.join(", ")}`);
+    if (result.problems.length) {
+      io.error(`Link check found ${result.problems.length} problem(s):\n` + result.problems.map((p) => `  - ${p.page}: ${p.address} ${p.problem}`).join("\n"));
+      return 1;
+    }
+    io.log(`Link check passed: ${result.checked} internal addresses resolve, all under the base path.`);
+    return 0;
   } catch (e) {
     io.error(e instanceof Error ? e.message : String(e));
     return 1;

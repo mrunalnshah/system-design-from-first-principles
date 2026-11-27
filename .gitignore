@@ -10,6 +10,7 @@
 .site/test-results/
 .site/playwright-report/
 .site/.astro/
+.site/.lighthouseci/
 
 # Obsidian's per-device window layout
 .obsidian/workspace*.json

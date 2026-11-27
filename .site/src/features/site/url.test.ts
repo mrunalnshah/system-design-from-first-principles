@@ -1,11 +1,10 @@
-import { execFileSync } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { buildFixtureSite } from "../../../tests/build-site.ts";
 import { makeUrlBuilder } from "./url.ts";
 
-const siteRoot = join(import.meta.dirname, "../../..");
 const tempDirs: string[] = [];
 afterAll(() => tempDirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
 
@@ -69,13 +68,8 @@ describe("the built site", () => {
   it("has no internal link or asset without the base path (built with base /system-design/)", () => {
     const outDir = mkdtempSync(join(tmpdir(), "sdfp-base-"));
     tempDirs.push(outDir);
-    const script = `import("astro").then((a) => a.build({ root: process.argv[1], outDir: process.argv[2], base: "/system-design/", logLevel: "error" }))`;
-    // Vitest puts Vite's own variables (BASE_URL="/", MODE, DEV, PROD, SSR) into process.env; a child
-    // build that inherits them would ignore the base path under test, so they're removed.
-    const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(BASE_URL|MODE|DEV|PROD|SSR|VITEST.*|TEST)$/.test(k)));
-    // The fixture vault, so the check doesn't depend on the author's content being free of errors.
-    env.SDFP_VAULT = join(siteRoot, "tests/fixtures/vault");
-    execFileSync(process.execPath, ["--input-type=module", "-e", script, siteRoot, outDir], { stdio: "pipe", env });
+    // The fixture vault, built with that base path (one build at a time: tests/build-site.ts).
+    buildFixtureSite(outDir, "/system-design/");
     const addresses = internalAddresses(outDir);
     expect(addresses.length).toBeGreaterThan(0);
     expect(addresses.filter((a) => !a.address.startsWith("/system-design/"))).toEqual([]);
