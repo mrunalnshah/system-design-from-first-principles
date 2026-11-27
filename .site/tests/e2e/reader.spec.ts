@@ -1,4 +1,4 @@
-import { expect } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { expectNoA11yViolations, expectNoCspViolations, expectNoHorizontalScroll, expectOnlySameOriginRequests, test } from "./helpers.ts";
 
 /** T-01.16: the reading page, on Chapter 1 and on the fixture's Chapter 2 (epigraph, wide formula, footnote). */
@@ -31,12 +31,22 @@ test.describe("reader layout", () => {
   });
 
   // @req REQ-READ-002.AC1
-  // The chapter menu arrives in T-01.17, which extends this test to it (CR-0008); until then the site menu stands in.
-  test("opens menus without animation for a reader who asks for reduced motion", async ({ page }) => {
+  // Both menus: the site menu, and the chapter menu's sections sheet (T-01.17, CR-0008), which needs JavaScript.
+  test("opens menus without animation for a reader who asks for reduced motion", async ({ page, javaScriptEnabled }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 375, height: 700 });
     await page.goto(CHAPTER_1);
     await page.locator(".nav-menu summary").click();
+    await expectNothingMoving(page);
+    if (javaScriptEnabled) {
+      await page.locator(".nav-menu summary").click();
+      await page.getByRole("button", { name: "Sections", exact: true }).click();
+      await expect(page.locator("dialog[data-sections-sheet]")).toBeVisible();
+      await expectNothingMoving(page);
+    }
+  });
+
+  async function expectNothingMoving(page: Page): Promise<void> {
     const moving = await page.evaluate(() =>
       [...document.querySelectorAll("*")].filter((el) => {
         const s = getComputedStyle(el);
@@ -46,7 +56,7 @@ test.describe("reader layout", () => {
       }).length,
     );
     expect(moving).toBe(0);
-  });
+  }
 
   // @req REQ-READ-002.AC2
   test("lets nothing cover the text when the page loads", async ({ page }) => {

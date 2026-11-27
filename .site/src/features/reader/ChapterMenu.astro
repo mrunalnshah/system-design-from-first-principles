@@ -1,0 +1,356 @@
+---
+/**
+ * The chapter menu (REQ-READ-007, ADR-0006, design/components.md ChapterMenu): the book title (to the contents),
+ * "Chapter N" and this chapter's sections, the current one highlighted while the reader scrolls.
+ * - `variant="panel"` (the reader layout's `menu` slot): at 1100 px and wider a panel that stays in view beside the
+ *   text; narrower, a "Sections" bar that stays in view under the header and opens the sections as a sheet
+ *   (`<dialog>`). Both need the script (client/chapter-menu.ts), so they show only when scripting is on.
+ * - `variant="plain"` (under the chapter title): the same list as an ordinary `<nav>`, shown only when scripting is
+ *   off, where every link still works (REQ-READ-007.AC3). The choice is the CSS `scripting` media feature, so the
+ *   page never shifts when the script arrives.
+ * Markup hooks for the script: `data-chapter-menu`, `data-sections-button`, `data-sections-sheet`, `data-sheet-close`,
+ * and `data-section="<anchor>"` on each section link. Previous/next in the panel need book navigation's neighbours
+ * (T-02.02), and no task adds them here yet: a follow-up the author decides on (progress.md, R-10).
+ */
+import type { ChapterData } from "../content/index.ts";
+import { url } from "../site/index.ts";
+
+interface Props {
+  chapter: Pick<ChapterData, "number" | "title" | "sections">;
+  /** The book's title, linking to the contents. */
+  bookTitle: string;
+  variant?: "panel" | "plain";
+}
+const { chapter, bookTitle, variant = "panel" } = Astro.props;
+const label = `${chapter.number} · ${chapter.title}`;
+const hasSections = chapter.sections.length > 0;
+---
+
+{variant === "plain" ? (
+  hasSections && (
+    <nav class="chapter-toc" aria-label="Chapter">
+      <p class="chapter-toc-title">In this chapter</p>
+      <ol class="sections">
+        {chapter.sections.map((s) => (
+          <li class={`depth-${s.depth}`}>
+            <a href={`#${s.anchor}`}>
+              {s.number && <span class="number">{s.number}</span>} {s.text}
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )
+) : (
+  <div class="chapter-menu" data-chapter-menu>
+    {hasSections && (
+      <div class="chapter-bar">
+        <button
+          type="button"
+          class="chapter-bar-button"
+          data-sections-button
+          aria-haspopup="dialog"
+          aria-controls="chapter-sheet"
+          aria-expanded="false"
+        >
+          Sections
+        </button>
+        <span class="chapter-bar-title">{label}</span>
+      </div>
+    )}
+    <nav class="chapter-panel" aria-label="Chapter">
+      <a class="chapter-panel-book" href={url({ kind: "contents" })}>
+        {bookTitle}
+      </a>
+      <p class="chapter-panel-eyebrow">Chapter {chapter.number}</p>
+      {hasSections && (
+        <ol class="sections">
+          {chapter.sections.map((s) => (
+            <li class={`depth-${s.depth}`}>
+              <a href={`#${s.anchor}`} data-section={s.anchor}>
+                {s.number && <span class="number">{s.number}</span>} {s.text}
+              </a>
+            </li>
+          ))}
+        </ol>
+      )}
+    </nav>
+    {hasSections && (
+      <dialog class="chapter-sheet" id="chapter-sheet" aria-labelledby="chapter-sheet-title" data-sections-sheet>
+        <div class="chapter-sheet-body">
+          <div class="chapter-sheet-top">
+            <p class="chapter-sheet-title" id="chapter-sheet-title">
+              {label}
+            </p>
+            <button type="button" class="chapter-sheet-close" data-sheet-close aria-label="Close sections">
+              <span aria-hidden="true">✕</span>
+            </button>
+          </div>
+          <nav aria-label="Chapter">
+            <ol class="sections">
+              {chapter.sections.map((s) => (
+                <li class={`depth-${s.depth}`}>
+                  <a href={`#${s.anchor}`} data-section={s.anchor}>
+                    {s.number && <span class="number">{s.number}</span>} {s.text}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        </div>
+      </dialog>
+    )}
+  </div>
+)}
+
+<script>
+  import { bindChapterMenu } from "./client/chapter-menu.ts";
+  bindChapterMenu();
+</script>
+
+<style>
+  /* Scripting off, or a browser that can't say: only the plain list. */
+  .chapter-menu {
+    display: none;
+  }
+
+  @media (scripting: enabled) {
+    /* `contents`, so the bar and the panel stick within the whole reading area, not just this box. */
+    .chapter-menu {
+      display: contents;
+    }
+
+    .chapter-toc {
+      display: none;
+    }
+  }
+
+  /*
+   * Narrower than 1100 px with the bar showing, a section link lands below the header and the bar, never under them
+   * (WCAG 2.4.11); site.css leaves room for the header alone. The bar: the tap target, its padding and its border.
+   */
+  @media (scripting: enabled) and (max-width: 1099.98px) {
+    :global(:root:has(.chapter-bar)) {
+      scroll-padding-block-start: calc(4rem + 1px + var(--size-tap-target) + 2 * var(--space-1) + 1px + var(--space-4));
+    }
+  }
+
+  .sections {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .sections a {
+    display: block;
+    text-decoration: none;
+    line-height: 1.35;
+  }
+
+  .number {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* The plain list (no scripting) */
+  .chapter-toc {
+    margin-block-start: var(--space-6);
+    padding: var(--space-4) var(--space-6);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-md);
+    font-family: var(--font-sans);
+  }
+
+  .chapter-toc-title {
+    margin: 0 0 var(--space-2);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .chapter-toc .sections a {
+    padding-block: var(--space-1);
+  }
+
+  .chapter-toc .depth-3 a {
+    padding-inline-start: var(--space-4);
+  }
+
+  /* The bar under the header, narrower than 1100 px */
+  .chapter-bar {
+    position: sticky;
+    /* Under the sticky site header: its 4rem row and its 1px border. */
+    inset-block-start: calc(4rem + 1px);
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-inline: calc(-1 * var(--space-4));
+    padding: var(--space-1) var(--space-4);
+    background: var(--color-bg);
+    border-block-end: 1px solid var(--color-divider);
+    font-family: var(--font-sans);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .chapter-bar-button {
+    flex: none;
+    min-block-size: var(--size-tap-target);
+    padding-inline: var(--space-3);
+    font: var(--font-weight-medium) var(--font-size-sm) / 1 var(--font-sans);
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+  }
+
+  .chapter-bar-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* The panel beside the text, 1100 px and wider */
+  .chapter-panel {
+    display: none;
+  }
+
+  @media (min-width: 1100px) {
+    .chapter-bar {
+      display: none;
+    }
+
+    .chapter-panel {
+      display: block;
+      position: sticky;
+      inset-block-start: calc(4rem + var(--space-8));
+      max-block-size: calc(100vh - 4rem - 2 * var(--space-8));
+      overflow-y: auto;
+      padding-block: var(--space-12) var(--space-4);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+    }
+  }
+
+  .chapter-panel-book {
+    display: block;
+    margin-block-end: var(--space-3);
+    color: var(--color-text);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.3;
+    text-decoration: none;
+  }
+
+  .chapter-panel-eyebrow {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    font-variant-caps: all-small-caps;
+    letter-spacing: 0.04em;
+  }
+
+  .chapter-panel .sections {
+    margin-block: var(--space-2) var(--space-4);
+    border-inline-start: 1px solid var(--color-divider);
+  }
+
+  .chapter-panel .sections a {
+    margin-inline-start: -1px;
+    padding: var(--space-1) 0 var(--space-1) var(--space-3);
+    border-inline-start: 2px solid transparent;
+    color: var(--color-text-muted);
+  }
+
+  .chapter-panel .depth-3 a {
+    padding-inline-start: var(--space-6);
+    font-size: var(--font-size-xs);
+  }
+
+  .chapter-panel .sections a[aria-current="location"] {
+    color: var(--color-accent);
+    border-inline-start-color: var(--color-accent);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  /* The sheet: a modal dialog along the bottom of the screen */
+  .chapter-sheet {
+    margin: auto 0 0;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    max-block-size: 75dvh;
+    padding: 0;
+    color: var(--color-text);
+    background: var(--color-bg);
+    border: 0;
+    border-block-start: 1px solid var(--color-border);
+    border-start-start-radius: var(--radius-md);
+    border-start-end-radius: var(--radius-md);
+    font-family: var(--font-sans);
+  }
+
+  .chapter-sheet::backdrop {
+    background: var(--color-bg);
+    opacity: 0.65;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .chapter-sheet[open] {
+      animation: sheet-in var(--duration-max) ease-out;
+    }
+  }
+
+  @keyframes sheet-in {
+    from {
+      transform: translateY(100%);
+    }
+  }
+
+  .chapter-sheet-body {
+    padding: var(--space-3) var(--space-4) var(--space-6);
+  }
+
+  .chapter-sheet-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-block-end: var(--space-2);
+  }
+
+  .chapter-sheet-title {
+    margin: 0;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .chapter-sheet-close {
+    flex: none;
+    min-inline-size: var(--size-tap-target);
+    min-block-size: var(--size-tap-target);
+    font: var(--font-weight-semibold) var(--font-size-sm) / 1 var(--font-sans);
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+  }
+
+  .chapter-sheet .sections a {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-block-size: var(--size-tap-target);
+    padding-block: var(--space-2);
+    border-block-end: 1px solid var(--color-divider);
+    color: var(--color-text);
+  }
+
+  .chapter-sheet .depth-3 a {
+    padding-inline-start: var(--space-4);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+  }
+
+  .chapter-sheet .sections a[aria-current="location"] {
+    color: var(--color-accent);
+    font-weight: var(--font-weight-semibold);
+  }
+</style>

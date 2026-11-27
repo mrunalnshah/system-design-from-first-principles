@@ -1,0 +1,90 @@
+/*
+ * The full-screen diagram view (REQ-DIAG-003, design/components.md DiagramViewer) and the figure as its button.
+ * The view fills the screen on the diagram background (the colour the exported SVGs paint), with a bar of
+ * 44 px buttons at the top and the diagram fitted into the rest. Zoom and pan are transforms set by the script;
+ * nothing animates for readers who ask for less motion (site.css, and the script asks for no animation).
+ */
+
+/* The figure, once the script has made it a button: it looks exactly like the link it replaces. */
+.diagram-open {
+  inline-size: 100%;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: zoom-in;
+}
+
+.diagram-viewer {
+  inline-size: 100vw;
+  block-size: 100dvh;
+  max-inline-size: none;
+  max-block-size: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--color-text);
+  background: var(--color-diagram-bg);
+  overflow: hidden;
+  overscroll-behavior: contain;
+  font-family: var(--font-sans);
+}
+
+.diagram-viewer[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.diagram-viewer::backdrop {
+  background: var(--color-diagram-bg);
+}
+
+.diagram-viewer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.diagram-viewer-hint {
+  margin: 0 auto 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.diagram-viewer-bar button {
+  flex: none;
+  min-inline-size: var(--size-tap-target);
+  min-block-size: var(--size-tap-target);
+  font: var(--font-weight-semibold) var(--font-size-sm) / 1 var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.diagram-viewer-stage {
+  flex: 1;
+  min-block-size: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  touch-action: none;
+  container-type: size;
+}
+
+/*
+ * The diagram as large as fits the stage, keeping its shape (`--ratio`, width over height, set by the script from
+ * the figure's size). The stage around it is what a tap "beside the diagram" lands on.
+ */
+.diagram-viewer-image {
+  display: block;
+  flex: none;
+  inline-size: min(100cqi, 100cqb * var(--ratio, 1));
+  block-size: auto;
+  aspect-ratio: var(--ratio, 1);
+}

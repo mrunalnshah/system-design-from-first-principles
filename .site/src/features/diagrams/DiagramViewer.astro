@@ -1,0 +1,32 @@
+---
+/**
+ * The full-screen diagram view's dialog and its script (REQ-DIAG-003, client/diagram-viewer.ts). A page with
+ * figures renders this once; a page without renders nothing, so it loads no viewer script at all (Astro renders a
+ * component's script only where the component is rendered). Without JavaScript the closed dialog never shows and
+ * each figure stays a link to its SVG.
+ */
+import "./viewer.css";
+---
+
+<dialog class="diagram-viewer" aria-label="Diagram" data-diagram-viewer>
+  <div class="diagram-viewer-bar">
+    <p class="diagram-viewer-hint">Pinch, scroll or use + and − to zoom · drag to move · Esc to close</p>
+    <button type="button" data-zoom="out" aria-label="Zoom out">
+      <span aria-hidden="true">−</span>
+    </button>
+    <button type="button" data-zoom="in" aria-label="Zoom in">
+      <span aria-hidden="true">+</span>
+    </button>
+    <button type="button" data-close aria-label="Close full screen view" autofocus>
+      <span aria-hidden="true">✕</span>
+    </button>
+  </div>
+  <div class="diagram-viewer-stage">
+    <img class="diagram-viewer-image" alt="" />
+  </div>
+</dialog>
+
+<script>
+  import { bindDiagramViewer } from "./client/diagram-viewer.ts";
+  bindDiagramViewer();
+</script>

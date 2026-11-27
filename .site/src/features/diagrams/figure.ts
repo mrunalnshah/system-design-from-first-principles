@@ -2,7 +2,8 @@
  * Figures and diagram addresses (ADR-0005, REQ-DIAG-001, REQ-DIAG-002, routes.md).
  * A figure is one `<picture>`: the dark image as a `prefers-color-scheme: dark` source and the light one as the
  * `<img>`, so the browser downloads only the variant it shows and the theme needs no JavaScript. Its size comes
- * from the viewBox (space is reserved before it loads). It's a link to the SVG, so it opens without JavaScript.
+ * from the viewBox (space is reserved before it loads). It's a link to the SVG, so it opens without JavaScript;
+ * `data-diagram` is the hook for the full-screen viewer (client/diagram-viewer.ts), which makes it a button.
  * Its intrinsic width rides along as `--natural`: figure.css lets small diagrams fill the text column and wide
  * ones break out up to 900 px, centred on the column.
  *
@@ -41,7 +42,7 @@ export function figureHtml(index: DiagramIndex, light: DiagramFile, dark: Diagra
   const img = `<img src="${assetUrl(light)}" alt="${escape(alt)}"${size(light)} loading="${eager ? "eager" : "lazy"}" decoding="async"${eager ? ' fetchpriority="high"' : ""}>`;
   const natural = light.width ? ` style="--natural: ${light.width}px"` : "";
   return [
-    `<figure class="diagram"${natural}>`,
+    `<figure class="diagram" data-diagram${natural}>`,
     `<a class="diagram-link" href="${assetUrl(light)}"><picture>${source}${img}</picture></a>`,
     caption ? `<figcaption>${escape(caption)}</figcaption>` : "",
     "</figure>",

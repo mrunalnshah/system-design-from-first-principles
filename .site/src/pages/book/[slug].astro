@@ -5,7 +5,7 @@
  */
 import type { GetStaticPaths } from "astro";
 import { getBook, type ChapterData } from "../../features/content/index.ts";
-import { ChapterTitle, Epigraph, ReaderLayout } from "../../features/reader/index.ts";
+import { ChapterMenu, ChapterTitle, Epigraph, ReaderLayout } from "../../features/reader/index.ts";
 import { BaseLayout } from "../../features/site/index.ts";
 
 export const getStaticPaths = (async () => {
@@ -21,10 +21,12 @@ const { chapter, settings } = Astro.props;
 ---
 
 <BaseLayout title={chapter.title} description={chapter.summary} route={{ kind: "chapter", slug: chapter.slug }} book={settings} section="contents" type="article">
-  <ReaderLayout kind="chapter">
+  <ReaderLayout kind="chapter" diagrams={chapter.hasDiagrams}>
+    <ChapterMenu slot="menu" chapter={chapter} bookTitle={settings.title} />
     <header class="chapter-head">
       <ChapterTitle chapter={chapter} />
       {chapter.epigraph && <Epigraph text={chapter.epigraph.text} source={chapter.epigraph.source} />}
+      <ChapterMenu variant="plain" chapter={chapter} bookTitle={settings.title} />
     </header>
     <div class="prose"><Fragment set:html={chapter.html} /></div>
   </ReaderLayout>

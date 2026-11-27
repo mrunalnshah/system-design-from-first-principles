@@ -59,7 +59,7 @@ describe("figures", () => {
     const { html, issues } = figure({ files: [light.path, dark.path], alias: 'Reads & "writes" <fast>', fromPath: "c.md", line: 1 });
     const src = url({ kind: "asset", path: assetPath(light) });
     expect(html).toBe(
-      `<figure class="diagram" style="--natural: 916px"><a class="diagram-link" href="${src}"><picture>` +
+      `<figure class="diagram" data-diagram style="--natural: 916px"><a class="diagram-link" href="${src}"><picture>` +
         `<source media="(prefers-color-scheme: dark)" srcset="${url({ kind: "asset", path: assetPath(dark) })}" width="916" height="400">` +
         `<img src="${src}" alt="Reads &amp; &quot;writes&quot; &lt;fast&gt;" width="916" height="400" loading="lazy" decoding="async">` +
         `</picture></a><figcaption>Reads &amp; &quot;writes&quot; &lt;fast&gt;</figcaption></figure>`,

@@ -18,6 +18,13 @@
   display: none;
 }
 
+/* Narrower, the chapter menu's bar sticks within the whole reading area, not just the menu's own box (T-01.17). */
+@media (max-width: 1099.98px) {
+  .reader-menu {
+    display: contents;
+  }
+}
+
 @media (min-width: 1100px) {
   .reader {
     display: grid;
@@ -26,7 +33,10 @@
      * 15rem (the whole grid is capped at that full width). So the column keeps its 60–75 characters as long as it can.
      */
     grid-template-columns: minmax(12rem, 1fr) minmax(0, var(--size-reading-column)) minmax(12rem, 1fr);
-    max-inline-size: calc(var(--size-chapter-menu) + var(--size-reading-column) + var(--size-margin-note) + 2 * var(--space-12) + 2 * var(--space-8));
+    max-inline-size: calc(
+      var(--size-chapter-menu) + var(--size-reading-column) + var(--size-margin-note) + 2 * var(--space-12) + 2 *
+        var(--space-8)
+    );
     margin-inline: auto;
     column-gap: var(--space-12);
     justify-content: center;
@@ -136,8 +146,10 @@
 
 /* The text */
 .prose {
+  /* Shared with the margin notes, which line up with this text (rem and vw only, so it means the same everywhere). */
+  --prose-font-size: clamp(var(--font-size-base-min), 1rem + 0.35vw, var(--font-size-base-max));
   font-family: var(--font-serif);
-  font-size: clamp(var(--font-size-base-min), 1rem + 0.35vw, var(--font-size-base-max));
+  font-size: var(--prose-font-size);
   line-height: var(--line-height-reading);
   overflow-wrap: break-word;
 }
@@ -287,7 +299,13 @@
   cursor: pointer;
 }
 
-/* Margin notes are placed by T-01.18; until then each note shows once, in the list at the end. */
+/*
+ * Margin notes (REQ-READ-006, ADR-0006). Each note is written twice: inline after its marker (`.sidenote`) and in the
+ * list at the end. Narrower than 1100 px the inline copy is hidden, so without JavaScript the marker links to the end
+ * list (AC3); client/margin-notes.ts turns the marker into a button, and its note opens below the line while the
+ * button says it's expanded (AC2). At 1100 px and wider the note floats into the margin, its top level with its
+ * line, and `clear` stacks each note below the one before (AC1).
+ */
 .prose .sidenote {
   display: none;
 }
@@ -295,6 +313,74 @@
 .prose .ref {
   font-family: var(--font-sans);
   text-decoration: none;
+}
+
+.prose button.ref {
+  padding: 0 0.15em;
+  font: inherit;
+  font-family: var(--font-sans);
+  line-height: 1;
+  color: var(--color-accent);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.prose button.ref[aria-expanded="true"] {
+  background: var(--color-surface);
+}
+
+.prose .ref[aria-expanded="true"] + .sidenote {
+  display: block;
+  margin-block: 0.4em 0.8em;
+  padding: var(--space-2) var(--space-3);
+  border-inline-start: 3px solid var(--color-accent);
+  background: var(--color-surface);
+  font: var(--font-size-sm) / 1.5 var(--font-sans);
+  color: var(--color-text-muted);
+}
+
+.prose .sidenote-number {
+  margin-inline-end: var(--space-1);
+  color: var(--color-accent);
+  font-weight: var(--font-weight-semibold);
+}
+
+@media (min-width: 1100px) {
+  /*
+   * The note's box: as wide as the margin at its narrowest (12rem, the grid's minimum), pulled out of the column by
+   * its width and the gap, so it takes no room from the text. The top margin centres its first line on the text's
+   * line: half the difference of the two line heights, and 0.25rem more because the serif's letters sit lower in
+   * their line than the sans's.
+   */
+  .prose .sidenote,
+  .prose .ref[aria-expanded="true"] + .sidenote {
+    display: block;
+    float: right;
+    clear: right;
+    inline-size: 12rem;
+    margin: calc((var(--line-height-reading) * var(--prose-font-size) - 1.5 * var(--font-size-sm)) / 2 + 0.25rem)
+      calc(-12rem - var(--space-12)) var(--space-4) 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: var(--font-size-sm) / 1.5 var(--font-sans);
+    color: var(--color-text-muted);
+  }
+
+  /*
+   * A note in a table cell would float beside the cell, over the table: its end-list entry carries it instead.
+   * A note in a callout (0.9em text) is aligned for the body text, so it sits a pixel or two high: close enough.
+   */
+  .prose table .sidenote {
+    display: none;
+  }
+
+  /* A wide figure reaches into the margin, so it starts below any note still beside the text. */
+  .reader-column .diagram {
+    clear: right;
+  }
 }
 
 .prose .endnotes {

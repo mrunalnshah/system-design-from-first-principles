@@ -4,17 +4,20 @@
  * the reading column of about 70 characters, and the margin for notes); narrower, one column. It brings in the styles
  * for what the Markdown renderer writes (content.css: math and code), the figures' styles (MOD-diagrams) and its own.
  * Nothing overlays the text unless the reader asks, and nothing animates for readers who ask for less motion.
- * Props: `kind`, "chapter", "article" or "page". Slots: `menu` (chapter menu, T-01.17), the default slot (title and
- * text), and `end` (previous/next, links).
+ * Props: `kind`, "chapter", "article" or "page"; `diagrams`, whether the page gets the full-screen diagram viewer.
+ * Slots: `menu` (chapter menu, T-01.17), the default slot (title and text), and `end` (previous/next, links).
+ * Its script turns margin-note markers into toggles on narrow screens (client/margin-notes.ts, T-01.18).
  */
-import "../diagrams/index.ts";
+import { DiagramViewer } from "../diagrams/index.ts";
 import "./content.css";
 import "./reader.css";
 
 interface Props {
   kind: "chapter" | "article" | "page";
+  /** The entry shows diagrams: the page gets the full-screen viewer (MOD-diagrams), and only then. */
+  diagrams?: boolean;
 }
-const { kind } = Astro.props;
+const { kind, diagrams = false } = Astro.props;
 ---
 
 <div class:list={["reader", `reader--${kind}`]}>
@@ -24,3 +27,9 @@ const { kind } = Astro.props;
     <slot name="end" />
   </article>
 </div>
+{diagrams && <DiagramViewer />}
+
+<script>
+  import { bindMarginNotes } from "./client/margin-notes.ts";
+  bindMarginNotes();
+</script>

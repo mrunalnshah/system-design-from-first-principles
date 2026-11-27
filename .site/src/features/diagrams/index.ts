@@ -8,3 +8,4 @@ import "./figure.css";
 export { getDiagramIndex, indexOf, type DiagramIndex } from "./index-svg.ts";
 export { createFigureRenderer, diagramAssetPaths, type FigureRenderer } from "./figure.ts";
 export { default as DiagramFigure } from "./DiagramFigure.astro";
+export { default as DiagramViewer } from "./DiagramViewer.astro";
