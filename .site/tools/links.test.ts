@@ -56,9 +56,9 @@ describe("the built site", () => {
     const result = await checkLinks(siteRootOf(), dist);
     expect(result.problems).toEqual([]);
     expect(result.checked).toBeGreaterThan(20);
-    // Exactly Contents, Articles and About may be missing, and only while they are.
-    expect(NOT_YET_BUILT).toEqual(["book/", "articles/", "about/"]);
-    // The fixture builds none of the three yet, so all three are allowed, and nothing else.
-    expect([...result.allowed].sort()).toEqual(["about/", "articles/", "book/"]);
+    // Exactly Articles and About may be missing, and only while they are (Contents is built since T-02.03).
+    expect(NOT_YET_BUILT).toEqual(["articles/", "about/"]);
+    // The fixture builds neither yet, so both are allowed, and nothing else.
+    expect([...result.allowed].sort()).toEqual(["about/", "articles/"]);
   }, 120_000);
 });

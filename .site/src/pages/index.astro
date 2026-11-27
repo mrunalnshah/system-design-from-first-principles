@@ -1,17 +1,20 @@
 ---
-// Placeholder homepage (thin slice, T-00.08), now with the book's settings and a way into the first chapter
-// (T-01.14). The real homepage arrives in T-02.05.
-import { getBook } from "../features/content/index.ts";
-import { BaseLayout, url } from "../features/site/index.ts";
+/**
+ * The homepage at the site's root (REQ-HOME-001, routes.md): the book hero (T-02.05); featured chapters and the
+ * latest articles arrive in T-02.06.
+ */
+import { getArticles, getBook } from "../features/content/index.ts";
+import { HomePage } from "../features/home/index.ts";
+import { BaseLayout } from "../features/site/index.ts";
 
-const book = await getBook();
-const first = book.chapters[0];
+const [book, articles] = await Promise.all([getBook(), getArticles()]);
 ---
 
-<BaseLayout title={book.settings.title} description={book.settings.subtitle ?? book.settings.title} route={{ kind: "home" }} book={book.settings}>
-  <div class="site-wrap">
-    <h1>{book.settings.title}</h1>
-    {book.settings.subtitle && <p>{book.settings.subtitle}</p>}
-    {first && <p><a href={url({ kind: "chapter", slug: first.slug })}>Read from the start: {first.number}. {first.title}</a></p>}
-  </div>
+<BaseLayout
+  title={book.settings.title}
+  description={book.settings.subtitle ?? book.settings.title}
+  route={{ kind: "home" }}
+  book={book.settings}
+>
+  <HomePage book={book} articles={articles} />
 </BaseLayout>

@@ -1,0 +1,180 @@
+---
+/**
+ * The contents page's body (REQ-BOOK-001, REQ-BOOK-004, REQ-ART-003, design/screens/contents.md): "Contents",
+ * the book's title with its chapter count and total reading time, then each published part as "I. Foundations" with its chapters: the continuous number, the title (a link), the reading time, and the
+ * chapter's top-level sections as small links straight to them. Only chapters: articles are never listed.
+ * With nothing published yet, a short message and a way to the articles.
+ * Props: `book` (the published book).
+ */
+import type { Book } from "../content/index.ts";
+import { url } from "../site/index.ts";
+import { contentsOf } from "./contents.ts";
+
+interface Props {
+  book: Book;
+}
+const { book } = Astro.props;
+const parts = contentsOf(book);
+const count = book.chapters.length;
+---
+
+<div class="contents site-wrap">
+  <header class="contents-head">
+    <h1>Contents</h1>
+    <p class="contents-meta">
+      {book.settings.title} · {count} {count === 1 ? "chapter" : "chapters"} · {book.totalReadingMinutes} min
+    </p>
+  </header>
+  {parts.length === 0 ? (
+    <p class="contents-empty">
+      The first chapter is on its way. Meanwhile, <a href={url({ kind: "articles" })}>read the articles</a>.
+    </p>
+  ) : (
+    parts.map((part) => (
+      <section class="contents-part" aria-labelledby={`part-${part.slug}`}>
+        <h2 id={`part-${part.slug}`}>
+          <span class="contents-numeral">{part.romanNumeral}.</span> {part.title}
+        </h2>
+        <ol class="contents-chapters">
+          {part.chapters.map((chapter) => (
+            <li class="contents-chapter">
+              <span class="contents-number" aria-hidden="true">
+                {chapter.number}.
+              </span>
+              <div class="contents-line">
+                <a class="contents-title" href={chapter.href}>
+                  <span class="visually-hidden">Chapter {chapter.number}: </span>
+                  {chapter.title}
+                </a>
+                <span class="contents-time">{chapter.readingMinutes} min</span>
+              </div>
+              {chapter.sections.length > 0 && (
+                <ol class="contents-sections" aria-label={`Sections of ${chapter.title}`}>
+                  {chapter.sections.map((s) => (
+                    <li>
+                      <a href={s.href}>{s.text}</a>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </li>
+          ))}
+        </ol>
+      </section>
+    ))
+  )}
+</div>
+
+<style>
+  .contents {
+    max-inline-size: calc(var(--size-reading-column) + 2 * var(--space-4));
+    padding-block-end: var(--space-8);
+  }
+
+  /* `.site-wrap` pads with --space-8 from 768 px: the text column stays the reading width. */
+  @media (min-width: 768px) {
+    .contents {
+      max-inline-size: calc(var(--size-reading-column) + 2 * var(--space-8));
+    }
+  }
+
+  .contents-head {
+    padding-block: var(--space-12) var(--space-6);
+  }
+
+  .contents-head h1 {
+    margin: var(--space-1) 0 var(--space-2);
+    font-size: clamp(2rem, 1.5rem + 2vw, var(--font-size-3xl));
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+  }
+
+  .contents-meta,
+  .contents-empty {
+    margin: 0;
+    color: var(--color-text-muted);
+  }
+
+  .contents-part {
+    margin-block-start: var(--space-8);
+  }
+
+  .contents-part h2 {
+    margin: 0 0 var(--space-2);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .contents-numeral {
+    color: var(--color-accent);
+  }
+
+  .contents-chapters,
+  .contents-sections {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .contents-chapter {
+    display: grid;
+    grid-template-columns: 2.2rem 1fr;
+    padding-block: var(--space-3);
+    border-block-end: 1px solid var(--color-divider);
+  }
+
+  .contents-number {
+    padding-block-start: 2px;
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Title and reading time on one line; on a phone the time moves under a long title. */
+  .contents-line {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0 var(--space-3);
+  }
+
+  .contents-title {
+    min-block-size: 24px;
+    color: var(--color-text);
+    font-size: 1.0625rem;
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+
+  .contents-title:hover {
+    color: var(--color-accent);
+    text-decoration: underline;
+  }
+
+  .contents-time {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+  }
+
+  .contents-sections {
+    grid-column: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-4);
+    padding-block-start: var(--space-1);
+  }
+
+  .contents-sections a {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 24px;
+    font-size: var(--font-size-sm);
+    text-decoration: none;
+  }
+
+  .contents-sections a:hover {
+    text-decoration: underline;
+  }
+</style>

@@ -6,7 +6,8 @@
  * Nothing overlays the text unless the reader asks, and nothing animates for readers who ask for less motion.
  * Props: `kind`, "chapter", "article" or "page"; `diagrams`, whether the page gets the full-screen diagram viewer.
  * Slots: `menu` (chapter menu, T-01.17), the default slot (title and text), and `end` (previous/next, links).
- * Its script turns margin-note markers into toggles on narrow screens (client/margin-notes.ts, T-01.18).
+ * Its script turns margin-note markers into toggles on narrow screens (client/margin-notes.ts, T-01.18) and binds
+ * the arrow keys to a chapter's rel=prev/next (client/keyboard-nav.ts, T-02.04).
  */
 import { DiagramViewer } from "../diagrams/index.ts";
 import "./content.css";
@@ -30,6 +31,8 @@ const { kind, diagrams = false } = Astro.props;
 {diagrams && <DiagramViewer />}
 
 <script>
+  import { bindKeyboardNav } from "./client/keyboard-nav.ts";
   import { bindMarginNotes } from "./client/margin-notes.ts";
   bindMarginNotes();
+  bindKeyboardNav();
 </script>

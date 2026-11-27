@@ -2,8 +2,10 @@
 /**
  * One themed diagram outside a chapter's text, such as the homepage hero (REQ-HOME-001.AC3).
  * Props (interfaces.md): `file`, the vault path of either variant (its partner is found the usual way); `alt`, its
- * text alternative (without it, the words in the diagram are used); `eager` for a figure at the top of the page.
- * Problems (a missing or unpaired image) go to the build report like any other.
+ * text alternative (without it, the words in the diagram are used); `eager` for a figure at the top of the page;
+ * `from`, the vault file that names the diagram, for the build report (the file itself when left out).
+ * Problems (a missing or unpaired image) go to the build report like any other. Its images are published only if
+ * the vault loader also drew it during content sync (CR-0007): the homepage hero is.
  */
 import { buildIssues, vaultRoot } from "../site/index.ts";
 import { getDiagramIndex } from "./index-svg.ts";
@@ -15,11 +17,12 @@ interface Props {
   file: string;
   alt?: string;
   eager?: boolean;
+  from?: string;
 }
-const { file, alt, eager = false } = Astro.props;
+const { file, alt, eager = false, from = file } = Astro.props;
 const index = await getDiagramIndex(vaultRoot());
 // An alt given here is the description; captions belong to chapter figures, so none is drawn and none is asked for.
-const { plan, issues } = planFigure(index, { files: [file], alias: alt ?? "", fromPath: file, line: 1 });
+const { plan, issues } = planFigure(index, { files: [file], alias: alt ?? "", fromPath: from, line: 1 });
 issues.filter((i) => i.code !== "W-DIAGRAM-NO-CAPTION").forEach((i) => buildIssues.add(i));
 const html = plan ? figureHtml(index, plan.light, plan.dark, alt ?? plan.alt, undefined, eager) : "";
 ---

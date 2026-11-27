@@ -8,7 +8,7 @@
  * previews), `route` (this page's address, for the canonical link; leave it out for the 404 and redirect pages, which
  * get `noindex`), `ogImage` (an asset path for link previews), `book` (title, author and portfolio from book.md:
  * this module can't read the vault, so pages hand it over), `current` / `section` (the header link that is this page,
- * or whose section it's in), and `type`.
+ * or whose section it's in), and `type`. Slot `head`: extra head elements a page needs (a chapter's rel=prev/next links).
  */
 import "@fontsource-variable/inter";
 import "@fontsource-variable/source-serif-4";
@@ -46,6 +46,7 @@ const tags = headTags({ title, description, book: book.title, ...(route ? { rout
         t.tag === "title" ? <title>{t.text}</title> : t.tag === "link" ? <link {...t.attrs} /> : <meta {...t.attrs} />,
       )
     }
+    <slot name="head" />
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>

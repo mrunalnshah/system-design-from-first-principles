@@ -18,8 +18,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { htmlFiles, pageName } from "./dist.ts";
 
-/** Contents (`book/`), Articles and About: linked from every page before they're built (CR-0008, routes.md). */
-export const NOT_YET_BUILT = ["book/", "articles/", "about/"];
+/** Articles and About: linked from every page before they're built (CR-0008, routes.md); Contents is built (T-02.03). */
+export const NOT_YET_BUILT = ["articles/", "about/"];
 
 export type LinkProblem = { page: string; address: string; problem: string };
 

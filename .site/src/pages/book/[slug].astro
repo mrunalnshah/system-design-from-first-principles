@@ -4,23 +4,30 @@
  * so renumbering a chapter never changes its address. The HTML was rendered by the vault loader (ADR-0003).
  */
 import type { GetStaticPaths } from "astro";
-import { getBook, type ChapterData } from "../../features/content/index.ts";
+import { getBook, type Book, type ChapterData } from "../../features/content/index.ts";
+import { neighbours, PrevNext } from "../../features/book/index.ts";
 import { ChapterMenu, ChapterTitle, Epigraph, ReaderLayout } from "../../features/reader/index.ts";
-import { BaseLayout } from "../../features/site/index.ts";
+import { BaseLayout, url } from "../../features/site/index.ts";
 
 export const getStaticPaths = (async () => {
   const book = await getBook();
-  return book.chapters.map((chapter) => ({ params: { slug: chapter.slug }, props: { chapter, settings: book.settings } }));
+  return book.chapters.map((chapter) => ({ params: { slug: chapter.slug }, props: { chapter, book } }));
 }) satisfies GetStaticPaths;
 
 interface Props {
   chapter: ChapterData;
-  settings: Awaited<ReturnType<typeof getBook>>["settings"];
+  book: Book;
 }
-const { chapter, settings } = Astro.props;
+const { chapter, book } = Astro.props;
+const settings = book.settings;
+// The chapters on either side, for the browser and for the arrow keys (T-02.04): rel=prev/next in the head.
+// <PrevNext> asks `neighbours` too (a component can't fill the head slot), so both always agree.
+const { previous, next } = neighbours(book, chapter.slug);
 ---
 
 <BaseLayout title={chapter.title} description={chapter.summary} route={{ kind: "chapter", slug: chapter.slug }} book={settings} section="contents" type="article">
+  {previous && <link slot="head" rel="prev" href={url({ kind: "chapter", slug: previous.slug })} />}
+  {next && <link slot="head" rel="next" href={url({ kind: "chapter", slug: next.slug })} />}
   <ReaderLayout kind="chapter" diagrams={chapter.hasDiagrams}>
     <ChapterMenu slot="menu" chapter={chapter} bookTitle={settings.title} />
     <header class="chapter-head">
@@ -29,5 +36,6 @@ const { chapter, settings } = Astro.props;
       <ChapterMenu variant="plain" chapter={chapter} bookTitle={settings.title} />
     </header>
     <div class="prose"><Fragment set:html={chapter.html} /></div>
+    <PrevNext slot="end" book={book} slug={chapter.slug} />
   </ReaderLayout>
 </BaseLayout>

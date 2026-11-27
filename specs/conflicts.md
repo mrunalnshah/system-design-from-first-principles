@@ -59,8 +59,8 @@ Passes run at intake, after the specification, during the stack choice and after
 - Why: the hero diagram is likely the homepage's largest element. Whether a 213 KB SVG meets the LCP budget under Lighthouse's mobile throttling has to be measured, not guessed.
 - Options:
   1. Measure in phase 1 with Lighthouse CI. If it's over budget: preload the hero variant, or the author picks a lighter hero diagram (diagram 02 is ~10 KB), or we add lossless SVG optimisation at build time (a new dependency, needing an ADR).
-- Status: accepted (measured in phase 1)
-- Decision: Lighthouse CI (TOOL-10, built in T-01.20, R-10) measures it in T-02.05 (R-11) when the hero is built; the options above if it fails.
+- Status: resolved
+- Decision: measured in T-02.05 (2026-11-27) with Lighthouse CI (TOOL-10: mobile emulation, simulated slow 4G) on the real build: the homepage's largest contentful paint is the hero diagram (`01_computer-architecture-light.svg`, loaded eagerly with `fetchpriority="high"`) at 1.83 s, CLS 0.000, every category 100. Within the 2.5 s budget, so no preload, lighter diagram or SVG optimisation is needed. Lighthouse in the build job keeps checking it on every push.
 
 ### CNF-007 Gitignored drawing sources versus backup
 - Between: REQ-DIAG-006 (drawing sources never in git, the author's wish at G4), operations backups (GitHub as the backup copy)

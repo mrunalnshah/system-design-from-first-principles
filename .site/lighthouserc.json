@@ -6,6 +6,7 @@
       "startServerReadyTimeout": 60000,
       "url": [
         "http://localhost:4335/system-design-from-first-principles/",
+        "http://localhost:4335/system-design-from-first-principles/book/",
         "http://localhost:4335/system-design-from-first-principles/book/computer-architecture/"
       ],
       "numberOfRuns": 1,

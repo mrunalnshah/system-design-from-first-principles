@@ -1,0 +1,212 @@
+---
+/**
+ * The book hero at the top of the homepage (REQ-HOME-001, design/components.md BookHero, design/screens/home.md):
+ * the title as the page's only `h1`, the subtitle, "by <author>" (to About), the pitch (the body of book.md, rendered
+ * by the vault loader), "N chapters · M min read", the primary "Read from the start" (the first published chapter)
+ * and "Contents →". Beside it at 1100 px and wider, below the title on a phone: the hero diagram from book.md's
+ * `hero_image` (MOD-diagrams' figure, light or dark by the system theme with no JavaScript, loaded first since it's
+ * the largest thing on the page). Without `hero_image` the hero is one column, with no gap (AC4).
+ * Props: `book` (the published book).
+ */
+import { firstChapter } from "../book/index.ts";
+import type { Book } from "../content/index.ts";
+import { DiagramFigure } from "../diagrams/index.ts";
+import { url } from "../site/index.ts";
+
+interface Props {
+  book: Book;
+}
+const { book } = Astro.props;
+const { settings } = book;
+const first = firstChapter(book);
+const count = book.chapters.length;
+---
+
+<section class:list={["hero", { "hero--no-image": !settings.heroImage }]} aria-labelledby="book-title">
+  <div class="hero-text">
+    <h1 id="book-title">{settings.title}</h1>
+    {settings.subtitle && <p class="hero-subtitle">{settings.subtitle}</p>}
+    <p class="hero-author">
+      by <a href={url({ kind: "about" })}>{settings.author}</a>
+    </p>
+    {settings.heroImage && (
+      <div class="hero-art">
+        <DiagramFigure file={settings.heroImagePath ?? settings.heroImage} from="book.md" eager />
+      </div>
+    )}
+    <div class="hero-pitch">
+      <Fragment set:html={settings.pitchHtml} />
+    </div>
+    <p class="hero-stats">
+      {count} {count === 1 ? "chapter" : "chapters"} · {book.totalReadingMinutes} min read
+    </p>
+    <div class="hero-actions">
+      {first && (
+        <a class="button" href={url({ kind: "chapter", slug: first.slug })}>
+          Read from the start
+        </a>
+      )}
+      <a class="hero-contents" href={url({ kind: "contents" })}>
+        Contents →
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    display: grid;
+    padding-block: var(--space-8) var(--space-12);
+    border-block-end: 1px solid var(--color-divider);
+  }
+
+  .hero-text {
+    display: flex;
+    flex-direction: column;
+    min-inline-size: 0;
+  }
+
+  .hero h1 {
+    margin: var(--space-2) 0 var(--space-3);
+    font-size: clamp(2.1rem, 1.4rem + 3.2vw, var(--font-size-3xl));
+    font-weight: var(--font-weight-bold);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+  }
+
+  .hero-subtitle {
+    margin: 0 0 var(--space-1);
+    font-size: 1.2rem;
+    color: var(--color-text-muted);
+  }
+
+  .hero-author {
+    margin: 0 0 var(--space-6);
+    font-size: 0.9375rem;
+  }
+
+  .hero-author a {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 24px;
+  }
+
+  /* On a phone the diagram comes right after the title, then the pitch (design/screens/home.md). */
+  .hero-art {
+    margin-block-end: var(--space-6);
+  }
+
+  /* The figure fills its column here: none of the chapter layout's break-out rules. */
+  .hero-art :global(.diagram) {
+    inline-size: 100%;
+    margin: 0;
+  }
+
+  .hero-pitch {
+    max-inline-size: 34em;
+    font: 1.15rem / 1.65 var(--font-serif);
+  }
+
+  .hero-pitch :global(p) {
+    margin: 0 0 var(--space-4);
+  }
+
+  .hero-stats {
+    margin: 0 0 var(--space-6);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-6);
+  }
+
+  /* PrimaryButton (design/components.md): a link styled as a button, at least 44 px tall. */
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-block-size: 48px;
+    padding-inline: var(--space-6);
+    color: var(--color-on-accent);
+    background: var(--color-accent);
+    border-radius: var(--radius-md);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+
+  .button:hover {
+    color: var(--color-on-accent);
+    background: var(--color-accent-hover);
+  }
+
+  .hero-contents {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 44px;
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+
+  @media (max-width: 767.98px) {
+    .button {
+      inline-size: 100%;
+    }
+  }
+
+  /* Two columns from 1100 px: the text, and the diagram beside it, vertically centred. */
+  @media (min-width: 1100px) {
+    .hero:not(.hero--no-image) {
+      padding-block: var(--space-16);
+    }
+
+    .hero:not(.hero--no-image) .hero-text {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      grid-template-areas:
+        "title art"
+        "subtitle art"
+        "author art"
+        "pitch art"
+        "stats art"
+        "actions art";
+      grid-template-rows: auto auto auto auto auto 1fr;
+      column-gap: var(--space-12);
+      align-items: start;
+    }
+
+    .hero:not(.hero--no-image) h1 {
+      grid-area: title;
+    }
+
+    .hero-subtitle {
+      grid-area: subtitle;
+    }
+
+    .hero-author {
+      grid-area: author;
+    }
+
+    .hero-pitch {
+      grid-area: pitch;
+    }
+
+    .hero-stats {
+      grid-area: stats;
+    }
+
+    .hero-actions {
+      grid-area: actions;
+      align-self: start;
+    }
+
+    .hero-art {
+      grid-area: art;
+      align-self: center;
+      margin: 0;
+    }
+  }
+</style>

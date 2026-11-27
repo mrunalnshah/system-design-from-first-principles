@@ -1,0 +1,20 @@
+---
+/**
+ * The contents page at `book/` (REQ-BOOK-001, routes.md): every published part and chapter, in order.
+ */
+import { Contents } from "../../features/book/index.ts";
+import { getBook } from "../../features/content/index.ts";
+import { BaseLayout } from "../../features/site/index.ts";
+
+const book = await getBook();
+---
+
+<BaseLayout
+  title="Contents"
+  description={`The contents of ${book.settings.title}: every part and chapter.`}
+  route={{ kind: "contents" }}
+  book={book.settings}
+  current="contents"
+>
+  <Contents book={book} />
+</BaseLayout>

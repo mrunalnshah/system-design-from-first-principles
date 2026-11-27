@@ -21,7 +21,15 @@ export async function getBook(): Promise<Book> {
   const [settings] = await entries<BookData>("book");
   // The loader stops the build on E-BOOK-MISSING before any page is built, so this is an invariant, not content.
   if (!settings) throw new Error("getBook: the book collection is empty although the loader requires book.md");
-  const chapters = (await entries<ChapterData>("chapters")).sort((a, b) => a.part.number - b.part.number || a.number - b.number);
+  return bookOf(settings, await entries<ChapterData>("chapters"));
+}
+
+/**
+ * The book from its settings and published chapters (in any order): chapters sorted by part, then number, and
+ * grouped into parts. Pure, so tests can build the book from `buildVault` without Astro's content store.
+ */
+export function bookOf(settings: BookData, published: ChapterData[]): Book {
+  const chapters = [...published].sort((a, b) => a.part.number - b.part.number || a.number - b.number);
   const parts: Part[] = [];
   for (const c of chapters) {
     const last = parts.at(-1);

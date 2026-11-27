@@ -44,7 +44,12 @@ export type ChapterData = EntryData & {
 };
 export type ArticleData = EntryData & { kind: "article"; date?: string };
 export type PageData = EntryData & { kind: "page" };
-export type BookData = BookSettings & { pitchHtml: string };
+/**
+ * `heroImagePath`: book.md's `hero_image` found as an embed would be (a file name or path, any case, closest to
+ * book.md), for the homepage's figure; undefined without a `hero_image`. When nothing matches it keeps the name as
+ * written, and the build stops with E-EMBED-MISSING from drawing it.
+ */
+export type BookData = BookSettings & { pitchHtml: string; heroImagePath?: string };
 
 /** The whole published vault, rendered. `book` is undefined when book.md is missing or wrong (an error is reported). */
 export type RenderedVault = { book?: BookData; chapters: ChapterData[]; articles: ArticleData[]; pages: PageData[]; issues: BuildIssue[] };
@@ -101,7 +106,15 @@ export async function buildVault(options: LoaderOptions): Promise<RenderedVault>
   for (const p of vault.pages) pages.push({ ...(await base(p, false)), kind: "page" });
 
   let book: BookData | undefined;
-  if (vault.book) book = { ...vault.book, pitchHtml: (await render("book.md", vault.book.pitchMarkdown, false)).html };
+  if (vault.book) {
+    book = { ...vault.book, pitchHtml: (await render("book.md", vault.book.pitchMarkdown, false)).html };
+    if (vault.book.heroImage) {
+      // Drawn here like every figure, during content sync, so the diagram route publishes it (CR-0007). The homepage
+      // draws it again, eagerly; its problems are the same and reported once. A hero needs no caption.
+      book.heroImagePath = resolveFile(vault.book.heroImage, "book.md") ?? vault.book.heroImage;
+      issues.push(...figure({ files: [book.heroImagePath], alias: "", fromPath: "book.md", line: 1 }).issues.filter((i) => i.code !== "W-DIAGRAM-NO-CAPTION"));
+    }
+  }
   return { ...(book ? { book } : {}), chapters, articles, pages, issues };
 }
 

@@ -35,10 +35,11 @@ describe("the Lighthouse budgets", () => {
     expect(a["cumulative-layout-shift"]).toEqual(["error", { maxNumericValue: 0.1 }]);
     for (const c of ["performance", "accessibility", "best-practices", "seo"])
       expect(a[`categories:${c}`]).toEqual(["error", { minScore: 0.95 }]);
-    // On the mobile preset, for the homepage and Chapter 1 (the contents page joins when it's built, T-02.03).
+    // On the mobile preset, for the homepage, the contents page and Chapter 1 (TOOL-10).
     expect(config.ci.collect.settings.formFactor).toBe("mobile");
     expect(config.ci.collect.url.map((u) => new URL(u).pathname)).toEqual([
       "/system-design-from-first-principles/",
+      "/system-design-from-first-principles/book/",
       "/system-design-from-first-principles/book/computer-architecture/",
     ]);
   });

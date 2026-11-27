@@ -1,0 +1,94 @@
+---
+/**
+ * Previous and next at the end of a chapter (REQ-BOOK-003, design/components.md PrevNext): two boxes, each with the
+ * chapter's number and title. On the first chapter "Contents" stands where "Previous" would be; on the last,
+ * "Back to contents" replaces "Next". The chapter links carry rel="prev"/"next".
+ * Props: `book` (the published book), `slug` (this chapter).
+ */
+import type { Book } from "../content/index.ts";
+import { url } from "../site/index.ts";
+import { neighbours } from "./neighbours.ts";
+
+interface Props {
+  book: Book;
+  slug: string;
+}
+const { book, slug } = Astro.props;
+const { previous, next } = neighbours(book, slug);
+const contents = url({ kind: "contents" });
+---
+
+<nav class="prev-next" aria-label="Chapter navigation">
+  {previous ? (
+    <a class="prev-next-link" href={url({ kind: "chapter", slug: previous.slug })} rel="prev">
+      <span class="prev-next-label">← Previous</span>
+      <span class="prev-next-title">
+        {previous.number} · {previous.title}
+      </span>
+    </a>
+  ) : (
+    <a class="prev-next-link" href={contents}>
+      <span class="prev-next-label">← Start</span>
+      <span class="prev-next-title">Contents</span>
+    </a>
+  )}
+  {next ? (
+    <a class="prev-next-link prev-next-link--next" href={url({ kind: "chapter", slug: next.slug })} rel="next">
+      <span class="prev-next-label">Next →</span>
+      <span class="prev-next-title">
+        {next.number} · {next.title}
+      </span>
+    </a>
+  ) : (
+    <a class="prev-next-link prev-next-link--next" href={contents}>
+      <span class="prev-next-label">The end, for now</span>
+      <span class="prev-next-title">Back to contents →</span>
+    </a>
+  )}
+</nav>
+
+<style>
+  .prev-next {
+    display: grid;
+    gap: var(--space-3);
+    margin-block-start: var(--space-12);
+    padding-block-start: var(--space-6);
+    border-block-start: 1px solid var(--color-divider);
+    font-family: var(--font-sans);
+  }
+
+  @media (min-width: 768px) {
+    .prev-next {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .prev-next-link {
+    display: block;
+    padding: var(--space-4);
+    color: var(--color-text);
+    text-decoration: none;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+  }
+
+  .prev-next-link:hover {
+    color: var(--color-text);
+    border-color: var(--color-accent);
+  }
+
+  .prev-next-link--next {
+    text-align: end;
+  }
+
+  .prev-next-label {
+    display: block;
+    margin-block-end: var(--space-1);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+  }
+
+  .prev-next-title {
+    font-weight: var(--font-weight-semibold);
+  }
+</style>

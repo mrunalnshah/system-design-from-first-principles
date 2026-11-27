@@ -13,7 +13,7 @@ test.describe("chapter menu", () => {
   }) => {
     test.skip(viewport?.width !== 1280 || !javaScriptEnabled, "1280 px with JavaScript");
     await page.goto(CHAPTER);
-    const panel = page.getByRole("navigation", { name: "Chapter" });
+    const panel = page.getByRole("navigation", { name: "Chapter", exact: true });
     await expect(panel).toBeVisible();
     await expect(panel.getByRole("link", { name: "System Design from First Principles" })).toBeVisible();
     const current = panel.locator('a[aria-current="location"]');
