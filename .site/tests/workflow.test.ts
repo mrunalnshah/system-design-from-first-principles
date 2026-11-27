@@ -52,3 +52,41 @@ describe("publish workflow", () => {
     for (const u of uses) expect(u, u).toMatch(/^[\w.-]+\/[\w.-]+@[0-9a-f]{40}$/);
   });
 });
+
+/**
+ * Guards for the NFRs that are measured rather than coded (CR-0013). The measurements themselves are in
+ * specs/operations.md ("Release readiness results", T-04.05); these keep a later change from undoing what makes them
+ * true, and keep the measurement recorded.
+ */
+describe("measured NFRs", () => {
+  const operations = readFileSync(join(import.meta.dirname, "../../specs/operations.md"), "utf8").replace(/\r\n/g, "\n");
+  const row = (label: string) => operations.split("\n").find((l) => l.startsWith(`| ${label}`)) ?? "";
+
+  // @req NFR-005
+  it("publishes a push by itself through to deploy, and records a measured 95th percentile of at most 10 minutes", () => {
+    expect(job("deploy")).toMatch(/needs: build\n/);
+    expect(job("deploy")).not.toMatch(/reviewers|wait-timer/);
+    expect(job("deploy")).toMatch(/concurrency:\n      group: pages\n      cancel-in-progress: false/); // a deploy is never cancelled mid-way
+    const p95 = /95th percentile (\d+(?:\.\d+)?) minutes/.exec(row("Publish time (NFR-005"))?.[1];
+    expect(p95, "operations.md records the measured publish time").toBeDefined();
+    expect(Number(p95)).toBeLessThanOrEqual(10);
+  });
+
+  // @req NFR-007
+  it("costs nothing: no secret, no paid runner, only GitHub's own Actions, and the cost check recorded", () => {
+    expect(workflow).not.toMatch(/\$\{\{\s*secrets\./);
+    for (const [, runner] of workflow.matchAll(/runs-on: (\S+)/g)) expect(runner, "a standard GitHub-hosted runner").toMatch(/^ubuntu-\d\d\.\d\d$/);
+    for (const [, action] of workflow.matchAll(/uses: ([\w.-]+)\//g)) expect(action, "an Action from GitHub itself").toBe("actions");
+    expect(row("Cost (NFR-007")).toMatch(/\*\*Pass\*\*/);
+  });
+
+  // @req NFR-012
+  it("runs no server of its own: static files, published only as the Pages artifact, with the monthly check kept", () => {
+    const config = readFileSync(join(import.meta.dirname, "../astro.config.ts"), "utf8");
+    expect(config).toMatch(/output: "static"/);
+    expect(config).not.toMatch(/adapter:/);
+    expect(job("build")).toMatch(/upload-pages-artifact@[0-9a-f]{40}.*\n\s+with:\n\s+path: \.site\/dist\n/);
+    const monthly = operations.slice(operations.indexOf("## Monthly site check"));
+    expect(monthly.split("\n").filter((l) => /^\| \d{4}-\d{2}-\d{2} \|/.test(l)).length, "at least one dated check").toBeGreaterThan(0);
+  });
+});
