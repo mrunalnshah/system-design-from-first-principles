@@ -80,6 +80,29 @@ test.describe("site shell", () => {
     await expect(page.locator("footer .copyright")).toHaveText(`© ${new Date().getUTCFullYear()} Mrunal Nirajkumar Shah`);
   });
 
+  // @req NFR-003
+  // WCAG 2.5.8 (AA): every link and button in the header and footer is at least 24 × 24 px, at this project's width,
+  // at 412 px (the phone Lighthouse emulates; axe's own rule passed while Lighthouse's failed) and at 900 px.
+  test("gives every header and footer link a target of at least 24 by 24 px, in a header no taller than 4rem", async ({ page, viewport }) => {
+    for (const width of [viewport!.width, 412, 900]) {
+      await page.setViewportSize({ width, height: 800 });
+      for (const path of PAGES) {
+        await page.goto(path);
+        const small = await page.evaluate(() =>
+          [...document.querySelectorAll("header a, header button, header summary, footer a")]
+            .filter((el) => (el as HTMLElement).offsetParent !== null)
+            .map((el) => ({ text: el.textContent!.trim(), r: el.getBoundingClientRect() }))
+            .filter(({ r }) => r.width < 24 || r.height < 24)
+            .map(({ text, r }) => `${text}: ${Math.round(r.width)} × ${Math.round(r.height)} px`),
+        );
+        expect(small, `At ${width} px on /${path}`).toEqual([]);
+        // The header's 4rem row and its 1px border: the chapter menu's bar sits right under it.
+        const height = await page.locator(".site-header").evaluate((h) => h.getBoundingClientRect().height);
+        expect(height, `header at ${width} px on /${path}`).toBeLessThanOrEqual(65.5);
+      }
+    }
+  });
+
   test("passes the accessibility check on every page it frames", async ({ page }) => {
     for (const path of PAGES) {
       await page.goto(path);

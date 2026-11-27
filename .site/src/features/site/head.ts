@@ -29,6 +29,9 @@ export function headTags(page: PageHead): HeadTag[] {
   const tags: HeadTag[] = [
     { tag: "meta", attrs: { "http-equiv": "Content-Security-Policy", content: CSP } },
     { tag: "title", text: title },
+    // No icon yet: an empty one, so browsers don't ask the host's root for /favicon.ico, which on GitHub Pages
+    // belongs to another site (a 404 in every page's console). The CSP allows data: images.
+    { tag: "link", attrs: { rel: "icon", href: "data:," } },
     { tag: "meta", attrs: { name: "description", content: page.description } },
     canonical ? { tag: "link", attrs: { rel: "canonical", href: canonical } } : { tag: "meta", attrs: { name: "robots", content: "noindex" } },
     { tag: "meta", attrs: { property: "og:site_name", content: page.book } },

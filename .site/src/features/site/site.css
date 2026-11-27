@@ -114,6 +114,17 @@ a:hover {
   line-height: 1.2;
 }
 
+/*
+ * At least 24 × 24 px to tap or click (WCAG 2.5.8): a line of the title or the byline is only 17–19 px tall. A minimum
+ * height, not padding, so a title that wraps (already taller) doesn't grow the 4rem header the chapter bar sits under.
+ */
+.brand-title,
+.byline a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 24px;
+}
+
 .byline {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
@@ -139,6 +150,8 @@ a:hover {
 .nav-inline a {
   padding: var(--space-3) var(--space-3);
   border-radius: var(--radius-sm);
+  /* "Portfolio ↗" wrapping inside its own link made the header two links tall. */
+  white-space: nowrap;
 }
 
 .nav-inline a[aria-current],
@@ -188,18 +201,29 @@ a:hover {
     padding-inline: var(--space-8);
   }
 
-  .brand {
-    flex-direction: row;
-    align-items: baseline;
-    gap: var(--space-3);
-  }
-
   .nav-inline {
     display: flex;
   }
 
   .nav-menu {
     display: none;
+  }
+}
+
+/*
+ * The title and the byline share a row only from 1100 px. Between 768 and 1100 px, beside four links, they'd wrap to
+ * two or three lines each and push the header past its 4rem, under which the chapter menu's bar sits; stacked, they fit.
+ */
+@media (min-width: 1100px) {
+  .brand {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--space-3);
+  }
+
+  .byline {
+    flex: none;
+    white-space: nowrap;
   }
 }
 

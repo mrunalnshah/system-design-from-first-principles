@@ -24,7 +24,15 @@ describe("head tags", () => {
   it("keeps pages without an address of their own out of search results", () => {
     const tags = headTags({ title: "Page not found", description: "x", book: BOOK });
     expect(tags).toContainEqual({ tag: "meta", attrs: { name: "robots", content: "noindex" } });
-    expect(tags.some((t) => t.tag === "link")).toBe(false);
+    expect(tags.some((t) => t.tag === "link" && t.attrs.rel === "canonical")).toBe(false);
+  });
+
+  it("declares the page's icon, so browsers don't ask the host's root for /favicon.ico", () => {
+    // On GitHub Pages the root belongs to another site: the request would 404 and log a console error (Lighthouse).
+    for (const route of [{ kind: "home" } as const, undefined]) {
+      const tags = headTags({ title: BOOK, description: "x", book: BOOK, ...(route ? { route } : {}) });
+      expect(tags).toContainEqual({ tag: "link", attrs: { rel: "icon", href: "data:," } });
+    }
   });
 
   it("allows only the site's own scripts, and inline styles for KaTeX and figures (security.md B4)", () => {
